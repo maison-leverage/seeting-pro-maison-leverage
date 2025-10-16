@@ -162,7 +162,8 @@ const Dashboard = () => {
                 {topProspects.map((prospect) => (
                   <div
                     key={prospect.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-card-hover border border-border/50 hover:border-primary/50 transition-all cursor-pointer"
+                    className="flex items-center justify-between p-4 rounded-lg bg-card-hover border border-border/50 hover:border-primary/50 transition-all cursor-pointer hover-scale"
+                    onClick={() => navigate(`/prospects?edit=${prospect.id}`)}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold">

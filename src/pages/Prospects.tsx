@@ -33,7 +33,24 @@ const Prospects = () => {
       return;
     }
 
+    // Check for edit parameter
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get("edit");
+    
     loadProspects();
+    
+    // Si un ID d'édition est présent, ouvrir le formulaire
+    if (editId) {
+      const stored = localStorage.getItem("crm_prospects");
+      if (stored) {
+        const loadedProspects = JSON.parse(stored);
+        const prospectToEdit = loadedProspects.find((p: Prospect) => p.id === editId);
+        if (prospectToEdit) {
+          setEditingProspect(prospectToEdit);
+          setFormOpen(true);
+        }
+      }
+    }
   }, [navigate]);
 
   useEffect(() => {
