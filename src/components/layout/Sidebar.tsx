@@ -12,6 +12,9 @@ import {
   Clock,
   XCircle,
   Pin,
+  TestTube,
+  LineChart,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -32,7 +35,16 @@ const navigation = [
     ],
   },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Templates", href: "/templates", icon: FileText },
+  {
+    name: "Templates",
+    href: "/templates",
+    icon: FileText,
+    subItems: [
+      { name: "Bibliothèque de templates", href: "/templates", icon: BookOpen },
+      { name: "A/B Tests en cours", href: "/templates/ab-tests", icon: TestTube },
+      { name: "Analytics des performances", href: "/templates/analytics", icon: LineChart },
+    ],
+  },
   { name: "Paramètres", href: "/settings", icon: Settings },
 ];
 
