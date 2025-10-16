@@ -37,17 +37,22 @@ const Prospects = () => {
   }, [navigate]);
 
   useEffect(() => {
+    console.log("🔍 Application des filtres - prospects:", prospects.length, "view:", view);
     applyFilters();
   }, [prospects, view, searchQuery, statusFilter, priorityFilter]);
 
   const loadProspects = () => {
     const stored = localStorage.getItem("crm_prospects");
+    console.log("📦 Données localStorage:", stored);
     if (stored) {
-      const loadedProspects = JSON.parse(stored).map((p: any) => ({
+      const parsed = JSON.parse(stored);
+      console.log("📊 Prospects parsés:", parsed);
+      const loadedProspects = parsed.map((p: any) => ({
         ...p,
         // Assurer que followUpCount existe (migration pour anciens prospects)
         followUpCount: p.followUpCount ?? 0,
       }));
+      console.log("✅ Prospects après migration:", loadedProspects);
       setProspects(loadedProspects);
 
       // Calculate today count
@@ -56,6 +61,8 @@ const Prospects = () => {
         (p: Prospect) => p.reminderDate && p.reminderDate.split("T")[0] <= today
       ).length;
       setTodayCount(count);
+    } else {
+      console.log("❌ Aucun prospect dans localStorage");
     }
   };
 
@@ -114,6 +121,7 @@ const Prospects = () => {
     // Sort by score
     filtered.sort((a, b) => b.score - a.score);
 
+    console.log("🎯 Prospects filtrés:", filtered.length);
     setFilteredProspects(filtered);
   };
 
