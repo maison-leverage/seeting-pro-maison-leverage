@@ -28,7 +28,7 @@ const Auth = () => {
       if (user) {
         localStorage.setItem("crm_user", JSON.stringify(user));
         toast.success(`Bienvenue ${user.name} ! 👋`);
-        navigate("/");
+        navigate("/prospects");
       } else {
         toast.error("Email ou mot de passe incorrect");
       }
@@ -37,8 +37,18 @@ const Auth = () => {
   };
 
   const quickLogin = (userEmail: string) => {
-    setEmail(userEmail);
-    setPassword("admin123");
+    setLoading(true);
+    
+    setTimeout(() => {
+      const user = USERS.find((u) => u.email === userEmail);
+      
+      if (user) {
+        localStorage.setItem("crm_user", JSON.stringify(user));
+        toast.success(`Bienvenue ${user.name} ! 👋`);
+        navigate("/prospects");
+      }
+      setLoading(false);
+    }, 800);
   };
 
   return (
