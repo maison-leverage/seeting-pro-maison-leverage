@@ -43,7 +43,11 @@ const Prospects = () => {
   const loadProspects = () => {
     const stored = localStorage.getItem("crm_prospects");
     if (stored) {
-      const loadedProspects = JSON.parse(stored);
+      const loadedProspects = JSON.parse(stored).map((p: any) => ({
+        ...p,
+        // Assurer que followUpCount existe (migration pour anciens prospects)
+        followUpCount: p.followUpCount ?? 0,
+      }));
       setProspects(loadedProspects);
 
       // Calculate today count
