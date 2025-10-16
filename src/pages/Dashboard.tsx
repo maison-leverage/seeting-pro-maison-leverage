@@ -166,12 +166,11 @@ const Dashboard = () => {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold">
-                        {prospect.firstName[0]}
-                        {prospect.lastName[0]}
+                        {prospect.fullName.split(" ").slice(0, 2).map(n => n[0]).join("")}
                       </div>
                       <div>
                         <p className="font-medium">
-                          {prospect.firstName} {prospect.lastName}
+                          {prospect.fullName}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {prospect.position} chez {prospect.company}

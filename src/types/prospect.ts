@@ -37,12 +37,10 @@ export interface ProspectHistory {
 
 export interface Prospect {
   id: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   company: string;
   position: string;
   linkedinUrl: string;
-  photoUrl?: string;
   status: ProspectStatus;
   priority: ProspectPriority;
   qualification: ProspectQualification;

@@ -23,12 +23,10 @@ interface ProspectFormProps {
 const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFormProps) => {
   const [formData, setFormData] = useState<Partial<Prospect>>(
     initialData || {
-      firstName: "",
-      lastName: "",
+      fullName: "",
       company: "",
       position: "",
       linkedinUrl: "",
-      photoUrl: "",
       status: "nouveau",
       priority: "moyenne",
       qualification: "a_evaluer",
@@ -46,12 +44,10 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
         setReminderDate(initialData.reminderDate ? new Date(initialData.reminderDate) : undefined);
       } else {
         setFormData({
-          firstName: "",
-          lastName: "",
+          fullName: "",
           company: "",
           position: "",
           linkedinUrl: "",
-          photoUrl: "",
           status: "nouveau",
           priority: "moyenne",
           qualification: "a_evaluer",
@@ -64,8 +60,8 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.firstName || !formData.lastName || !formData.company) {
-      toast.error("Prénom, nom et entreprise sont obligatoires");
+    if (!formData.fullName || !formData.company) {
+      toast.error("Nom complet et entreprise sont obligatoires");
       return;
     }
 
@@ -110,27 +106,15 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
 
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
           {/* Informations de base */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Prénom *</Label>
-              <Input
-                value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                placeholder="Stefan"
-                className="bg-input border-border/50"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nom *</Label>
-              <Input
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                placeholder="Stübing"
-                className="bg-input border-border/50"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Nom complet *</Label>
+            <Input
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              placeholder="Stefan Stübing"
+              className="bg-input border-border/50"
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -162,17 +146,6 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
               value={formData.linkedinUrl}
               onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
               placeholder="https://linkedin.com/in/..."
-              className="bg-input border-border/50"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>URL Photo de profil (optionnel)</Label>
-            <Input
-              type="url"
-              value={formData.photoUrl}
-              onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-              placeholder="https://..."
               className="bg-input border-border/50"
             />
           </div>

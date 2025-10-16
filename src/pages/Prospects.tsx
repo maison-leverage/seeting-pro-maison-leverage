@@ -91,8 +91,7 @@ const Prospects = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (p) =>
-          p.firstName.toLowerCase().includes(query) ||
-          p.lastName.toLowerCase().includes(query) ||
+          p.fullName.toLowerCase().includes(query) ||
           p.company.toLowerCase().includes(query) ||
           p.position.toLowerCase().includes(query)
       );
@@ -143,12 +142,10 @@ const Prospects = () => {
       // Create new
       const newProspect: Prospect = updateProspectScore({
         id: Date.now().toString(),
-        firstName: prospectData.firstName!,
-        lastName: prospectData.lastName!,
+        fullName: prospectData.fullName!,
         company: prospectData.company!,
         position: prospectData.position || "",
         linkedinUrl: prospectData.linkedinUrl || "",
-        photoUrl: prospectData.photoUrl,
         status: prospectData.status || "nouveau",
         priority: prospectData.priority || "moyenne",
         qualification: prospectData.qualification || "a_evaluer",
@@ -186,11 +183,10 @@ const Prospects = () => {
 
   const handleExport = () => {
     const csv = [
-      ["Prénom", "Nom", "Entreprise", "Poste", "LinkedIn", "Statut", "Priorité", "Score"].join(","),
+      ["Nom complet", "Entreprise", "Poste", "LinkedIn", "Statut", "Priorité", "Score"].join(","),
       ...filteredProspects.map((p) =>
         [
-          p.firstName,
-          p.lastName,
+          p.fullName,
           p.company,
           p.position,
           p.linkedinUrl,

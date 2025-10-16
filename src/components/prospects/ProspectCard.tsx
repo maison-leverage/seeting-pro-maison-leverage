@@ -61,14 +61,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
       <div className="flex items-start gap-4">
         {/* Avatar */}
         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xl shrink-0">
-          {prospect.photoUrl ? (
-            <img src={prospect.photoUrl} alt={prospect.firstName} className="w-full h-full rounded-full object-cover" />
-          ) : (
-            <>
-              {prospect.firstName[0]}
-              {prospect.lastName[0]}
-            </>
-          )}
+          {prospect.fullName.split(" ").slice(0, 2).map(n => n[0]).join("")}
         </div>
 
         {/* Content */}
@@ -77,7 +70,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <h3 className="text-xl font-bold mb-1">
-                {prospect.firstName} {prospect.lastName}
+                {prospect.fullName}
               </h3>
               <p className="text-muted-foreground text-sm">
                 {prospect.position} {prospect.position && prospect.company && "chez"} {prospect.company}
