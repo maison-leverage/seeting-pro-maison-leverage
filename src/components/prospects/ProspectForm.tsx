@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,29 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
   const [reminderDate, setReminderDate] = useState<Date | undefined>(
     initialData?.reminderDate ? new Date(initialData.reminderDate) : undefined
   );
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setFormData(initialData);
+        setReminderDate(initialData.reminderDate ? new Date(initialData.reminderDate) : undefined);
+      } else {
+        setFormData({
+          firstName: "",
+          lastName: "",
+          company: "",
+          position: "",
+          linkedinUrl: "",
+          photoUrl: "",
+          status: "nouveau",
+          priority: "moyenne",
+          qualification: "a_evaluer",
+        });
+        setReminderDate(undefined);
+      }
+    }
+  }, [open, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +103,9 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             {initialData ? "Modifier le prospect" : "Nouveau prospect"}
           </DialogTitle>
+          <DialogDescription>
+            {initialData ? "Modifiez les informations du prospect" : "Ajoutez un nouveau prospect à votre CRM"}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
