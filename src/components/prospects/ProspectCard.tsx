@@ -12,13 +12,27 @@ interface ProspectCardProps {
   onDelete: (id: string) => void;
 }
 
+const getStatusLabel = (status: string, followUpCount: number) => {
+  const baseLabels = {
+    nouveau: "🆕 Nouveau",
+    contacte: "💬 Contacté",
+    discussion: "🗣️ En discussion",
+    qualifie: "✅ Qualifié",
+    gagne: "🎯 Gagné",
+    perdu: "❌ Perdu",
+  };
+  
+  const label = baseLabels[status as keyof typeof baseLabels] || status;
+  return followUpCount > 0 ? `${label} (${followUpCount} relance${followUpCount > 1 ? 's' : ''})` : label;
+};
+
 const statusConfig = {
-  nouveau: { label: "🆕 Nouveau", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  contacte: { label: "💬 Contacté", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-  discussion: { label: "🗣️ En discussion", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  qualifie: { label: "✅ Qualifié", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-  gagne: { label: "🎯 Gagné", color: "bg-green-600/20 text-green-400 border-green-600/30" },
-  perdu: { label: "❌ Perdu", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  nouveau: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  contacte: { color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  discussion: { color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  qualifie: { color: "bg-green-500/20 text-green-400 border-green-500/30" },
+  gagne: { color: "bg-green-600/20 text-green-400 border-green-600/30" },
+  perdu: { color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
 const priorityConfig = {
@@ -47,9 +61,10 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
 
   return (
     <Card
-      className={`p-6 border-border/50 hover:border-primary/50 transition-all hover-scale relative ${
+      className={`p-6 border-border/50 hover:border-primary/50 transition-all hover-scale relative cursor-pointer ${
         hasReminderToday ? "border-destructive/50 glow-secondary" : ""
       }`}
+      onClick={() => onEdit(prospect)}
     >
       {/* Badge reminder */}
       {hasReminderToday && (
@@ -85,7 +100,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
           {/* Badges */}
           <div className="flex flex-wrap gap-2 mb-4">
             <Badge variant="outline" className={statusConfig[prospect.status].color}>
-              {statusConfig[prospect.status].label}
+              {getStatusLabel(prospect.status, prospect.followUpCount)}
             </Badge>
             <Badge variant="outline" className={priorityConfig[prospect.priority].color}>
               {priorityConfig[prospect.priority].label}
@@ -130,7 +145,10 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onEdit(prospect)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(prospect);
+              }}
               className="border-border/50 hover:border-primary hover:bg-primary/10"
             >
               <Edit className="w-4 h-4 mr-2" />
@@ -139,7 +157,10 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onDelete(prospect.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(prospect.id);
+              }}
               className="border-border/50 hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <Trash2 className="w-4 h-4 mr-2" />

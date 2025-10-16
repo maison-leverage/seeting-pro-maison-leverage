@@ -157,6 +157,7 @@ const Prospects = () => {
         createdAt: prospectData.createdAt!,
         updatedAt: prospectData.updatedAt!,
         score: 0,
+        followUpCount: 0,
       });
 
       const updated = [...prospects, newProspect];

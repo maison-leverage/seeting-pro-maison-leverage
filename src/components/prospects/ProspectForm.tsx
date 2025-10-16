@@ -30,6 +30,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
       status: "nouveau",
       priority: "moyenne",
       qualification: "a_evaluer",
+      followUpCount: 0,
     }
   );
   const [reminderDate, setReminderDate] = useState<Date | undefined>(
@@ -51,6 +52,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           status: "nouveau",
           priority: "moyenne",
           qualification: "a_evaluer",
+          followUpCount: 0,
         });
         setReminderDate(undefined);
       }
@@ -84,6 +86,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           createdBy: user.name,
         }],
         score: 0,
+        followUpCount: 0,
       }),
     };
 
