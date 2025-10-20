@@ -5,11 +5,22 @@ export const calculateTemplateMetrics = (template: Template): TemplateMetrics =>
   const responseRate = sends > 0 ? (responses / sends) * 100 : 0;
   const callRate = responses > 0 ? (calls / responses) * 100 : 0;
   
-  let rating = 1;
-  if (responseRate > 35 && callRate > 15) rating = 5;
-  else if (responseRate > 25 || callRate > 12) rating = 4;
-  else if (responseRate > 15 || callRate > 8) rating = 3;
-  else if (responseRate > 10 || callRate > 5) rating = 2;
+  // Calcul du score de performance brut
+  let performanceScore = 1;
+  if (responseRate > 35 && callRate > 15) performanceScore = 5;
+  else if (responseRate > 25 || callRate > 12) performanceScore = 4;
+  else if (responseRate > 15 || callRate > 8) performanceScore = 3;
+  else if (responseRate > 10 || callRate > 5) performanceScore = 2;
+
+  // Pondération par le volume (facteur de confiance statistique)
+  let volumeMultiplier = 1.0;
+  if (sends < 10) volumeMultiplier = 0.4;        // -60% de fiabilité
+  else if (sends < 30) volumeMultiplier = 0.7;   // -30% de fiabilité
+  else if (sends < 100) volumeMultiplier = 0.9;  // -10% de fiabilité
+  else volumeMultiplier = 1.0;                    // Pleine confiance
+  
+  // Rating final = performance × volume
+  const finalRating = Math.max(1, Math.round(performanceScore * volumeMultiplier));
 
   return {
     sends,
@@ -17,7 +28,7 @@ export const calculateTemplateMetrics = (template: Template): TemplateMetrics =>
     calls,
     responseRate: Math.round(responseRate * 10) / 10,
     callRate: Math.round(callRate * 10) / 10,
-    rating,
+    rating: finalRating,
   };
 };
 
@@ -66,4 +77,11 @@ export const getCategoryColor = (category: string): string => {
     reactivation: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
   };
   return colors[category] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
+};
+
+export const getStatisticalConfidence = (sends: number): { label: string; color: string; variant: "default" | "secondary" | "outline" | "destructive" } => {
+  if (sends >= 100) return { label: "✅ Fiable", color: "bg-green-500/10 text-green-400 border-green-500/20", variant: "default" };
+  if (sends >= 30) return { label: "🟡 À confirmer", color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20", variant: "secondary" };
+  if (sends >= 10) return { label: "🟠 Test en cours", color: "bg-orange-500/10 text-orange-400 border-orange-500/20", variant: "outline" };
+  return { label: "⚠️ Données insuffisantes", color: "bg-red-500/10 text-red-400 border-red-500/20", variant: "destructive" };
 };

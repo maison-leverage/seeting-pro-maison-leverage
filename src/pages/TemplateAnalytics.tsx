@@ -28,6 +28,11 @@ const TemplateAnalytics = () => {
   };
 
   const activeTemplates = templates.filter((t) => t.status === "actif");
+  
+  // Calculs de volume
+  const totalSends = templates.reduce((sum, t) => sum + t.metrics.sends, 0);
+  const avgSendsPerTemplate = templates.length > 0 ? totalSends / templates.length : 0;
+  
   const avgResponseRate =
     activeTemplates.length > 0
       ? activeTemplates.reduce((sum, t) => sum + t.metrics.responseRate, 0) / activeTemplates.length
@@ -37,13 +42,22 @@ const TemplateAnalytics = () => {
       ? activeTemplates.reduce((sum, t) => sum + t.metrics.callRate, 0) / activeTemplates.length
       : 0;
 
+  // Top Performers avec pondération par volume et focus sur call rate
   const topPerformers = [...templates]
+    .filter(t => t.metrics.sends >= 30) // Minimum de significativité
     .sort((a, b) => {
-      const scoreA = a.metrics.responseRate + a.metrics.callRate;
-      const scoreB = b.metrics.responseRate + b.metrics.callRate;
+      // Pondération : 60% call rate, 30% response rate, 10% volume normalisé
+      const scoreA = (a.metrics.callRate * 0.6) + (a.metrics.responseRate * 0.3) + (Math.min(a.metrics.sends / 10, 10) * 0.1);
+      const scoreB = (b.metrics.callRate * 0.6) + (b.metrics.responseRate * 0.3) + (Math.min(b.metrics.sends / 10, 10) * 0.1);
       return scoreB - scoreA;
     })
     .slice(0, 3);
+
+  // Templates éprouvés et performants
+  const provenPerformers = templates.filter(t => 
+    t.metrics.sends >= 100 && 
+    t.metrics.callRate >= 15
+  );
 
   const needsOptimization = templates.filter((t) => t.metrics.responseRate < 15 && t.metrics.sends > 10);
 
@@ -65,7 +79,7 @@ const TemplateAnalytics = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="text-sm text-muted-foreground mb-1">Templates totaux</div>
               <div className="text-3xl font-bold">{templates.length}</div>
@@ -73,6 +87,11 @@ const TemplateAnalytics = () => {
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="text-sm text-muted-foreground mb-1">Templates actifs</div>
               <div className="text-3xl font-bold text-green-400">{activeTemplates.length}</div>
+            </Card>
+            <Card className="p-6 border-border/50 bg-card/50">
+              <div className="text-sm text-muted-foreground mb-1">Envois totaux</div>
+              <div className="text-3xl font-bold text-orange-400">{totalSends}</div>
+              <div className="text-xs text-muted-foreground mt-1">~{avgSendsPerTemplate.toFixed(0)}/template</div>
             </Card>
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="text-sm text-muted-foreground mb-1">Taux réponse moyen</div>
@@ -86,8 +105,9 @@ const TemplateAnalytics = () => {
 
           <Card className="p-6 border-border/50 bg-card/50">
             <h2 className="text-xl font-semibold mb-6">🏆 Top 3 Performers</h2>
+            <p className="text-sm text-muted-foreground mb-4">Basé sur le taux d'appels (60%), le taux de réponse (30%) et le volume (10%)</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {topPerformers.map((template, index) => {
+              {topPerformers.length > 0 ? topPerformers.map((template, index) => {
                 const categoryInfo = TEMPLATE_CATEGORIES.find((c) => c.value === template.category);
                 const medals = ["🥇", "🥈", "🥉"];
                 return (
@@ -95,7 +115,7 @@ const TemplateAnalytics = () => {
                     <div className="text-4xl mb-2">{medals[index]}</div>
                     <div className="font-semibold mb-1">{template.name}</div>
                     <div className="text-xs text-muted-foreground mb-3">
-                      {categoryInfo?.emoji} {categoryInfo?.label}
+                      {categoryInfo?.emoji} {categoryInfo?.label} • {template.metrics.sends} envois
                     </div>
                     <div className="text-2xl font-bold text-blue-400">{template.metrics.responseRate}%</div>
                     <div className="text-xs text-muted-foreground">réponse</div>
@@ -103,9 +123,44 @@ const TemplateAnalytics = () => {
                     <div className="text-xs text-muted-foreground">call</div>
                   </Card>
                 );
-              })}
+              }) : (
+                <div className="col-span-3 text-center text-muted-foreground py-8">
+                  Aucun template avec au moins 30 envois pour calculer le top performers
+                </div>
+              )}
             </div>
           </Card>
+
+          {provenPerformers.length > 0 && (
+            <Card className="p-6 border-border/50 bg-card/50">
+              <h2 className="text-xl font-semibold mb-4">✅ Templates éprouvés et performants</h2>
+              <p className="text-muted-foreground mb-4">
+                Ces templates ont fait leurs preuves avec plus de 100 envois et un excellent taux d'appels (&ge;15%)
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {provenPerformers.map((template) => {
+                  const categoryInfo = TEMPLATE_CATEGORIES.find((c) => c.value === template.category);
+                  const stars = "⭐".repeat(template.metrics.rating);
+                  return (
+                    <Card key={template.id} className="p-4 bg-background/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Trophy className="h-5 w-5 text-yellow-500" />
+                        <div className="font-semibold">{template.name}</div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-3">
+                        {categoryInfo?.emoji} {categoryInfo?.label} • {template.metrics.sends} envois
+                      </div>
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="text-yellow-500">{stars}</span>
+                        <span className="text-green-400 font-bold">{template.metrics.callRate}% call</span>
+                        <span className="text-blue-400">{template.metrics.responseRate}% rép.</span>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           {needsOptimization.length > 0 && (
             <Card className="p-6 border-border/50 bg-card/50">

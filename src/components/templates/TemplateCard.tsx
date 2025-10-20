@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Copy, Edit, BarChart3, MoreVertical, Trophy } from "lucide-react";
-import { getCategoryColor, getTemplatePreview } from "@/utils/templateUtils";
+import { getCategoryColor, getTemplatePreview, getStatisticalConfidence } from "@/utils/templateUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,7 @@ const TemplateCard = ({
 }: TemplateCardProps) => {
   const categoryInfo = TEMPLATE_CATEGORIES.find((c) => c.value === template.category);
   const stars = "⭐".repeat(template.metrics.rating);
+  const confidence = getStatisticalConfidence(template.metrics.sends);
 
   return (
     <Card className="p-4 hover:shadow-glow transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm animate-fade-in group">
@@ -42,9 +43,14 @@ const TemplateCard = ({
                 <Trophy className="h-4 w-4 text-yellow-500" />
               )}
             </div>
-            <Badge className={`${getCategoryColor(template.category)} border`}>
-              {categoryInfo?.emoji} {categoryInfo?.label}
-            </Badge>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className={`${getCategoryColor(template.category)} border`}>
+                {categoryInfo?.emoji} {categoryInfo?.label}
+              </Badge>
+              <Badge variant={confidence.variant} className={confidence.color}>
+                {confidence.label}
+              </Badge>
+            </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -71,8 +77,11 @@ const TemplateCard = ({
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-3 text-sm flex-wrap">
           <span className="text-yellow-500">{stars}</span>
+          <Badge variant="outline" className="text-xs">
+            📊 {template.metrics.sends} envois
+          </Badge>
           <span className="text-muted-foreground">
             {template.metrics.responseRate}% réponse | {template.metrics.callRate}% call
           </span>
