@@ -1,6 +1,7 @@
 import { Search, Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   onNewProspect?: () => void;
@@ -8,6 +9,8 @@ interface HeaderProps {
 }
 
 const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
+  const navigate = useNavigate();
+
   return (
     <header className="h-16 border-b border-border bg-card/50 backdrop-blur-lg sticky top-0 z-40">
       <div className="h-full px-6 flex items-center justify-between gap-6">
@@ -29,6 +32,7 @@ const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
           <Button
             variant="outline"
             size="icon"
+            onClick={() => navigate("/prospects?view=today")}
             className="relative border-border/50 hover:border-primary hover:bg-primary/10 transition-all"
           >
             <Bell className="w-5 h-5" />

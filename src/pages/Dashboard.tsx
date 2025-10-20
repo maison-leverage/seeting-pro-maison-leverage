@@ -94,7 +94,14 @@ const Dashboard = () => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stats.map((stat, index) => <Card key={index} className={`p-6 border-border/50 hover:border-primary/50 transition-all hover-scale cursor-pointer ${stat.glow || ""}`}>
+            {stats.map((stat, index) => <Card 
+              key={index} 
+              onClick={() => {
+                if (stat.label === "À relancer aujourd'hui") {
+                  navigate("/prospects?view=today");
+                }
+              }}
+              className={`p-6 border-border/50 hover:border-primary/50 transition-all hover-scale cursor-pointer ${stat.glow || ""}`}>
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">
