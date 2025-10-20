@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Prospect } from "@/types/prospect";
 import { Template } from "@/types/template";
-import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award } from "lucide-react";
+import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award, MessageSquare, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { 
   startOfMonth, 
@@ -76,15 +76,29 @@ const Analytics = () => {
 
   const dateRange = getDateRange();
 
-  // Filtrer les prospects par date
-  const filteredProspects = prospects.filter((p) => {
-    if (dateFilter === "all") return true;
-    const prospectDate = new Date(p.createdAt);
-    return isWithinInterval(prospectDate, { start: dateRange.start, end: dateRange.end });
+  // NOUVELLES CONVERSATIONS = prospects créés dans la période
+  const newConversations = prospects.filter((p) => {
+    if (dateFilter === "all") return prospects;
+    const createdDate = new Date(p.createdAt);
+    return isWithinInterval(createdDate, { start: dateRange.start, end: dateRange.end });
   });
 
-  // Calculer les R1 bookés
-  const r1Booked = filteredProspects.filter((p) => p.status === "r1_programme").length;
+  // R1 BOOKÉS issus de ces nouvelles conversations
+  const r1FromNewConversations = newConversations.filter(
+    (p) => p.status === "r1_programme"
+  );
+
+  // Taux de conversion réel : nouvelles conversations → R1
+  const realConversionRate = newConversations.length > 0 
+    ? (r1FromNewConversations.length / newConversations.length) * 100
+    : 0;
+
+  // Projection : doubler les conversations
+  const projectedConversations = newConversations.length * 2;
+  const projectedR1 = Math.round(projectedConversations * (realConversionRate / 100));
+
+  // Pour la compatibilité avec le reste du code (répartition hype)
+  const filteredProspects = newConversations;
 
   // Statistiques par hype
   const byHype = {
@@ -92,11 +106,6 @@ const Analytics = () => {
     tiede: filteredProspects.filter((p) => p.hype === "tiede").length,
     chaud: filteredProspects.filter((p) => p.hype === "chaud").length,
   };
-
-  // Taux de conversion vers R1
-  const conversionRate = filteredProspects.length > 0 
-    ? ((r1Booked / filteredProspects.length) * 100).toFixed(1)
-    : "0";
 
   // Filtrer les templates utilisés dans la période
   const templatesWithActivity = templates.map((t) => {
@@ -183,14 +192,27 @@ const Analytics = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-purple-500/10">
+                  <MessageSquare className="h-5 w-5 text-purple-500" />
+                </div>
+                <div className="text-sm text-muted-foreground">Nouvelles conversations</div>
+              </div>
+              <div className="text-4xl font-bold text-purple-400">{newConversations.length}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                premiers messages envoyés
+              </div>
+            </Card>
+
+            <Card className="p-6 border-border/50 bg-card/50">
+              <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 rounded-lg bg-green-500/10">
                   <Phone className="h-5 w-5 text-green-500" />
                 </div>
                 <div className="text-sm text-muted-foreground">R1 Bookés</div>
               </div>
-              <div className="text-4xl font-bold text-green-400">{r1Booked}</div>
+              <div className="text-4xl font-bold text-green-400">{r1FromNewConversations.length}</div>
               <div className="text-xs text-muted-foreground mt-1">
-                sur {filteredProspects.length} prospects
+                issus de ces conversations
               </div>
             </Card>
 
@@ -199,24 +221,11 @@ const Analytics = () => {
                 <div className="p-2 rounded-lg bg-blue-500/10">
                   <TrendingUp className="h-5 w-5 text-blue-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">Taux conversion</div>
+                <div className="text-sm text-muted-foreground">Taux de conversion</div>
               </div>
-              <div className="text-4xl font-bold text-blue-400">{conversionRate}%</div>
+              <div className="text-4xl font-bold text-blue-400">{realConversionRate.toFixed(1)}%</div>
               <div className="text-xs text-muted-foreground mt-1">
-                vers R1
-              </div>
-            </Card>
-
-            <Card className="p-6 border-border/50 bg-card/50">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <Users className="h-5 w-5 text-purple-500" />
-                </div>
-                <div className="text-sm text-muted-foreground">Total prospects</div>
-              </div>
-              <div className="text-4xl font-bold text-purple-400">{filteredProspects.length}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                dans la période
+                conversations → R1
               </div>
             </Card>
 
@@ -233,6 +242,50 @@ const Analytics = () => {
               </div>
             </Card>
           </div>
+
+          {/* Projection de performance */}
+          {newConversations.length > 0 && (
+            <Card className="p-6 border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Projection de performance
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-4 bg-background/50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="text-sm text-muted-foreground mb-1">Performance actuelle</div>
+                    <div className="text-2xl font-bold">
+                      {newConversations.length} conversations → {r1FromNewConversations.length} R1
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Soit {realConversionRate.toFixed(1)}% de taux de conversion
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex-1">
+                    <div className="text-sm text-muted-foreground mb-1">📈 Si vous doublez vos conversations</div>
+                    <div className="text-2xl font-bold text-primary">
+                      {projectedConversations} conversations → ~{projectedR1} R1
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Projection basée sur votre taux actuel
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-background/50 rounded-lg border border-border/50">
+                  <div className="text-sm font-medium mb-2">💡 Pour améliorer vos résultats :</div>
+                  <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                    <li>• Augmentez le nombre de conversations (premiers messages)</li>
+                    <li>• Optimisez vos templates dans la section Templates</li>
+                    <li>• Analysez vos meilleurs messages ci-dessous</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Répartition par hype */}
           <Card className="p-6 border-border/50 bg-card/50">
