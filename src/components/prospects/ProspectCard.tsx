@@ -46,6 +46,12 @@ const qualificationConfig = {
   magnus_opus: { label: "💎 Magnus Opus", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
 };
 
+const hypeConfig = {
+  froid: { label: "❄️ Froid", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+  tiede: { label: "🌤️ Tiède", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  chaud: { label: "🔥 Chaud", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+};
+
 const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
   const isReminderToday = () => {
     if (!prospect.reminderDate) return false;
@@ -93,6 +99,9 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
           </Badge>
           <Badge variant="outline" className={qualificationConfig[prospect.qualification].color}>
             {qualificationConfig[prospect.qualification].label}
+          </Badge>
+          <Badge variant="outline" className={hypeConfig[prospect.hype].color}>
+            {hypeConfig[prospect.hype].label}
           </Badge>
         </div>
 
