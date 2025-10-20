@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Download, Filter } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 
 const Prospects = () => {
   const navigate = useNavigate();
@@ -38,6 +38,17 @@ const Prospects = () => {
   useEffect(() => {
     applyFilters();
   }, [prospects, view, searchQuery, statusFilter, priorityFilter]);
+
+  useEffect(() => {
+    // Check if we should open the form (from "Nouveau prospect" button)
+    const shouldOpenForm = searchParams.get("new");
+    if (shouldOpenForm === "true") {
+      setEditingProspect(undefined);
+      setFormOpen(true);
+      // Clear the query param
+      navigate("/prospects?view=" + view, { replace: true });
+    }
+  }, [searchParams, navigate, view]);
 
   const loadProspects = () => {
     const stored = localStorage.getItem("crm_prospects");
@@ -197,30 +208,6 @@ const Prospects = () => {
     toast.success("Prospect supprimé");
   };
 
-  const handleExport = () => {
-    const csv = [
-      ["Nom complet", "Entreprise", "Poste", "LinkedIn", "Statut", "Priorité"].join(","),
-      ...filteredProspects.map((p) =>
-        [
-          p.fullName,
-          p.company,
-          p.position,
-          p.linkedinUrl,
-          p.status,
-          p.priority,
-        ].join(",")
-      ),
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `prospects-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    toast.success("Export réussi !");
-  };
-
   const getViewTitle = () => {
     switch (view) {
       case "today":
@@ -257,14 +244,6 @@ const Prospects = () => {
                 {filteredProspects.length} prospect{filteredProspects.length > 1 ? "s" : ""}
               </p>
             </div>
-            <Button
-              onClick={handleExport}
-              variant="outline"
-              className="border-border/50 hover:border-primary hover:bg-primary/10"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Exporter CSV
-            </Button>
           </div>
 
           {/* Filters */}
