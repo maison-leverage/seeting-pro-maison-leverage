@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
 import { Template, TEMPLATE_SEQUENCES, TemplateSequence } from "@/types/template";
 import { Prospect } from "@/types/prospect";
 import { updateTemplateMetrics } from "@/utils/templateUtils";
+import { exportTemplatesToCSV } from "@/utils/exportUtils";
 import TemplateCard from "@/components/templates/TemplateCard";
 import TemplateForm from "@/components/templates/TemplateForm";
 import TemplateCopyModal from "@/components/templates/TemplateCopyModal";
@@ -220,6 +221,28 @@ const Templates = () => {
     }
   };
 
+  const handleDuplicate = (template: Template) => {
+    const duplicated: Template = {
+      ...template,
+      id: Date.now().toString(),
+      name: `${template.name} (copie)`,
+      metrics: {
+        sends: 0,
+        responses: 0,
+        calls: 0,
+        responseRate: 0,
+        callRate: 0,
+        rating: 1,
+      },
+      usageHistory: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    saveTemplates([...templates, duplicated]);
+    toast({ title: "Template dupliqué", description: "Tu peux maintenant le modifier" });
+  };
+
   return (
     <div className="min-h-screen flex w-full bg-background">
       <Sidebar />
@@ -235,15 +258,24 @@ const Templates = () => {
                 Gérez vos séquences de messages par numéro
               </p>
             </div>
-            <Button
-              onClick={() => {
-                setSelectedTemplate(null);
-                setIsFormOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nouveau template
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => exportTemplatesToCSV(templates)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button
+                onClick={() => {
+                  setSelectedTemplate(null);
+                  setIsFormOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nouveau template
+              </Button>
+            </div>
           </div>
 
           <div className="relative">
@@ -328,6 +360,7 @@ const Templates = () => {
                             setIsStatsModalOpen(true);
                           }}
                           onDelete={handleDelete}
+                          onDuplicate={handleDuplicate}
                         />
                       ))}
                     </div>

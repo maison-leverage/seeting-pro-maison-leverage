@@ -1,7 +1,11 @@
-import { Search, Plus, Bell } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import AlertCenter from "@/components/alerts/AlertCenter";
+import { Prospect } from "@/types/prospect";
+import { Template } from "@/types/template";
 
 interface HeaderProps {
   onNewProspect?: () => void;
@@ -10,6 +14,15 @@ interface HeaderProps {
 
 const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
   const navigate = useNavigate();
+  const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+
+  useEffect(() => {
+    const storedProspects = localStorage.getItem("crm_prospects");
+    const storedTemplates = localStorage.getItem("crm_templates");
+    if (storedProspects) setProspects(JSON.parse(storedProspects));
+    if (storedTemplates) setTemplates(JSON.parse(storedTemplates));
+  }, []);
 
   return (
     <header className="h-16 border-b border-border bg-card/50 backdrop-blur-lg sticky top-0 z-40">
@@ -28,20 +41,8 @@ const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/prospects?view=today")}
-            className="relative border-border/50 hover:border-primary hover:bg-primary/10 transition-all"
-          >
-            <Bell className="w-5 h-5" />
-            {notificationCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                {notificationCount}
-              </span>
-            )}
-          </Button>
+          {/* Notifications/Alerts */}
+          <AlertCenter prospects={prospects} templates={templates} />
 
           {/* New Prospect */}
           <Button

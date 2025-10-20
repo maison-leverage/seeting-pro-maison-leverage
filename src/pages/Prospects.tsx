@@ -9,7 +9,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Download } from "lucide-react";
+import { exportProspectsToCSV } from "@/utils/exportUtils";
+import { Template } from "@/types/template";
 
 const Prospects = () => {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ const Prospects = () => {
   const view = searchParams.get("view") || "all";
 
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [filteredProspects, setFilteredProspects] = useState<Prospect[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | undefined>();
@@ -52,6 +55,8 @@ const Prospects = () => {
 
   const loadProspects = () => {
     const stored = localStorage.getItem("crm_prospects");
+    const storedTemplates = localStorage.getItem("crm_templates");
+    
     if (stored) {
       const loadedProspects = JSON.parse(stored).map((p: any) => ({
         ...p,
@@ -70,6 +75,10 @@ const Prospects = () => {
         return reminder <= today;
       }).length;
       setTodayCount(count);
+    }
+    
+    if (storedTemplates) {
+      setTemplates(JSON.parse(storedTemplates));
     }
   };
 
@@ -244,6 +253,13 @@ const Prospects = () => {
                 {filteredProspects.length} prospect{filteredProspects.length > 1 ? "s" : ""}
               </p>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => exportProspectsToCSV(prospects)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
           </div>
 
           {/* Filters */}
@@ -312,8 +328,20 @@ const Prospects = () => {
                 <ProspectCard
                   key={prospect.id}
                   prospect={prospect}
+                  templates={templates}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onUpdateTemplates={(updated) => {
+                    setTemplates(updated);
+                    localStorage.setItem("crm_templates", JSON.stringify(updated));
+                  }}
+                  onUpdateProspect={(updated) => {
+                    const updatedProspects = prospects.map((p) =>
+                      p.id === updated.id ? updated : p
+                    );
+                    setProspects(updatedProspects);
+                    localStorage.setItem("crm_prospects", JSON.stringify(updatedProspects));
+                  }}
                 />
               ))}
             </div>

@@ -2,8 +2,8 @@ import { Template, TEMPLATE_SEQUENCES } from "@/types/template";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, Edit, BarChart3, MoreVertical } from "lucide-react";
-import { getSequenceColor, getTemplatePreview, getStatisticalConfidence } from "@/utils/templateUtils";
+import { Copy, Edit, BarChart3, MoreVertical, Files } from "lucide-react";
+import { getSequenceColor, getTemplatePreview, getStatisticalConfidence, getTemplateRecommendation } from "@/utils/templateUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ interface TemplateCardProps {
   onEdit: (template: Template) => void;
   onStats: (template: Template) => void;
   onDelete: (template: Template) => void;
+  onDuplicate?: (template: Template) => void;
 }
 
 const TemplateCard = ({
@@ -25,10 +26,12 @@ const TemplateCard = ({
   onEdit,
   onStats,
   onDelete,
+  onDuplicate,
 }: TemplateCardProps) => {
   const sequenceInfo = TEMPLATE_SEQUENCES.find((s) => s.value === template.sequence);
   const stars = "⭐".repeat(template.metrics.rating);
   const confidence = getStatisticalConfidence(template.metrics.sends);
+  const recommendation = getTemplateRecommendation(template);
 
   return (
     <Card className="p-4 hover:shadow-glow transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm animate-fade-in group">
@@ -42,6 +45,9 @@ const TemplateCard = ({
               </Badge>
               <Badge variant={confidence.variant} className={confidence.color}>
                 {confidence.label}
+              </Badge>
+              <Badge className={`${recommendation.color} border text-xs`}>
+                {recommendation.message}
               </Badge>
             </div>
           </div>
@@ -60,6 +66,12 @@ const TemplateCard = ({
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Voir les stats
               </DropdownMenuItem>
+              {onDuplicate && (
+                <DropdownMenuItem onClick={() => onDuplicate(template)}>
+                  <Files className="h-4 w-4 mr-2" />
+                  Dupliquer
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => onDelete(template)} className="text-destructive">
                 Supprimer
               </DropdownMenuItem>

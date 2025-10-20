@@ -79,3 +79,73 @@ export const getStatisticalConfidence = (sends: number): { label: string; color:
   if (sends >= 10) return { label: "🟠 Test en cours", color: "bg-orange-500/10 text-orange-400 border-orange-500/20", variant: "outline" };
   return { label: "⚠️ Données insuffisantes", color: "bg-red-500/10 text-red-400 border-red-500/20", variant: "destructive" };
 };
+
+export const getTemplateRecommendation = (template: Template): {
+  status: "champion" | "testing" | "needs_improvement" | "insufficient_data";
+  message: string;
+  color: string;
+} => {
+  const { sends, responseRate, callRate } = template.metrics;
+  
+  // Pas assez de données
+  if (sends < 20) {
+    return {
+      status: "insufficient_data",
+      message: `${20 - sends} envois nécessaires`,
+      color: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+    };
+  }
+  
+  // En test (20-50 envois)
+  if (sends < 50) {
+    return {
+      status: "testing",
+      message: "En phase de test",
+      color: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    };
+  }
+  
+  // Champion (>50 envois + bon taux)
+  if (sends >= 50 && (responseRate > 20 || callRate > 10)) {
+    return {
+      status: "champion",
+      message: "✨ Template performant",
+      color: "bg-green-500/10 text-green-400 border-green-500/20",
+    };
+  }
+  
+  // À améliorer
+  return {
+    status: "needs_improvement",
+    message: "⚠️ Performance faible",
+    color: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  };
+};
+
+export const suggestTemplatesForProspect = (
+  prospect: import("@/types/prospect").Prospect,
+  templates: Template[]
+): Template[] => {
+  // Déterminer la prochaine séquence
+  const lastSent = prospect.templateUsage?.[prospect.templateUsage.length - 1];
+  const lastSequence = lastSent
+    ? templates.find((t) => t.id === lastSent.templateId)?.sequence || 1
+    : 0;
+  const nextSequence = (lastSequence + 1) as import("@/types/template").TemplateSequence;
+  
+  if (nextSequence > 10) {
+    return []; // Fin de séquence
+  }
+  
+  // Filtrer par séquence
+  let candidates = templates.filter((t) => t.sequence === nextSequence);
+  
+  // Trier par performance (callRate 60% + responseRate 40%)
+  candidates = candidates.sort((a, b) => {
+    const scoreA = a.metrics.callRate * 0.6 + a.metrics.responseRate * 0.4;
+    const scoreB = b.metrics.callRate * 0.6 + b.metrics.responseRate * 0.4;
+    return scoreB - scoreA;
+  });
+  
+  return candidates.slice(0, 3); // Top 3
+};
