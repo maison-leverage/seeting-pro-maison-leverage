@@ -5,12 +5,10 @@ import {
   Users,
   BarChart3,
   FileText,
-  Settings,
   LogOut,
   Linkedin,
   Flame,
   Clock,
-  XCircle,
   Pin,
   TestTube,
   LineChart,
@@ -31,7 +29,6 @@ const navigation = [
       { name: "Prospects chauds", href: "/prospects?view=hot", icon: Flame },
       { name: "En attente", href: "/prospects?view=waiting", icon: Clock },
       { name: "Tous les prospects", href: "/prospects", icon: Users },
-      { name: "Refus", href: "/prospects?view=refused", icon: XCircle },
     ],
   },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
@@ -45,7 +42,6 @@ const navigation = [
       { name: "Analytics des performances", href: "/templates/analytics", icon: LineChart },
     ],
   },
-  { name: "Paramètres", href: "/settings", icon: Settings },
 ];
 
 interface SidebarProps {

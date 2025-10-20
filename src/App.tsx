@@ -10,7 +10,6 @@ import Analytics from "./pages/Analytics";
 import Templates from "./pages/Templates";
 import TemplateABTests from "./pages/TemplateABTests";
 import TemplateAnalytics from "./pages/TemplateAnalytics";
-import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,7 +28,6 @@ const App = () => (
           <Route path="/templates" element={<Templates />} />
           <Route path="/templates/ab-tests" element={<TemplateABTests />} />
           <Route path="/templates/analytics" element={<TemplateAnalytics />} />
-          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
