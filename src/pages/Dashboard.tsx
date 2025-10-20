@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
-import { Users, TrendingUp, Clock, CheckCircle2, Target } from "lucide-react";
+import { Users, TrendingUp, Clock, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Prospect } from "@/types/prospect";
 const Dashboard = () => {
@@ -47,11 +47,6 @@ const Dashboard = () => {
     icon: Clock,
     color: "from-destructive to-warning",
     glow: "glow-secondary"
-  }, {
-    label: "Prospects qualifiés",
-    value: prospects.filter(p => p.qualification === "magnus_opus" || p.qualification === "presentation_genspark").length,
-    icon: CheckCircle2,
-    color: "from-success to-primary"
   }, {
     label: "En discussion",
     value: prospects.filter(p => p.status === "discussion" || p.status === "r1_programme").length,
