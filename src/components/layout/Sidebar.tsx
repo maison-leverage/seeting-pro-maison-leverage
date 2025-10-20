@@ -30,16 +30,7 @@ const navigation = [
     ],
   },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  {
-    name: "Templates",
-    href: "/templates",
-    icon: FileText,
-    subItems: [
-      { name: "Bibliothèque de templates", href: "/templates", icon: BookOpen },
-      { name: "A/B Tests en cours", href: "/templates/ab-tests", icon: TestTube },
-      { name: "Analytics des performances", href: "/templates/analytics", icon: LineChart },
-    ],
-  },
+  { name: "Templates", href: "/templates", icon: FileText },
 ];
 
 interface SidebarProps {
