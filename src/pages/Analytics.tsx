@@ -4,6 +4,8 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Prospect } from "@/types/prospect";
 import { Template } from "@/types/template";
 import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award, MessageSquare, Target } from "lucide-react";
@@ -18,14 +20,17 @@ import {
   subMonths
 } from "date-fns";
 import { fr } from "date-fns/locale";
-
-type DateFilter = "thisMonth" | "lastMonth" | "all";
+import type { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 
 const Analytics = () => {
   const navigate = useNavigate();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [dateFilter, setDateFilter] = useState<DateFilter>("thisMonth");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date())
+  });
 
   useEffect(() => {
     const user = localStorage.getItem("crm_user");
@@ -48,39 +53,20 @@ const Analytics = () => {
     }
   };
 
-  // Calculer les dates de filtrage
-  const getDateRange = () => {
-    const now = new Date();
-    switch (dateFilter) {
-      case "thisMonth":
-        return {
-          start: startOfMonth(now),
-          end: endOfMonth(now),
-          label: format(now, "MMMM yyyy", { locale: fr })
-        };
-      case "lastMonth":
-        const lastMonth = subMonths(now, 1);
-        return {
-          start: startOfMonth(lastMonth),
-          end: endOfMonth(lastMonth),
-          label: format(lastMonth, "MMMM yyyy", { locale: fr })
-        };
-      case "all":
-        return {
-          start: new Date(0),
-          end: new Date(),
-          label: "Toutes les données"
-        };
-    }
+  // Formater la période sélectionnée
+  const getDateRangeLabel = () => {
+    if (!dateRange?.from) return "Sélectionner une période";
+    if (!dateRange.to) return format(dateRange.from, "d MMM yyyy", { locale: fr });
+    return `${format(dateRange.from, "d MMM yyyy", { locale: fr })} - ${format(dateRange.to, "d MMM yyyy", { locale: fr })}`;
   };
-
-  const dateRange = getDateRange();
 
   // NOUVELLES CONVERSATIONS = prospects créés dans la période
   const newConversations = prospects.filter((p) => {
-    if (dateFilter === "all") return prospects;
+    if (!dateRange?.from) return false;
     const createdDate = new Date(p.createdAt);
-    return isWithinInterval(createdDate, { start: dateRange.start, end: dateRange.end });
+    const start = startOfDay(dateRange.from);
+    const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+    return isWithinInterval(createdDate, { start, end });
   });
 
   // R1 BOOKÉS issus de ces nouvelles conversations
@@ -110,8 +96,11 @@ const Analytics = () => {
   // Filtrer les templates utilisés dans la période
   const templatesWithActivity = templates.map((t) => {
     const usageInPeriod = t.usageHistory?.filter((u) => {
+      if (!dateRange?.from) return false;
       const usageDate = new Date(u.date);
-      return isWithinInterval(usageDate, { start: dateRange.start, end: dateRange.end });
+      const start = startOfDay(dateRange.from);
+      const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+      return isWithinInterval(usageDate, { start, end });
     }) || [];
 
     const sendsInPeriod = usageInPeriod.length;
@@ -156,35 +145,37 @@ const Analytics = () => {
               <p className="text-muted-foreground mt-1">Vue d'ensemble de vos performances</p>
             </div>
             
-            <div className="flex gap-2">
-              <Button
-                variant={dateFilter === "thisMonth" ? "default" : "outline"}
-                onClick={() => setDateFilter("thisMonth")}
-                size="sm"
-              >
-                Ce mois-ci
-              </Button>
-              <Button
-                variant={dateFilter === "lastMonth" ? "default" : "outline"}
-                onClick={() => setDateFilter("lastMonth")}
-                size="sm"
-              >
-                Mois dernier
-              </Button>
-              <Button
-                variant={dateFilter === "all" ? "default" : "outline"}
-                onClick={() => setDateFilter("all")}
-                size="sm"
-              >
-                Tout
-              </Button>
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[300px] justify-start text-left font-normal",
+                    !dateRange?.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {getDateRangeLabel()}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                  locale={fr}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <Card className="p-4 border-border/50 bg-card/50">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CalendarIcon className="h-4 w-4" />
-              <span>Période : {dateRange.label}</span>
+              <span>Période : {getDateRangeLabel()}</span>
             </div>
           </Card>
 
