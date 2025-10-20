@@ -8,7 +8,6 @@ import {
   LogOut,
   Linkedin,
   Flame,
-  Clock,
   Pin,
   TestTube,
   LineChart,
@@ -25,9 +24,8 @@ const navigation = [
     icon: Users,
     badge: 0,
     subItems: [
-      { name: "À relancer aujourd'hui", href: "/prospects?view=today", icon: Pin },
+      { name: "À relancer", href: "/prospects?view=today", icon: Pin },
       { name: "Prospects chauds", href: "/prospects?view=hot", icon: Flame },
-      { name: "En attente", href: "/prospects?view=waiting", icon: Clock },
       { name: "Tous les prospects", href: "/prospects", icon: Users },
     ],
   },
