@@ -78,17 +78,7 @@ const Prospects = () => {
         });
         break;
       case "hot":
-        filtered = filtered.filter(
-          (p) =>
-            parseInt(p.priority) >= 7 &&
-            (p.qualification === "magnus_opus" || p.qualification === "presentation_genspark") &&
-            p.status === "r1_programme"
-        );
-        break;
-      case "waiting":
-        filtered = filtered.filter(
-          (p) => p.status === "discussion"
-        );
+        filtered = filtered.filter((p) => p.hype === "chaud");
         break;
       case "refused":
         filtered = filtered.filter((p) => parseInt(p.priority) >= 8);
