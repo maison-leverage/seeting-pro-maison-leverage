@@ -80,28 +80,15 @@ const Dashboard = () => {
 
         <main className="p-6 space-y-6 animate-fade-in">
           {/* Welcome */}
-          <div className="relative overflow-hidden rounded-2xl p-8 bg-gradient-to-br from-primary/20 via-background to-secondary/20 border border-primary/20">
-            
-            <div className="relative z-10">
-              <h1 className="text-3xl font-bold mb-2">
-                Bienvenue sur ton CRM LinkedIn 👋
-              </h1>
-              <p className="text-muted-foreground">
-                Gérer tes prospects n'a jamais été aussi simple et addictif
-              </p>
-            </div>
-          </div>
+          
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stats.map((stat, index) => <Card 
-              key={index} 
-              onClick={() => {
-                if (stat.label === "À relancer aujourd'hui") {
-                  navigate("/prospects?view=today");
-                }
-              }}
-              className={`p-6 border-border/50 hover:border-primary/50 transition-all hover-scale cursor-pointer ${stat.glow || ""}`}>
+            {stats.map((stat, index) => <Card key={index} onClick={() => {
+            if (stat.label === "À relancer aujourd'hui") {
+              navigate("/prospects?view=today");
+            }
+          }} className={`p-6 border-border/50 hover:border-primary/50 transition-all hover-scale cursor-pointer ${stat.glow || ""}`}>
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">
