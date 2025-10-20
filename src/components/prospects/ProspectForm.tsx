@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Prospect, ProspectStatus, ProspectPriority, ProspectQualification } from "@/types/prospect";
+import { Prospect, ProspectStatus, ProspectPriority, ProspectQualification, ProspectHype } from "@/types/prospect";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -32,6 +32,7 @@ const ProspectForm = ({
     status: "premier_message",
     priority: "2",
     qualification: "loom",
+    hype: "tiede",
     followUpCount: 0
   });
   const [reminderDate, setReminderDate] = useState<Date | undefined>(initialData?.reminderDate ? new Date(initialData.reminderDate) : undefined);
@@ -51,6 +52,7 @@ const ProspectForm = ({
           status: "premier_message",
           priority: "2",
           qualification: "loom",
+          hype: "tiede",
           followUpCount: 0
         });
         setReminderDate(undefined);
@@ -135,7 +137,7 @@ const ProspectForm = ({
           </div>
 
           {/* Statuts */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Statut</Label>
               <Select value={formData.status} onValueChange={(value: ProspectStatus) => setFormData({
@@ -190,6 +192,23 @@ const ProspectForm = ({
                   <SelectItem value="video_youtube">▶️ Vidéo Youtube</SelectItem>
                   <SelectItem value="presentation_genspark">✨ Présentation Genspark</SelectItem>
                   <SelectItem value="magnus_opus">💎 Magnus Opus</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Hype</Label>
+              <Select value={formData.hype} onValueChange={(value: ProspectHype) => setFormData({
+              ...formData,
+              hype: value
+            })}>
+                <SelectTrigger className="bg-input border-border/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border/50">
+                  <SelectItem value="froid">❄️ Froid</SelectItem>
+                  <SelectItem value="tiede">🌤️ Tiède</SelectItem>
+                  <SelectItem value="chaud">🔥 Chaud</SelectItem>
                 </SelectContent>
               </Select>
             </div>

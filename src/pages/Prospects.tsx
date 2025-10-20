@@ -174,6 +174,7 @@ const Prospects = () => {
         status: prospectData.status || "premier_message",
         priority: prospectData.priority || "2",
         qualification: prospectData.qualification || "loom",
+        hype: prospectData.hype || "tiede",
         tags: prospectData.tags || [],
         notes: prospectData.notes || [],
         history: prospectData.history || [],

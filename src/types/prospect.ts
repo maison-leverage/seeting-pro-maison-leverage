@@ -11,6 +11,8 @@ export type ProspectQualification =
   | "presentation_genspark"
   | "magnus_opus";
 
+export type ProspectHype = "froid" | "tiede" | "chaud";
+
 export interface ProspectTag {
   id: string;
   label: string;
@@ -41,6 +43,7 @@ export interface Prospect {
   status: ProspectStatus;
   priority: ProspectPriority;
   qualification: ProspectQualification;
+  hype: ProspectHype;
   tags: ProspectTag[];
   notes: ProspectNote[];
   history: ProspectHistory[];
