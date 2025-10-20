@@ -1,31 +1,66 @@
 import { Template } from "@/types/template";
+import { Prospect } from "@/types/prospect";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "@/hooks/use-toast";
+import { updateTemplateMetrics } from "@/utils/templateUtils";
 
 interface TemplateStatsModalProps {
   template: Template | null;
   open: boolean;
   onClose: () => void;
-  onIncrementSend: (templateId: string) => void;
-  onIncrementResponse: (templateId: string) => void;
-  onIncrementCall: (templateId: string) => void;
+  templates: Template[];
+  prospects: Prospect[];
+  onUpdateTemplate: (templates: Template[]) => void;
+  onUpdateProspects: (prospects: Prospect[]) => void;
 }
 
 const TemplateStatsModal = ({
   template,
   open,
   onClose,
-  onIncrementSend,
-  onIncrementResponse,
-  onIncrementCall,
+  templates,
+  prospects,
+  onUpdateTemplate,
+  onUpdateProspects,
 }: TemplateStatsModalProps) => {
   if (!template) return null;
 
   const stars = "⭐".repeat(template.metrics.rating);
+
+  const handleIncrementSend = () => {
+    const updated = templates.map((t) => 
+      t.id === template.id 
+        ? updateTemplateMetrics({ ...t, metrics: { ...t.metrics, sends: t.metrics.sends + 1 } })
+        : t
+    );
+    onUpdateTemplate(updated);
+    toast({ title: "Envoi enregistré" });
+  };
+
+  const handleIncrementResponse = () => {
+    const updated = templates.map((t) => 
+      t.id === template.id 
+        ? updateTemplateMetrics({ ...t, metrics: { ...t.metrics, responses: t.metrics.responses + 1 } })
+        : t
+    );
+    onUpdateTemplate(updated);
+    toast({ title: "Réponse enregistrée" });
+  };
+
+  const handleIncrementCall = () => {
+    const updated = templates.map((t) => 
+      t.id === template.id 
+        ? updateTemplateMetrics({ ...t, metrics: { ...t.metrics, calls: t.metrics.calls + 1 } })
+        : t
+    );
+    onUpdateTemplate(updated);
+    toast({ title: "Call enregistré" });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -42,7 +77,7 @@ const TemplateStatsModal = ({
                 size="sm"
                 variant="outline"
                 className="mt-2 w-full"
-                onClick={() => onIncrementSend(template.id)}
+                onClick={handleIncrementSend}
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Envoi
@@ -58,7 +93,7 @@ const TemplateStatsModal = ({
                 size="sm"
                 variant="outline"
                 className="mt-2 w-full"
-                onClick={() => onIncrementResponse(template.id)}
+                onClick={handleIncrementResponse}
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Réponse
@@ -74,7 +109,7 @@ const TemplateStatsModal = ({
                 size="sm"
                 variant="outline"
                 className="mt-2 w-full"
-                onClick={() => onIncrementCall(template.id)}
+                onClick={handleIncrementCall}
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Call

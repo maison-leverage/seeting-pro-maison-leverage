@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Template, TEMPLATE_CATEGORIES, TARGET_TYPES, TARGET_SECTORS, TARGET_SIZES } from "@/types/template";
+import { Template, TEMPLATE_SEQUENCES, TARGET_TYPES, TARGET_SECTORS, TARGET_SIZES, TemplateSequence } from "@/types/template";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,13 @@ interface TemplateFormProps {
   open: boolean;
   onClose: () => void;
   onSave: (template: Partial<Template>) => void;
+  defaultSequence?: TemplateSequence;
 }
 
-const TemplateForm = ({ template, open, onClose, onSave }: TemplateFormProps) => {
+const TemplateForm = ({ template, open, onClose, onSave, defaultSequence = 1 }: TemplateFormProps) => {
   const [formData, setFormData] = useState({
     name: "",
-    category: "premier_contact" as any,
+    sequence: defaultSequence,
     content: "",
     notes: "",
     targetTypes: [] as string[],
@@ -34,7 +35,7 @@ const TemplateForm = ({ template, open, onClose, onSave }: TemplateFormProps) =>
     if (template) {
       setFormData({
         name: template.name,
-        category: template.category,
+        sequence: template.sequence,
         content: template.content,
         notes: template.notes,
         targetTypes: template.targetProfile?.types || [],
@@ -46,7 +47,7 @@ const TemplateForm = ({ template, open, onClose, onSave }: TemplateFormProps) =>
     } else {
       setFormData({
         name: "",
-        category: "premier_contact",
+        sequence: defaultSequence,
         content: "",
         notes: "",
         targetTypes: [],
@@ -56,14 +57,14 @@ const TemplateForm = ({ template, open, onClose, onSave }: TemplateFormProps) =>
         tagInput: "",
       });
     }
-  }, [template, open]);
+  }, [template, open, defaultSequence]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       id: template?.id,
       name: formData.name,
-      category: formData.category,
+      sequence: formData.sequence,
       content: formData.content,
       notes: formData.notes,
       targetProfile: {
@@ -119,15 +120,18 @@ const TemplateForm = ({ template, open, onClose, onSave }: TemplateFormProps) =>
           </div>
 
           <div>
-            <Label htmlFor="category">Catégorie *</Label>
-            <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value as any })}>
+            <Label htmlFor="sequence">Numéro de message *</Label>
+            <Select 
+              value={formData.sequence.toString()} 
+              onValueChange={(value) => setFormData({ ...formData, sequence: Number(value) as TemplateSequence })}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border">
-                {TEMPLATE_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.emoji} {cat.label}
+                {TEMPLATE_SEQUENCES.map((seq) => (
+                  <SelectItem key={seq.value} value={seq.value.toString()}>
+                    {seq.label}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -8,8 +8,6 @@ import Auth from "./pages/Auth";
 import Prospects from "./pages/Prospects";
 import Analytics from "./pages/Analytics";
 import Templates from "./pages/Templates";
-import TemplateABTests from "./pages/TemplateABTests";
-import TemplateAnalytics from "./pages/TemplateAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,8 +24,6 @@ const App = () => (
           <Route path="/prospects" element={<Prospects />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/templates" element={<Templates />} />
-          <Route path="/templates/ab-tests" element={<TemplateABTests />} />
-          <Route path="/templates/analytics" element={<TemplateAnalytics />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

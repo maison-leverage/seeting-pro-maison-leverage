@@ -54,4 +54,10 @@ export interface Prospect {
   updatedAt: string;
   lastContact?: string;
   followUpCount: number; // nombre de relances
+  templateUsage?: {
+    sequence: number; // 1 à 10
+    templateId: string;
+    templateName: string;
+    sentAt: string;
+  }[];
 }

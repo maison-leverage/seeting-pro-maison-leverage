@@ -57,26 +57,20 @@ export const getTemplatePreview = (content: string, maxLines: number = 2): strin
   return lines.slice(0, maxLines).join("\n") + (lines.length > maxLines ? "..." : "");
 };
 
-export const getCategoryColor = (category: string): string => {
-  const colors: Record<string, string> = {
-    premier_contact: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    relance_1: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_2: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_3: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_4: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_5: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_6: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_7: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_8: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_9: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    relance_10: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    reponse_tiede: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    accelerateur: "bg-red-500/10 text-red-400 border-red-500/20",
-    bombe_valeur: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    closing_rdv: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    reactivation: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+export const getSequenceColor = (sequence: number): string => {
+  const colors: Record<number, string> = {
+    1: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    2: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    3: "bg-teal-500/10 text-teal-400 border-teal-500/20",
+    4: "bg-green-500/10 text-green-400 border-green-500/20",
+    5: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    6: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    7: "bg-red-500/10 text-red-400 border-red-500/20",
+    8: "bg-pink-500/10 text-pink-400 border-pink-500/20",
+    9: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    10: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   };
-  return colors[category] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
+  return colors[sequence] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
 };
 
 export const getStatisticalConfidence = (sends: number): { label: string; color: string; variant: "default" | "secondary" | "outline" | "destructive" } => {

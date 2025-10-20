@@ -1,13 +1,19 @@
 import { Prospect } from "@/types/prospect";
+import { Template } from "@/types/template";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Clock } from "lucide-react";
+import { Edit, Trash2, Clock, CheckCircle, Phone } from "lucide-react";
+import { updateTemplateMetrics } from "@/utils/templateUtils";
+import { toast } from "@/hooks/use-toast";
 
 interface ProspectCardProps {
   prospect: Prospect;
   onEdit: (prospect: Prospect) => void;
   onDelete: (id: string) => void;
+  templates?: Template[];
+  onUpdateTemplates?: (templates: Template[]) => void;
+  onUpdateProspect?: (prospect: Prospect) => void;
 }
 
 const getStatusLabel = (status: string, followUpCount: number) => {
@@ -52,7 +58,7 @@ const hypeConfig = {
   chaud: { label: "🔥 Chaud", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
-const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
+const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemplates, onUpdateProspect }: ProspectCardProps) => {
   const isReminderToday = () => {
     if (!prospect.reminderDate) return false;
     const today = new Date();
@@ -64,6 +70,64 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
 
   const hasReminderToday = isReminderToday();
 
+  const handleResponse = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!prospect.templateUsage || prospect.templateUsage.length === 0) {
+      toast({ title: "Aucun template envoyé", description: "Impossible d'enregistrer une réponse", variant: "destructive" });
+      return;
+    }
+
+    const lastTemplate = prospect.templateUsage[prospect.templateUsage.length - 1];
+    if (templates && onUpdateTemplates) {
+      const updated = templates.map((t) => {
+        if (t.id === lastTemplate.templateId) {
+          return updateTemplateMetrics({
+            ...t,
+            metrics: { ...t.metrics, responses: t.metrics.responses + 1 },
+          });
+        }
+        return t;
+      });
+      onUpdateTemplates(updated);
+    }
+
+    if (onUpdateProspect) {
+      onUpdateProspect({ ...prospect, status: "discussion" });
+    }
+
+    toast({ title: "Réponse enregistrée", description: `Template "${lastTemplate.templateName}" crédité` });
+  };
+
+  const handleCall = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!prospect.templateUsage || prospect.templateUsage.length === 0) {
+      toast({ title: "Aucun template envoyé", description: "Impossible d'enregistrer un R1", variant: "destructive" });
+      return;
+    }
+
+    const lastTemplate = prospect.templateUsage[prospect.templateUsage.length - 1];
+    if (templates && onUpdateTemplates) {
+      const updated = templates.map((t) => {
+        if (t.id === lastTemplate.templateId) {
+          return updateTemplateMetrics({
+            ...t,
+            metrics: { ...t.metrics, calls: t.metrics.calls + 1 },
+          });
+        }
+        return t;
+      });
+      onUpdateTemplates(updated);
+    }
+
+    if (onUpdateProspect) {
+      onUpdateProspect({ ...prospect, status: "r1_programme" });
+    }
+
+    toast({ title: "R1 enregistré", description: `Template "${lastTemplate.templateName}" crédité` });
+  };
+
   return (
     <Card
       className={`p-4 border-border/50 hover:border-primary/50 transition-all hover-scale relative cursor-pointer ${
@@ -71,7 +135,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
       }`}
       onClick={() => onEdit(prospect)}
     >
-      {/* Badge reminder */}
       {hasReminderToday && (
         <div className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-xs font-bold animate-pulse">
           À relancer !
@@ -79,7 +142,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
       )}
 
       <div className="flex items-center gap-4 justify-between">
-        {/* Left: Name and Company */}
         <div className="flex-shrink-0 min-w-0">
           <h3 className="text-lg font-bold truncate">
             {prospect.fullName}
@@ -89,7 +151,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
           </p>
         </div>
 
-        {/* Center: Badges */}
         <div className="flex gap-2 flex-shrink-0">
           <Badge variant="outline" className={statusConfig[prospect.status].color}>
             {getStatusLabel(prospect.status, prospect.followUpCount)}
@@ -105,7 +166,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
           </Badge>
         </div>
 
-        {/* Right: Reminder info and Actions */}
         <div className="flex items-center gap-4 flex-shrink-0">
           {prospect.reminderDate && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -115,6 +175,24 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
           )}
           
           <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleResponse}
+              className="border-border/50 hover:border-blue-500 hover:bg-blue-500/10"
+              title="Marquer comme ayant répondu"
+            >
+              <CheckCircle className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCall}
+              className="border-border/50 hover:border-green-500 hover:bg-green-500/10"
+              title="Marquer R1 programmé"
+            >
+              <Phone className="w-4 h-4" />
+            </Button>
             <Button
               size="sm"
               variant="outline"
