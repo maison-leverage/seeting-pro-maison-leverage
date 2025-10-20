@@ -5,7 +5,6 @@ import Sidebar from "@/components/layout/Sidebar";
 import ProspectForm from "@/components/prospects/ProspectForm";
 import ProspectCard from "@/components/prospects/ProspectCard";
 import { Prospect } from "@/types/prospect";
-import { updateProspectScore } from "@/utils/prospectUtils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,8 +118,22 @@ const Prospects = () => {
       filtered = filtered.filter((p) => p.priority === priorityFilter);
     }
 
-    // Sort by score
-    filtered.sort((a, b) => b.score - a.score);
+    // Sort by reminder date (soonest first), then by priority (highest first)
+    filtered.sort((a, b) => {
+      // First sort by reminder date
+      if (a.reminderDate && b.reminderDate) {
+        const dateA = new Date(a.reminderDate).getTime();
+        const dateB = new Date(b.reminderDate).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+      } else if (a.reminderDate) {
+        return -1;
+      } else if (b.reminderDate) {
+        return 1;
+      }
+      
+      // Then by priority (higher number = higher priority)
+      return parseInt(b.priority) - parseInt(a.priority);
+    });
 
     setFilteredProspects(filtered);
   };
@@ -132,7 +145,7 @@ const Prospects = () => {
       // Update existing
       const updated = prospects.map((p) =>
         p.id === editingProspect.id
-          ? updateProspectScore({
+          ? {
               ...p,
               ...prospectData,
               history: [
@@ -145,14 +158,14 @@ const Prospects = () => {
                   createdBy: user.name,
                 },
               ],
-            })
+            }
           : p
       );
       setProspects(updated);
       localStorage.setItem("crm_prospects", JSON.stringify(updated));
     } else {
       // Create new
-      const newProspect: Prospect = updateProspectScore({
+      const newProspect: Prospect = {
         id: Date.now().toString(),
         fullName: prospectData.fullName!,
         company: prospectData.company!,
@@ -168,9 +181,8 @@ const Prospects = () => {
         assignedTo: prospectData.assignedTo || user.id,
         createdAt: prospectData.createdAt!,
         updatedAt: prospectData.updatedAt!,
-        score: 0,
         followUpCount: 0,
-      });
+      };
 
       const updated = [...prospects, newProspect];
       setProspects(updated);
@@ -196,7 +208,7 @@ const Prospects = () => {
 
   const handleExport = () => {
     const csv = [
-      ["Nom complet", "Entreprise", "Poste", "LinkedIn", "Statut", "Priorité", "Score"].join(","),
+      ["Nom complet", "Entreprise", "Poste", "LinkedIn", "Statut", "Priorité"].join(","),
       ...filteredProspects.map((p) =>
         [
           p.fullName,
@@ -205,7 +217,6 @@ const Prospects = () => {
           p.linkedinUrl,
           p.status,
           p.priority,
-          p.score,
         ].join(",")
       ),
     ].join("\n");

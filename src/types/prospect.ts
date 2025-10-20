@@ -49,6 +49,5 @@ export interface Prospect {
   createdAt: string;
   updatedAt: string;
   lastContact?: string;
-  score: number; // calculated score
   followUpCount: number; // nombre de relances
 }

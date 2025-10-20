@@ -92,10 +92,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
                 {prospect.position} {prospect.position && prospect.company && "chez"} {prospect.company}
               </p>
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-primary mb-1">{prospect.score}</div>
-              <p className="text-xs text-muted-foreground">Score</p>
-            </div>
           </div>
 
           {/* Badges */}

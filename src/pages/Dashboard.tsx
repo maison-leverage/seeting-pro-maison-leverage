@@ -8,7 +8,6 @@ import {
   Clock,
   CheckCircle2,
   Target,
-  Zap,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Prospect } from "@/types/prospect";
@@ -87,21 +86,24 @@ const Dashboard = () => {
       icon: Target,
       color: "from-secondary to-primary",
     },
-    {
-      label: "Score moyen",
-      value:
-        prospects.length > 0
-          ? Math.round(
-              prospects.reduce((acc, p) => acc + p.score, 0) / prospects.length
-            )
-          : 0,
-      icon: Zap,
-      color: "from-primary to-warning",
-    },
   ];
 
   const topProspects = [...prospects]
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => {
+      // Sort by reminder date (soonest first)
+      if (a.reminderDate && b.reminderDate) {
+        const dateA = new Date(a.reminderDate).getTime();
+        const dateB = new Date(b.reminderDate).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+      } else if (a.reminderDate) {
+        return -1;
+      } else if (b.reminderDate) {
+        return 1;
+      }
+      
+      // Then by priority (higher number = higher priority)
+      return parseInt(b.priority) - parseInt(a.priority);
+    })
     .slice(0, 5);
 
   return (
@@ -181,10 +183,14 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">
-                        {prospect.score}
+                      <div className="text-sm font-medium text-muted-foreground">
+                        {prospect.reminderDate 
+                          ? new Date(prospect.reminderDate).toLocaleDateString("fr-FR")
+                          : "Pas de rappel"}
                       </div>
-                      <p className="text-xs text-muted-foreground">Score</p>
+                      <p className="text-xs text-muted-foreground">
+                        Relance {prospect.priority}
+                      </p>
                     </div>
                   </div>
                 ))}
