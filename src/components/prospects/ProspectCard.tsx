@@ -51,9 +51,11 @@ const qualificationConfig = {
 const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
   const isReminderToday = () => {
     if (!prospect.reminderDate) return false;
-    const today = new Date().toISOString().split("T")[0];
-    const reminderDay = prospect.reminderDate.split("T")[0];
-    return reminderDay <= today;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const reminder = new Date(prospect.reminderDate);
+    reminder.setHours(0, 0, 0, 0);
+    return reminder <= today;
   };
 
   const hasReminderToday = isReminderToday();

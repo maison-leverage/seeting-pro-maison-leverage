@@ -51,10 +51,14 @@ const Prospects = () => {
       setProspects(loadedProspects);
 
       // Calculate today count
-      const today = new Date().toISOString().split("T")[0];
-      const count = loadedProspects.filter(
-        (p: Prospect) => p.reminderDate && p.reminderDate.split("T")[0] <= today
-      ).length;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const count = loadedProspects.filter((p: Prospect) => {
+        if (!p.reminderDate) return false;
+        const reminder = new Date(p.reminderDate);
+        reminder.setHours(0, 0, 0, 0);
+        return reminder <= today;
+      }).length;
       setTodayCount(count);
     }
   };
@@ -63,12 +67,16 @@ const Prospects = () => {
     let filtered = [...prospects];
 
     // View filters
-    const today = new Date().toISOString().split("T")[0];
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
     switch (view) {
       case "today":
-        filtered = filtered.filter(
-          (p) => p.reminderDate && p.reminderDate.split("T")[0] <= today
-        );
+        filtered = filtered.filter((p) => {
+          if (!p.reminderDate) return false;
+          const reminder = new Date(p.reminderDate);
+          reminder.setHours(0, 0, 0, 0);
+          return reminder <= todayDate;
+        });
         break;
       case "hot":
         filtered = filtered.filter(
