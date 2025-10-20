@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Prospect } from "@/types/prospect";
 import { Template } from "@/types/template";
-import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award, MessageSquare, Target } from "lucide-react";
+import { CalendarIcon, TrendingUp, Phone, Flame, Award, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { 
   startOfMonth, 
@@ -60,13 +60,14 @@ const Analytics = () => {
     return `${format(dateRange.from, "d MMM yyyy", { locale: fr })} - ${format(dateRange.to, "d MMM yyyy", { locale: fr })}`;
   };
 
-  // NOUVELLES CONVERSATIONS = prospects créés dans la période
+  // NOUVELLES CONVERSATIONS = prospects avec premier message dans la période
   const newConversations = prospects.filter((p) => {
     if (!dateRange?.from) return false;
-    const createdDate = new Date(p.createdAt);
+    // Utiliser firstMessageDate si disponible, sinon fallback sur createdAt
+    const messageDate = new Date(p.firstMessageDate || p.createdAt);
     const start = startOfDay(dateRange.from);
     const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-    return isWithinInterval(createdDate, { start, end });
+    return isWithinInterval(messageDate, { start, end });
   });
 
   // R1 BOOKÉS issus de ces nouvelles conversations
@@ -78,10 +79,6 @@ const Analytics = () => {
   const realConversionRate = newConversations.length > 0 
     ? (r1FromNewConversations.length / newConversations.length) * 100
     : 0;
-
-  // Projection : doubler les conversations
-  const projectedConversations = newConversations.length * 2;
-  const projectedR1 = Math.round(projectedConversations * (realConversionRate / 100));
 
   // Pour la compatibilité avec le reste du code (répartition hype)
   const filteredProspects = newConversations;
@@ -234,49 +231,6 @@ const Analytics = () => {
             </Card>
           </div>
 
-          {/* Projection de performance */}
-          {newConversations.length > 0 && (
-            <Card className="p-6 border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                Projection de performance
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 bg-background/50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="text-sm text-muted-foreground mb-1">Performance actuelle</div>
-                    <div className="text-2xl font-bold">
-                      {newConversations.length} conversations → {r1FromNewConversations.length} R1
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Soit {realConversionRate.toFixed(1)}% de taux de conversion
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                  <div className="flex-1">
-                    <div className="text-sm text-muted-foreground mb-1">📈 Si vous doublez vos conversations</div>
-                    <div className="text-2xl font-bold text-primary">
-                      {projectedConversations} conversations → ~{projectedR1} R1
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Projection basée sur votre taux actuel
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-background/50 rounded-lg border border-border/50">
-                  <div className="text-sm font-medium mb-2">💡 Pour améliorer vos résultats :</div>
-                  <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                    <li>• Augmentez le nombre de conversations (premiers messages)</li>
-                    <li>• Optimisez vos templates dans la section Templates</li>
-                    <li>• Analysez vos meilleurs messages ci-dessous</li>
-                  </ul>
-                </div>
-              </div>
-            </Card>
-          )}
 
           {/* Répartition par hype */}
           <Card className="p-6 border-border/50 bg-card/50">
