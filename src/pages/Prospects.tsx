@@ -73,18 +73,18 @@ const Prospects = () => {
       case "hot":
         filtered = filtered.filter(
           (p) =>
-            (p.priority === "haute" || p.priority === "urgent") &&
-            p.qualification === "qualifie" &&
-            (p.status === "discussion" || p.status === "qualifie")
+            parseInt(p.priority) >= 7 &&
+            (p.qualification === "magnus_opus" || p.qualification === "presentation_genspark") &&
+            p.status === "r1_programme"
         );
         break;
       case "waiting":
         filtered = filtered.filter(
-          (p) => p.status === "contacte" || p.status === "discussion"
+          (p) => p.status === "discussion"
         );
         break;
       case "refused":
-        filtered = filtered.filter((p) => p.status === "perdu");
+        filtered = filtered.filter((p) => parseInt(p.priority) >= 8);
         break;
       default:
         break;
@@ -150,9 +150,9 @@ const Prospects = () => {
         company: prospectData.company!,
         position: prospectData.position || "",
         linkedinUrl: prospectData.linkedinUrl || "",
-        status: prospectData.status || "nouveau",
-        priority: prospectData.priority || "moyenne",
-        qualification: prospectData.qualification || "a_evaluer",
+        status: prospectData.status || "premier_message",
+        priority: prospectData.priority || "2",
+        qualification: prospectData.qualification || "loom",
         tags: prospectData.tags || [],
         notes: prospectData.notes || [],
         history: prospectData.history || [],
@@ -278,26 +278,28 @@ const Prospects = () => {
               </SelectTrigger>
               <SelectContent className="bg-popover border-border/50">
                 <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="nouveau">🆕 Nouveau</SelectItem>
-                <SelectItem value="contacte">💬 Contacté</SelectItem>
+                <SelectItem value="premier_message">📩 1ᵉʳ message envoyé</SelectItem>
                 <SelectItem value="discussion">🗣️ En discussion</SelectItem>
-                <SelectItem value="qualifie">✅ Qualifié</SelectItem>
-                <SelectItem value="gagne">🎯 Gagné</SelectItem>
-                <SelectItem value="perdu">❌ Perdu</SelectItem>
+                <SelectItem value="r1_programme">🎯 R1 programmé</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger className="w-[200px] bg-input border-border/50">
                 <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Priorité" />
+                <SelectValue placeholder="Relances" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border/50">
-                <SelectItem value="all">Toutes priorités</SelectItem>
-                <SelectItem value="urgent">🔴 Urgent</SelectItem>
-                <SelectItem value="haute">🟠 Haute</SelectItem>
-                <SelectItem value="moyenne">🟡 Moyenne</SelectItem>
-                <SelectItem value="faible">🟢 Faible</SelectItem>
+                <SelectItem value="all">Toutes relances</SelectItem>
+                <SelectItem value="2">2e relance</SelectItem>
+                <SelectItem value="3">3e relance</SelectItem>
+                <SelectItem value="4">4e relance</SelectItem>
+                <SelectItem value="5">5e relance</SelectItem>
+                <SelectItem value="6">6e relance</SelectItem>
+                <SelectItem value="7">7e relance</SelectItem>
+                <SelectItem value="8">8e relance</SelectItem>
+                <SelectItem value="9">9e relance</SelectItem>
+                <SelectItem value="10">10e relance</SelectItem>
               </SelectContent>
             </Select>
           </div>

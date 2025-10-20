@@ -23,14 +23,14 @@ interface ProspectFormProps {
 const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFormProps) => {
   const [formData, setFormData] = useState<Partial<Prospect>>(
     initialData || {
-      fullName: "",
-      company: "",
-      position: "",
-      linkedinUrl: "",
-      status: "nouveau",
-      priority: "moyenne",
-      qualification: "a_evaluer",
-      followUpCount: 0,
+        fullName: "",
+        company: "",
+        position: "",
+        linkedinUrl: "",
+        status: "premier_message",
+        priority: "2",
+        qualification: "loom",
+        followUpCount: 0,
     }
   );
   const [reminderDate, setReminderDate] = useState<Date | undefined>(
@@ -49,9 +49,9 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           company: "",
           position: "",
           linkedinUrl: "",
-          status: "nouveau",
-          priority: "moyenne",
-          qualification: "a_evaluer",
+          status: "premier_message",
+          priority: "2",
+          qualification: "loom",
           followUpCount: 0,
         });
         setReminderDate(undefined);
@@ -165,18 +165,15 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border/50">
-                  <SelectItem value="nouveau">🆕 Nouveau</SelectItem>
-                  <SelectItem value="contacte">💬 Contacté</SelectItem>
+                  <SelectItem value="premier_message">📩 1ᵉʳ message envoyé</SelectItem>
                   <SelectItem value="discussion">🗣️ En discussion</SelectItem>
-                  <SelectItem value="qualifie">✅ Qualifié</SelectItem>
-                  <SelectItem value="gagne">🎯 Gagné</SelectItem>
-                  <SelectItem value="perdu">❌ Perdu</SelectItem>
+                  <SelectItem value="r1_programme">🎯 R1 programmé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Priorité</Label>
+              <Label>Nombre de relances</Label>
               <Select
                 value={formData.priority}
                 onValueChange={(value: ProspectPriority) => setFormData({ ...formData, priority: value })}
@@ -185,16 +182,21 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border/50">
-                  <SelectItem value="urgent">🔴 Urgent</SelectItem>
-                  <SelectItem value="haute">🟠 Haute</SelectItem>
-                  <SelectItem value="moyenne">🟡 Moyenne</SelectItem>
-                  <SelectItem value="faible">🟢 Faible</SelectItem>
+                  <SelectItem value="2">2e relance</SelectItem>
+                  <SelectItem value="3">3e relance</SelectItem>
+                  <SelectItem value="4">4e relance</SelectItem>
+                  <SelectItem value="5">5e relance</SelectItem>
+                  <SelectItem value="6">6e relance</SelectItem>
+                  <SelectItem value="7">7e relance</SelectItem>
+                  <SelectItem value="8">8e relance</SelectItem>
+                  <SelectItem value="9">9e relance</SelectItem>
+                  <SelectItem value="10">10e relance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Qualification</Label>
+              <Label>Bombe de valeur</Label>
               <Select
                 value={formData.qualification}
                 onValueChange={(value: ProspectQualification) =>
@@ -205,10 +207,10 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border/50">
-                  <SelectItem value="qualifie">✅ Qualifié</SelectItem>
-                  <SelectItem value="non_qualifie">❌ Non qualifié</SelectItem>
-                  <SelectItem value="a_evaluer">⏳ À évaluer</SelectItem>
-                  <SelectItem value="opportunites">💎 Opportunités</SelectItem>
+                  <SelectItem value="loom">🎥 Loom</SelectItem>
+                  <SelectItem value="video_youtube">▶️ Vidéo Youtube</SelectItem>
+                  <SelectItem value="presentation_genspark">✨ Présentation Genspark</SelectItem>
+                  <SelectItem value="magnus_opus">💎 Magnus Opus</SelectItem>
                 </SelectContent>
               </Select>
             </div>

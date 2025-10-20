@@ -3,32 +3,24 @@ import { Prospect } from "@/types/prospect";
 export const calculateProspectScore = (prospect: Prospect): number => {
   let score = 50; // Base score
 
-  // Priority scoring
-  const priorityScores = {
-    urgent: 30,
-    haute: 20,
-    moyenne: 10,
-    faible: 5,
-  };
-  score += priorityScores[prospect.priority];
+  // Priority scoring (nombre de relances)
+  const relanceCount = parseInt(prospect.priority);
+  score += relanceCount * 3; // Plus de relances = plus de score
 
-  // Qualification scoring
+  // Qualification scoring (bombe de valeur)
   const qualificationScores = {
-    qualifie: 25,
-    opportunites: 20,
-    a_evaluer: 10,
-    non_qualifie: 0,
+    loom: 15,
+    video_youtube: 20,
+    presentation_genspark: 25,
+    magnus_opus: 30,
   };
   score += qualificationScores[prospect.qualification];
 
   // Status scoring
   const statusScores = {
-    nouveau: 5,
-    contacte: 10,
+    premier_message: 10,
     discussion: 20,
-    qualifie: 25,
-    gagne: 30,
-    perdu: -50,
+    r1_programme: 30,
   };
   score += statusScores[prospect.status];
 

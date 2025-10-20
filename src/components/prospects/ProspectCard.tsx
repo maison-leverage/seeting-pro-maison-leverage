@@ -14,12 +14,9 @@ interface ProspectCardProps {
 
 const getStatusLabel = (status: string, followUpCount: number) => {
   const baseLabels = {
-    nouveau: "🆕 Nouveau",
-    contacte: "💬 Contacté",
+    premier_message: "📩 1ᵉʳ message envoyé",
     discussion: "🗣️ En discussion",
-    qualifie: "✅ Qualifié",
-    gagne: "🎯 Gagné",
-    perdu: "❌ Perdu",
+    r1_programme: "🎯 R1 programmé",
   };
   
   const label = baseLabels[status as keyof typeof baseLabels] || status;
@@ -27,26 +24,28 @@ const getStatusLabel = (status: string, followUpCount: number) => {
 };
 
 const statusConfig = {
-  nouveau: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  contacte: { color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  premier_message: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
   discussion: { color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  qualifie: { color: "bg-green-500/20 text-green-400 border-green-500/30" },
-  gagne: { color: "bg-green-600/20 text-green-400 border-green-600/30" },
-  perdu: { color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  r1_programme: { color: "bg-green-500/20 text-green-400 border-green-500/30" },
 };
 
 const priorityConfig = {
-  urgent: { label: "🔴 Urgent", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-  haute: { label: "🟠 Haute", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-  moyenne: { label: "🟡 Moyenne", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  faible: { label: "🟢 Faible", color: "bg-green-500/20 text-green-400 border-green-500/30" },
+  "2": { label: "2e relance", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  "3": { label: "3e relance", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+  "4": { label: "4e relance", color: "bg-teal-500/20 text-teal-400 border-teal-500/30" },
+  "5": { label: "5e relance", color: "bg-green-500/20 text-green-400 border-green-500/30" },
+  "6": { label: "6e relance", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  "7": { label: "7e relance", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+  "8": { label: "8e relance", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  "9": { label: "9e relance", color: "bg-pink-500/20 text-pink-400 border-pink-500/30" },
+  "10": { label: "10e relance", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
 };
 
 const qualificationConfig = {
-  qualifie: { label: "✅ Qualifié", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-  non_qualifie: { label: "❌ Non qualifié", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-  a_evaluer: { label: "⏳ À évaluer", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
-  opportunites: { label: "💎 Opportunités", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  loom: { label: "🎥 Loom", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  video_youtube: { label: "▶️ Vidéo Youtube", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  presentation_genspark: { label: "✨ Présentation Genspark", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  magnus_opus: { label: "💎 Magnus Opus", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
 };
 
 const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {

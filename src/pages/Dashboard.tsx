@@ -59,14 +59,14 @@ const Dashboard = () => {
     },
     {
       label: "Prospects qualifiés",
-      value: prospects.filter((p) => p.qualification === "qualifie").length,
+      value: prospects.filter((p) => p.qualification === "magnus_opus" || p.qualification === "presentation_genspark").length,
       icon: CheckCircle2,
       color: "from-success to-primary",
     },
     {
       label: "En discussion",
       value: prospects.filter(
-        (p) => p.status === "discussion" || p.status === "qualifie"
+        (p) => p.status === "discussion" || p.status === "r1_programme"
       ).length,
       icon: TrendingUp,
       color: "from-warning to-success",
@@ -76,7 +76,7 @@ const Dashboard = () => {
       value:
         prospects.length > 0
           ? `${Math.round(
-              (prospects.filter((p) => p.status === "gagne").length /
+              (prospects.filter((p) => p.status === "r1_programme").length /
                 prospects.length) *
                 100
             )}%`

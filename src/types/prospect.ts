@@ -1,18 +1,15 @@
 export type ProspectStatus =
-  | "nouveau"
-  | "contacte"
+  | "premier_message"
   | "discussion"
-  | "qualifie"
-  | "gagne"
-  | "perdu";
+  | "r1_programme";
 
-export type ProspectPriority = "urgent" | "haute" | "moyenne" | "faible";
+export type ProspectPriority = "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
 
 export type ProspectQualification =
-  | "qualifie"
-  | "non_qualifie"
-  | "a_evaluer"
-  | "opportunites";
+  | "loom"
+  | "video_youtube"
+  | "presentation_genspark"
+  | "magnus_opus";
 
 export interface ProspectTag {
   id: string;
