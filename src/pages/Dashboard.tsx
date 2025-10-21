@@ -1,79 +1,102 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Users, TrendingUp, Clock, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Prospect } from "@/types/prospect";
+import { useAuth } from "@/hooks/useAuth";
+import { useProspects } from "@/hooks/useProspects";
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [todayCount, setTodayCount] = useState(0);
+  const { user, loading: authLoading } = useAuth();
+  const { prospects, isLoading: prospectsLoading } = useProspects();
+
   useEffect(() => {
-    // Check auth
-    const user = localStorage.getItem("crm_user");
-    if (!user) {
+    if (!authLoading && !user) {
       navigate("/auth");
-      return;
     }
+  }, [user, authLoading, navigate]);
 
-    // Load prospects from localStorage
-    const stored = localStorage.getItem("crm_prospects");
-    if (stored) {
-      const loadedProspects = JSON.parse(stored);
-      setProspects(loadedProspects);
+  const todayCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return prospects.filter((p) => {
+      if (!p.reminderDate) return false;
+      const reminder = new Date(p.reminderDate);
+      reminder.setHours(0, 0, 0, 0);
+      return reminder <= today;
+    }).length;
+  }, [prospects]);
 
-      // Calculate today count
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const count = loadedProspects.filter((p: Prospect) => {
-        if (!p.reminderDate) return false;
-        const reminder = new Date(p.reminderDate);
-        reminder.setHours(0, 0, 0, 0);
-        return reminder <= today;
-      }).length;
-      setTodayCount(count);
-    }
-  }, [navigate]);
-  const stats = [{
-    label: "Total prospects",
-    value: prospects.length,
-    icon: Users,
-    color: "from-primary to-secondary",
-    glow: "glow-primary"
-  }, {
-    label: "À relancer aujourd'hui",
-    value: todayCount,
-    icon: Clock,
-    color: "from-destructive to-warning",
-    glow: "glow-secondary"
-  }, {
-    label: "En discussion",
-    value: prospects.filter(p => p.status === "discussion" || p.status === "r1_programme").length,
-    icon: TrendingUp,
-    color: "from-warning to-success"
-  }, {
-    label: "Taux de conversion",
-    value: prospects.length > 0 ? `${Math.round(prospects.filter(p => p.status === "r1_programme").length / prospects.length * 100)}%` : "0%",
-    icon: Target,
-    color: "from-secondary to-primary"
-  }];
-  const topProspects = [...prospects].sort((a, b) => {
-    // Sort by reminder date (soonest first)
-    if (a.reminderDate && b.reminderDate) {
-      const dateA = new Date(a.reminderDate).getTime();
-      const dateB = new Date(b.reminderDate).getTime();
-      if (dateA !== dateB) return dateA - dateB;
-    } else if (a.reminderDate) {
-      return -1;
-    } else if (b.reminderDate) {
-      return 1;
-    }
+  const stats = [
+    {
+      label: "Total prospects",
+      value: prospects.length,
+      icon: Users,
+      color: "from-primary to-secondary",
+      glow: "glow-primary",
+    },
+    {
+      label: "À relancer aujourd'hui",
+      value: todayCount,
+      icon: Clock,
+      color: "from-destructive to-warning",
+      glow: "glow-secondary",
+    },
+    {
+      label: "En discussion",
+      value: prospects.filter(
+        (p) => p.status === "discussion" || p.status === "r1_programme"
+      ).length,
+      icon: TrendingUp,
+      color: "from-warning to-success",
+    },
+    {
+      label: "Taux de conversion",
+      value:
+        prospects.length > 0
+          ? `${Math.round(
+              (prospects.filter((p) => p.status === "r1_programme").length /
+                prospects.length) *
+                100
+            )}%`
+          : "0%",
+      icon: Target,
+      color: "from-secondary to-primary",
+    },
+  ];
 
-    // Then by priority (higher number = higher priority)
-    return parseInt(b.priority) - parseInt(a.priority);
-  }).slice(0, 5);
-  return <div className="min-h-screen flex w-full bg-background">
+  const topProspects = useMemo(() => {
+    return [...prospects]
+      .sort((a, b) => {
+        // Sort by reminder date (soonest first)
+        if (a.reminderDate && b.reminderDate) {
+          const dateA = new Date(a.reminderDate).getTime();
+          const dateB = new Date(b.reminderDate).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+        } else if (a.reminderDate) {
+          return -1;
+        } else if (b.reminderDate) {
+          return 1;
+        }
+
+        // Then by priority (higher number = higher priority)
+        return parseInt(b.priority) - parseInt(a.priority);
+      })
+      .slice(0, 5);
+  }, [prospects]);
+
+  if (authLoading || prospectsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Chargement...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex w-full bg-background">
       <Sidebar todayCount={todayCount} />
       <div className="flex-1 ml-64">
         <Header notificationCount={todayCount} />
@@ -81,7 +104,6 @@ const Dashboard = () => {
         <main className="p-6 space-y-6 animate-fade-in">
           {/* Welcome */}
           <div className="relative overflow-hidden rounded-2xl p-8 bg-gradient-to-br from-primary/20 via-background to-secondary/20 border border-primary/20">
-            
             <div className="relative z-10">
               <h1 className="text-3xl font-bold mb-2">
                 Bienvenue sur ton CRM LinkedIn 👋
@@ -95,25 +117,29 @@ const Dashboard = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stats.map((stat, index) => {
-              const isClickable = stat.label === "À relancer aujourd'hui" || stat.label === "En discussion";
+              const isClickable =
+                stat.label === "À relancer aujourd'hui" ||
+                stat.label === "En discussion";
               const handleClick = (e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log("Dashboard card clicked:", stat.label);
                 if (stat.label === "À relancer aujourd'hui") {
-                  console.log("Navigating to /prospects?view=today");
                   navigate("/prospects?view=today");
                 } else if (stat.label === "En discussion") {
-                  console.log("Navigating to /prospects?view=all");
                   navigate("/prospects?view=all");
                 }
               };
 
               return (
-                <Card 
-                  key={index} 
+                <Card
+                  key={index}
                   onClick={isClickable ? handleClick : undefined}
-                  className={`p-6 border-border/50 transition-all ${isClickable ? 'hover:border-primary/50 hover-scale cursor-pointer' : ''} ${stat.glow || ""}`}>
+                  className={`p-6 border-border/50 transition-all ${
+                    isClickable
+                      ? "hover:border-primary/50 hover-scale cursor-pointer"
+                      : ""
+                  } ${stat.glow || ""}`}
+                >
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
@@ -121,7 +147,9 @@ const Dashboard = () => {
                       </p>
                       <p className="text-3xl font-bold">{stat.value}</p>
                     </div>
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                    <div
+                      className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}
+                    >
                       <stat.icon className="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -136,18 +164,28 @@ const Dashboard = () => {
               <Target className="w-6 h-6 text-primary" />
               Top 5 prospects à traiter en priorité
             </h2>
-            {topProspects.length === 0 ? <p className="text-muted-foreground text-center py-8">
+            {topProspects.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
                 Aucun prospect pour le moment. Commence par en ajouter ! 🚀
-              </p> : <div className="space-y-3">
-                {topProspects.map(prospect => <div key={prospect.id} className="flex items-center justify-between p-4 rounded-lg bg-card-hover border border-border/50 hover:border-primary/50 transition-all cursor-pointer">
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {topProspects.map((prospect) => (
+                  <div
+                    key={prospect.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-card-hover border border-border/50 hover:border-primary/50 transition-all cursor-pointer"
+                    onClick={() => navigate("/prospects")}
+                  >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold">
-                        {prospect.fullName.split(" ").slice(0, 2).map(n => n[0]).join("")}
+                        {prospect.fullName
+                          .split(" ")
+                          .slice(0, 2)
+                          .map((n) => n[0])
+                          .join("")}
                       </div>
                       <div>
-                        <p className="font-medium">
-                          {prospect.fullName}
-                        </p>
+                        <p className="font-medium">{prospect.fullName}</p>
                         <p className="text-sm text-muted-foreground">
                           {prospect.position} chez {prospect.company}
                         </p>
@@ -155,17 +193,25 @@ const Dashboard = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-medium text-muted-foreground">
-                        {prospect.reminderDate ? new Date(prospect.reminderDate).toLocaleDateString("fr-FR") : "Pas de rappel"}
+                        {prospect.reminderDate
+                          ? new Date(prospect.reminderDate).toLocaleDateString(
+                              "fr-FR"
+                            )
+                          : "Pas de rappel"}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Relance {prospect.priority}
                       </p>
                     </div>
-                  </div>)}
-              </div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         </main>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Dashboard;
