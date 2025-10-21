@@ -91,9 +91,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
   // Suggestions de templates
   const suggestedTemplates = suggestTemplatesForProspect(prospect, templates);
 
-  const handleResponse = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
+  const handleResponse = () => {
     if (!prospect.templateUsage || prospect.templateUsage.length === 0) {
       toast({ title: "Aucun template envoyé", description: "Impossible d'enregistrer une réponse", variant: "destructive" });
       return;
@@ -120,9 +118,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
     toast({ title: "Réponse enregistrée", description: `Template "${lastTemplate.templateName}" crédité` });
   };
 
-  const handleCall = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
+  const handleCall = () => {
     if (!prospect.templateUsage || prospect.templateUsage.length === 0) {
       toast({ title: "Aucun template envoyé", description: "Impossible d'enregistrer un R1", variant: "destructive" });
       return;
@@ -216,10 +212,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
             <Button
               size="sm"
               variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(prospect);
-              }}
+              onClick={() => onEdit(prospect)}
               className="border-border/50 hover:border-primary hover:bg-primary/10"
             >
               <Edit className="w-4 h-4" />
@@ -227,10 +220,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
             <Button
               size="sm"
               variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(prospect.id);
-              }}
+              onClick={() => onDelete(prospect.id)}
               className="border-border/50 hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <Trash2 className="w-4 h-4" />
@@ -243,10 +233,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
       <Button
         variant="ghost"
         size="sm"
-        onClick={(e) => {
-          e.stopPropagation();
-          setExpanded(!expanded);
-        }}
+        onClick={() => setExpanded(!expanded)}
         className="mt-3 w-full"
       >
         {expanded ? (
@@ -286,10 +273,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toast({ title: "Utilise le bouton 'Copier' sur le template" });
-                      }}
+                      onClick={() => toast({ title: "Utilise le bouton 'Copier' sur le template" })}
                     >
                       →
                     </Button>
