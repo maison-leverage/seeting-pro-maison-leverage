@@ -17,8 +17,7 @@ const App = () => (
     <Toaster />
     <Sonner />
     <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/" element={<Dashboard />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/prospects" element={<Prospects />} />
       <Route path="/analytics" element={<Analytics />} />
