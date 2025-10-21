@@ -194,7 +194,11 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
             <Button
               size="sm"
               variant="outline"
-              onClick={handleResponse}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleResponse();
+              }}
               className="border-border/50 hover:border-blue-500 hover:bg-blue-500/10"
               title="Marquer comme ayant répondu"
             >
@@ -203,7 +207,11 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
             <Button
               size="sm"
               variant="outline"
-              onClick={handleCall}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCall();
+              }}
               className="border-border/50 hover:border-green-500 hover:bg-green-500/10"
               title="Marquer R1 programmé"
             >
@@ -212,7 +220,11 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onEdit(prospect)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onEdit(prospect);
+              }}
               className="border-border/50 hover:border-primary hover:bg-primary/10"
             >
               <Edit className="w-4 h-4" />
@@ -220,7 +232,11 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onDelete(prospect.id)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete(prospect.id);
+              }}
               className="border-border/50 hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <Trash2 className="w-4 h-4" />
@@ -233,7 +249,11 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => setExpanded(!expanded)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setExpanded(!expanded);
+        }}
         className="mt-3 w-full"
       >
         {expanded ? (
