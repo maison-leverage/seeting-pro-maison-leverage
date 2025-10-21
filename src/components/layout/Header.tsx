@@ -1,11 +1,11 @@
-import { Search, Plus, LogOut } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import AlertCenter from "@/components/alerts/AlertCenter";
-import { useProspects } from "@/hooks/useProspects";
-import { useTemplates } from "@/hooks/useTemplates";
-import { useAuth } from "@/hooks/useAuth";
+import { Prospect } from "@/types/prospect";
+import { Template } from "@/types/template";
 
 interface HeaderProps {
   onNewProspect?: () => void;
@@ -14,9 +14,15 @@ interface HeaderProps {
 
 const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
-  const { prospects } = useProspects();
-  const { templates } = useTemplates();
+  const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+
+  useEffect(() => {
+    const storedProspects = localStorage.getItem("crm_prospects");
+    const storedTemplates = localStorage.getItem("crm_templates");
+    if (storedProspects) setProspects(JSON.parse(storedProspects));
+    if (storedTemplates) setTemplates(JSON.parse(storedTemplates));
+  }, []);
 
   return (
     <header className="h-16 border-b border-border bg-card/50 backdrop-blur-lg sticky top-0 z-40">
@@ -53,15 +59,6 @@ const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
           >
             <Plus className="w-5 h-5 mr-2" />
             Nouveau prospect
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => signOut()}
-            className="border-border/50"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
           </Button>
         </div>
       </div>

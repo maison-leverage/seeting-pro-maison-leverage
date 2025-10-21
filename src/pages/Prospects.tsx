@@ -1,44 +1,56 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import ProspectForm from "@/components/prospects/ProspectForm";
 import ProspectCard from "@/components/prospects/ProspectCard";
 import { Prospect } from "@/types/prospect";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, Download } from "lucide-react";
 import { exportProspectsToCSV } from "@/utils/exportUtils";
-import { useAuth } from "@/hooks/useAuth";
-import { useProspects } from "@/hooks/useProspects";
-import { useTemplates } from "@/hooks/useTemplates";
+import { Template } from "@/types/template";
 
 const Prospects = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const view = searchParams.get("view") || "all";
-  const { user, loading: authLoading } = useAuth();
-  const { prospects, createProspect, updateProspect, deleteProspect, isLoading: prospectsLoading } = useProspects();
-  const { templates } = useTemplates();
 
+  const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [filteredProspects, setFilteredProspects] = useState<Prospect[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [todayCount, setTodayCount] = useState(0);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    const user = localStorage.getItem("crm_user");
+    if (!user) {
       navigate("/auth");
+      return;
     }
-  }, [user, authLoading, navigate]);
+
+    loadProspects();
+  }, [navigate]);
 
   useEffect(() => {
+    applyFilters();
+  }, [prospects, view, searchQuery, statusFilter, priorityFilter]);
+
+  useEffect(() => {
+    // Check if we should open the form (from "Nouveau prospect" button)
     const shouldOpenForm = searchParams.get("new");
+    console.log("Prospects page - searchParams:", { shouldOpenForm, view, formOpen });
     if (shouldOpenForm === "true" && !formOpen) {
+      console.log("Opening form from 'new' param");
       setEditingProspect(undefined);
       setFormOpen(true);
+      // Clear the query param immediately
       const timer = setTimeout(() => {
         navigate("/prospects?view=" + view, { replace: true });
       }, 100);
@@ -46,7 +58,47 @@ const Prospects = () => {
     }
   }, [searchParams, navigate, view, formOpen]);
 
-  const filteredProspects = useMemo(() => {
+  const loadProspects = () => {
+    const stored = localStorage.getItem("crm_prospects");
+    const storedTemplates = localStorage.getItem("crm_templates");
+    
+    if (stored) {
+      const loadedProspects = JSON.parse(stored).map((p: any) => ({
+        ...p,
+        // Migration pour anciens prospects - assurer que tous les champs requis existent
+        fullName: p.fullName || "",
+        company: p.company || "",
+        position: p.position || "",
+        linkedinUrl: p.linkedinUrl || "",
+        status: p.status || "premier_message",
+        priority: p.priority || "2",
+        qualification: p.qualification || "loom",
+        hype: p.hype || "tiede",
+        tags: p.tags || [],
+        notes: p.notes || [],
+        history: p.history || [],
+        followUpCount: p.followUpCount ?? 0,
+      }));
+      setProspects(loadedProspects);
+
+      // Calculate today count
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const count = loadedProspects.filter((p: Prospect) => {
+        if (!p.reminderDate) return false;
+        const reminder = new Date(p.reminderDate);
+        reminder.setHours(0, 0, 0, 0);
+        return reminder <= today;
+      }).length;
+      setTodayCount(count);
+    }
+    
+    if (storedTemplates) {
+      setTemplates(JSON.parse(storedTemplates));
+    }
+  };
+
+  const applyFilters = () => {
     let filtered = [...prospects];
 
     // View filters
@@ -94,6 +146,7 @@ const Prospects = () => {
 
     // Sort by reminder date (soonest first), then by priority (highest first)
     filtered.sort((a, b) => {
+      // First sort by reminder date
       if (a.reminderDate && b.reminderDate) {
         const dateA = new Date(a.reminderDate).getTime();
         const dateB = new Date(b.reminderDate).getTime();
@@ -104,29 +157,65 @@ const Prospects = () => {
         return 1;
       }
       
+      // Then by priority (higher number = higher priority)
       return parseInt(b.priority) - parseInt(a.priority);
     });
 
-    return filtered;
-  }, [prospects, view, searchQuery, statusFilter, priorityFilter]);
-
-  const todayCount = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return prospects.filter((p) => {
-      if (!p.reminderDate) return false;
-      const reminder = new Date(p.reminderDate);
-      reminder.setHours(0, 0, 0, 0);
-      return reminder <= today;
-    }).length;
-  }, [prospects]);
+    setFilteredProspects(filtered);
+  };
 
   const handleSubmit = (prospectData: Partial<Prospect>) => {
+    const user = JSON.parse(localStorage.getItem("crm_user") || "{}");
+
     if (editingProspect) {
-      updateProspect({ id: editingProspect.id, data: prospectData });
+      // Update existing
+      const updated = prospects.map((p) =>
+        p.id === editingProspect.id
+          ? {
+              ...p,
+              ...prospectData,
+              history: [
+                ...p.history,
+                {
+                  id: Date.now().toString(),
+                  action: "Modification",
+                  details: `Modifié par ${user.name}`,
+                  createdAt: new Date().toISOString(),
+                  createdBy: user.name,
+                },
+              ],
+            }
+          : p
+      );
+      setProspects(updated);
+      localStorage.setItem("crm_prospects", JSON.stringify(updated));
     } else {
-      createProspect(prospectData);
+      // Create new
+      const newProspect: Prospect = {
+        id: Date.now().toString(),
+        fullName: prospectData.fullName!,
+        company: prospectData.company!,
+        position: prospectData.position || "",
+        linkedinUrl: prospectData.linkedinUrl || "",
+        status: prospectData.status || "premier_message",
+        priority: prospectData.priority || "2",
+        qualification: prospectData.qualification || "loom",
+        hype: prospectData.hype || "tiede",
+        tags: prospectData.tags || [],
+        notes: prospectData.notes || [],
+        history: prospectData.history || [],
+        reminderDate: prospectData.reminderDate,
+        assignedTo: prospectData.assignedTo || user.id,
+        createdAt: prospectData.createdAt!,
+        updatedAt: prospectData.updatedAt!,
+        followUpCount: 0,
+      };
+
+      const updated = [...prospects, newProspect];
+      setProspects(updated);
+      localStorage.setItem("crm_prospects", JSON.stringify(updated));
     }
+
     setFormOpen(false);
     setEditingProspect(undefined);
   };
@@ -138,7 +227,11 @@ const Prospects = () => {
 
   const handleDelete = (id: string) => {
     if (!confirm("Supprimer ce prospect ?")) return;
-    deleteProspect(id);
+
+    const updated = prospects.filter((p) => p.id !== id);
+    setProspects(updated);
+    localStorage.setItem("crm_prospects", JSON.stringify(updated));
+    toast.success("Prospect supprimé");
   };
 
   const getViewTitle = () => {
@@ -155,14 +248,6 @@ const Prospects = () => {
         return "📊 Tous les prospects";
     }
   };
-
-  if (authLoading || prospectsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Chargement...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -263,11 +348,16 @@ const Prospects = () => {
                   templates={templates}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  onUpdateTemplates={() => {
-                    // Templates are now managed by the hook
+                  onUpdateTemplates={(updated) => {
+                    setTemplates(updated);
+                    localStorage.setItem("crm_templates", JSON.stringify(updated));
                   }}
                   onUpdateProspect={(updated) => {
-                    updateProspect({ id: updated.id, data: updated });
+                    const updatedProspects = prospects.map((p) =>
+                      p.id === updated.id ? updated : p
+                    );
+                    setProspects(updatedProspects);
+                    localStorage.setItem("crm_prospects", JSON.stringify(updatedProspects));
                   }}
                 />
               ))}

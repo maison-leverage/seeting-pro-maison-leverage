@@ -110,12 +110,10 @@ export type Database = {
           assigned_to: string | null
           company: string
           created_at: string
-          first_message_date: string | null
           follow_up_count: number | null
           full_name: string
           hype: string
           id: string
-          last_contact: string | null
           linkedin_url: string | null
           position: string | null
           priority: string
@@ -130,12 +128,10 @@ export type Database = {
           assigned_to?: string | null
           company: string
           created_at?: string
-          first_message_date?: string | null
           follow_up_count?: number | null
           full_name: string
           hype?: string
           id?: string
-          last_contact?: string | null
           linkedin_url?: string | null
           position?: string | null
           priority?: string
@@ -150,12 +146,10 @@ export type Database = {
           assigned_to?: string | null
           company?: string
           created_at?: string
-          first_message_date?: string | null
           follow_up_count?: number | null
           full_name?: string
           hype?: string
           id?: string
-          last_contact?: string | null
           linkedin_url?: string | null
           position?: string | null
           priority?: string

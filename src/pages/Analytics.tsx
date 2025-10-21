@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
@@ -6,7 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, TrendingUp, Phone, Flame, MessageSquare } from "lucide-react";
+import { Prospect } from "@/types/prospect";
+import { Template, TemplateSequence } from "@/types/template";
+import { CalendarIcon, TrendingUp, Phone, Flame, Award, MessageSquare, BarChart2, Target } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -14,87 +17,163 @@ import {
   endOfDay,
   isWithinInterval,
   format,
+  subMonths
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
-import { useProspects } from "@/hooks/useProspects";
-import { useTemplates } from "@/hooks/useTemplates";
 
 const Analytics = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const { prospects, isLoading: prospectsLoading } = useProspects();
-  const { templates, isLoading: templatesLoading } = useTemplates();
-  
+  const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
   });
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    const user = localStorage.getItem("crm_user");
+    if (!user) {
       navigate("/auth");
+      return;
     }
-  }, [user, authLoading, navigate]);
+    loadData();
+  }, [navigate]);
 
-  const todayCount = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return prospects.filter((p) => {
-      if (!p.reminderDate) return false;
-      const reminder = new Date(p.reminderDate);
-      reminder.setHours(0, 0, 0, 0);
-      return reminder <= today;
-    }).length;
-  }, [prospects]);
+  const loadData = () => {
+    const storedProspects = localStorage.getItem("crm_prospects");
+    const storedTemplates = localStorage.getItem("crm_templates");
+    
+    if (storedProspects) {
+      setProspects(JSON.parse(storedProspects));
+    }
+    if (storedTemplates) {
+      setTemplates(JSON.parse(storedTemplates));
+    }
+  };
 
+  // Formater la période sélectionnée
   const getDateRangeLabel = () => {
     if (!dateRange?.from) return "Sélectionner une période";
     if (!dateRange.to) return format(dateRange.from, "d MMM yyyy", { locale: fr });
     return `${format(dateRange.from, "d MMM yyyy", { locale: fr })} - ${format(dateRange.to, "d MMM yyyy", { locale: fr })}`;
   };
 
-  const newConversations = useMemo(() => {
-    if (!dateRange?.from) return [];
-    return prospects.filter((p) => {
-      const messageDate = new Date(p.firstMessageDate || p.createdAt);
-      const start = startOfDay(dateRange.from!);
-      const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from!);
-      return isWithinInterval(messageDate, { start, end });
+  // NOUVELLES CONVERSATIONS = prospects avec premier message dans la période
+  const newConversations = prospects.filter((p) => {
+    if (!dateRange?.from) return false;
+    // Utiliser firstMessageDate si disponible, sinon fallback sur createdAt
+    const messageDate = new Date(p.firstMessageDate || p.createdAt);
+    const start = startOfDay(dateRange.from);
+    const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+    return isWithinInterval(messageDate, { start, end });
+  });
+
+  // R1 BOOKÉS issus de ces nouvelles conversations
+  const r1FromNewConversations = newConversations.filter(
+    (p) => p.status === "r1_programme"
+  );
+
+  // Taux de conversion réel : nouvelles conversations → R1
+  const realConversionRate = newConversations.length > 0 
+    ? (r1FromNewConversations.length / newConversations.length) * 100
+    : 0;
+
+  // Pour la compatibilité avec le reste du code (répartition hype)
+  const filteredProspects = newConversations;
+
+  // Statistiques par hype
+  const byHype = {
+    froid: filteredProspects.filter((p) => p.hype === "froid").length,
+    tiede: filteredProspects.filter((p) => p.hype === "tiede").length,
+    chaud: filteredProspects.filter((p) => p.hype === "chaud").length,
+  };
+
+  // Filtrer les templates utilisés dans la période
+  const templatesWithActivity = templates.map((t) => {
+    const usageInPeriod = t.usageHistory?.filter((u) => {
+      if (!dateRange?.from) return false;
+      const usageDate = new Date(u.date);
+      const start = startOfDay(dateRange.from);
+      const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+      return isWithinInterval(usageDate, { start, end });
+    }) || [];
+
+    const sendsInPeriod = usageInPeriod.length;
+    const callsInPeriod = usageInPeriod.filter((u) => u.hasCall).length;
+
+    return {
+      ...t,
+      sendsInPeriod,
+      callsInPeriod,
+      callRateInPeriod: sendsInPeriod > 0 ? (callsInPeriod / sendsInPeriod) * 100 : 0,
+    };
+  }).filter((t) => t.sendsInPeriod > 0);
+
+  // Top 3 templates du mois
+  const topTemplates = [...templatesWithActivity]
+    .filter((t) => t.sendsInPeriod >= 5) // Minimum 5 envois pour être pertinent
+    .sort((a, b) => {
+      // Score: 70% call rate + 30% volume normalisé
+      const scoreA = a.callRateInPeriod * 0.7 + Math.min(a.sendsInPeriod / 10, 10) * 3;
+      const scoreB = b.callRateInPeriod * 0.7 + Math.min(b.sendsInPeriod / 10, 10) * 3;
+      return scoreB - scoreA;
+    })
+    .slice(0, 3);
+
+  // NOUVELLE SECTION: Performance par séquence
+  const sequencePerformance = Array.from({ length: 10 }, (_, i) => {
+    const sequence = (i + 1) as TemplateSequence;
+    const templatesInSequence = templates.filter((t) => t.sequence === sequence);
+    
+    const totalSends = templatesInSequence.reduce((sum, t) => sum + t.metrics.sends, 0);
+    const totalResponses = templatesInSequence.reduce((sum, t) => sum + t.metrics.responses, 0);
+    const totalCalls = templatesInSequence.reduce((sum, t) => sum + t.metrics.calls, 0);
+    
+    return {
+      sequence,
+      sends: totalSends,
+      responseRate: totalSends > 0 ? (totalResponses / totalSends) * 100 : 0,
+      callRate: totalSends > 0 ? (totalCalls / totalSends) * 100 : 0,
+      responses: totalResponses,
+      calls: totalCalls,
+    };
+  }).filter((s) => s.sends > 0); // Seulement les séquences utilisées
+
+  // NOUVELLE SECTION: Attribution des R1 par message
+  const r1Attribution = prospects
+    .filter((p) => p.status === "r1_programme" && p.templateUsage && p.templateUsage.length > 0)
+    .map((p) => {
+      const lastTemplate = p.templateUsage[p.templateUsage.length - 1];
+      const template = templates.find((t) => t.id === lastTemplate.templateId);
+      return {
+        prospectName: p.fullName,
+        sequence: template?.sequence || 0,
+        templateName: template?.name || "Template supprimé",
+        date: lastTemplate.sentAt,
+      };
     });
-  }, [prospects, dateRange]);
 
-  const r1FromNewConversations = useMemo(() => {
-    return newConversations.filter((p) => p.status === "r1_programme");
-  }, [newConversations]);
+  const r1BySequence = Array.from({ length: 10 }, (_, i) => {
+    const sequence = (i + 1) as TemplateSequence;
+    return {
+      sequence,
+      count: r1Attribution.filter((r) => r.sequence === sequence).length,
+    };
+  }).filter((s) => s.count > 0);
 
-  const realConversionRate = useMemo(() => {
-    return newConversations.length > 0 
-      ? (r1FromNewConversations.length / newConversations.length) * 100
-      : 0;
-  }, [newConversations, r1FromNewConversations]);
-
-  const byHype = useMemo(() => ({
-    froid: newConversations.filter((p) => p.hype === "froid").length,
-    tiede: newConversations.filter((p) => p.hype === "tiede").length,
-    chaud: newConversations.filter((p) => p.hype === "chaud").length,
-  }), [newConversations]);
-
-  if (authLoading || prospectsLoading || templatesLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Chargement...</p>
-      </div>
-    );
-  }
+  const hypeConfig = {
+    froid: { label: "Froid", color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" },
+    tiede: { label: "Tiède", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
+    chaud: { label: "Chaud", color: "bg-red-500/10 text-red-500 border-red-500/20" },
+  };
 
   return (
     <div className="min-h-screen flex w-full bg-background">
-      <Sidebar todayCount={todayCount} />
+      <Sidebar />
       <div className="flex-1 ml-64">
-        <Header notificationCount={todayCount} />
+        <Header />
         <main className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -193,6 +272,7 @@ const Analytics = () => {
             </Card>
           </div>
 
+
           {/* Répartition par hype */}
           <Card className="p-6 border-border/50 bg-card/50">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -204,8 +284,8 @@ const Analytics = () => {
                 <div className="text-sm text-muted-foreground mb-1">❄️ Froid</div>
                 <div className="text-3xl font-bold text-cyan-400">{byHype.froid}</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {newConversations.length > 0 
-                    ? ((byHype.froid / newConversations.length) * 100).toFixed(0)
+                  {filteredProspects.length > 0 
+                    ? ((byHype.froid / filteredProspects.length) * 100).toFixed(0)
                     : 0}% du total
                 </div>
               </Card>
@@ -213,8 +293,8 @@ const Analytics = () => {
                 <div className="text-sm text-muted-foreground mb-1">🌡️ Tiède</div>
                 <div className="text-3xl font-bold text-yellow-400">{byHype.tiede}</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {newConversations.length > 0 
-                    ? ((byHype.tiede / newConversations.length) * 100).toFixed(0)
+                  {filteredProspects.length > 0 
+                    ? ((byHype.tiede / filteredProspects.length) * 100).toFixed(0)
                     : 0}% du total
                 </div>
               </Card>
@@ -222,13 +302,139 @@ const Analytics = () => {
                 <div className="text-sm text-muted-foreground mb-1">🔥 Chaud</div>
                 <div className="text-3xl font-bold text-red-400">{byHype.chaud}</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {newConversations.length > 0 
-                    ? ((byHype.chaud / newConversations.length) * 100).toFixed(0)
+                  {filteredProspects.length > 0 
+                    ? ((byHype.chaud / filteredProspects.length) * 100).toFixed(0)
                     : 0}% du total
                 </div>
               </Card>
             </div>
           </Card>
+
+          {/* Top templates du mois */}
+          {topTemplates.length > 0 && (
+            <Card className="p-6 border-border/50 bg-card/50">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Award className="h-5 w-5 text-yellow-500" />
+                Top 3 Messages de la période
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Les templates qui ont généré le plus d'appels
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {topTemplates.map((template, index) => {
+                  const medals = ["🥇", "🥈", "🥉"];
+                  return (
+                    <Card key={template.id} className="p-6 bg-background/50 text-center">
+                      <div className="text-4xl mb-2">{medals[index]}</div>
+                      <div className="font-semibold mb-2 line-clamp-2">{template.name}</div>
+                      <div className="text-xs text-muted-foreground mb-3">
+                        {template.sendsInPeriod} envois
+                      </div>
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <Phone className="h-4 w-4 text-green-500" />
+                        <div className="text-2xl font-bold text-green-400">
+                          {template.callRateInPeriod.toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {template.callsInPeriod} appels générés
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {/* NOUVELLE SECTION: Performance par séquence */}
+          {sequencePerformance.length > 0 && (
+            <Card className="p-6 border-border/50 bg-card/50">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <BarChart2 className="h-5 w-5 text-blue-500" />
+                Performance par séquence
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Analyse des performances par numéro de message
+              </p>
+              <div className="space-y-3">
+                {sequencePerformance.map((seq) => (
+                  <div
+                    key={seq.sequence}
+                    className="flex items-center gap-4 p-3 border rounded bg-card/30"
+                  >
+                    <div className="flex-shrink-0 w-24">
+                      <Badge variant="outline" className="text-sm">
+                        Message {seq.sequence}
+                      </Badge>
+                    </div>
+                    <div className="flex-1 grid grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <div className="text-muted-foreground text-xs">Envois</div>
+                        <div className="font-semibold">{seq.sends}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Réponses</div>
+                        <div className="font-semibold">{seq.responses}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Taux réponse</div>
+                        <div className="font-semibold text-blue-400">
+                          {seq.responseRate.toFixed(1)}%
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Taux call</div>
+                        <div className="font-semibold text-green-400">
+                          {seq.callRate.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* NOUVELLE SECTION: Attribution R1 par message */}
+          {r1BySequence.length > 0 && (
+            <Card className="p-6 border-border/50 bg-card/50">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Target className="h-5 w-5 text-green-500" />
+                Attribution des R1 par message
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Quel message a généré les R1 ?
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {r1BySequence.map((seq) => {
+                  const percentage = r1Attribution.length > 0
+                    ? ((seq.count / r1Attribution.length) * 100).toFixed(0)
+                    : 0;
+                  return (
+                    <Card key={seq.sequence} className="p-4 bg-background/50 text-center">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Message {seq.sequence}
+                      </div>
+                      <div className="text-3xl font-bold text-green-400 mb-1">
+                        {seq.count}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {percentage}% des R1
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {filteredProspects.length === 0 && (
+            <Card className="p-12 text-center border-border/50 bg-card/50">
+              <p className="text-muted-foreground">
+                Aucune donnée disponible pour cette période.
+              </p>
+            </Card>
+          )}
         </main>
       </div>
     </div>
