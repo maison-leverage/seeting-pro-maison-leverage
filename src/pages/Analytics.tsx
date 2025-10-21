@@ -21,6 +21,7 @@ import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 type DateFilter = "thisMonth" | "lastMonth" | "all" | "custom";
 
@@ -33,23 +34,71 @@ const Analytics = () => {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
-    const user = localStorage.getItem("crm_user");
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-    loadData();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      loadData();
+    });
   }, [navigate]);
 
-  const loadData = () => {
-    const storedProspects = localStorage.getItem("crm_prospects");
-    const storedTemplates = localStorage.getItem("crm_templates");
+  const loadData = async () => {
+    const { data: prospectsData } = await supabase.from('prospects').select('*');
+    const { data: templatesData } = await supabase.from('templates').select('*');
     
-    if (storedProspects) {
-      setProspects(JSON.parse(storedProspects));
+    if (prospectsData) {
+      const loadedProspects: Prospect[] = prospectsData.map((p: any) => ({
+        id: p.id,
+        fullName: p.full_name,
+        company: p.company,
+        position: p.position || "",
+        linkedinUrl: p.linkedin_url || "",
+        status: p.status,
+        priority: p.priority,
+        qualification: p.qualification,
+        hype: p.hype,
+        tags: p.tags || [],
+        notes: [],
+        history: [],
+        reminderDate: p.reminder_date,
+        firstMessageDate: p.first_message_date,
+        assignedTo: p.assigned_to || "",
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+        lastContact: p.last_contact,
+        followUpCount: p.follow_up_count || 0,
+      }));
+      setProspects(loadedProspects);
     }
-    if (storedTemplates) {
-      setTemplates(JSON.parse(storedTemplates));
+
+    if (templatesData) {
+      const loadedTemplates: Template[] = templatesData.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        category: "premier_contact",
+        content: t.content,
+        status: "actif",
+        targetProfile: {
+          types: t.target_types || [],
+          sectors: t.target_sectors || [],
+          sizes: t.target_sizes || []
+        },
+        metrics: {
+          sends: t.sent_count || 0,
+          responses: t.response_count || 0,
+          calls: 0,
+          responseRate: 0,
+          callRate: 0,
+          rating: 1
+        },
+        tags: t.tags || [],
+        notes: t.notes || "",
+        createdAt: t.created_at,
+        updatedAt: t.updated_at,
+        usageHistory: [],
+      }));
+      setTemplates(loadedTemplates);
     }
   };
 

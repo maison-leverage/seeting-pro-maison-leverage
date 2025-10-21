@@ -5,36 +5,79 @@ import Sidebar from "@/components/layout/Sidebar";
 import { Users, TrendingUp, Clock, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Prospect } from "@/types/prospect";
+import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [todayCount, setTodayCount] = useState(0);
   useEffect(() => {
-    // Check auth
-    const user = localStorage.getItem("crm_user");
-    if (!user) {
-      navigate("/auth");
+    // Check auth and load data
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      loadProspects();
+    });
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('dashboard-prospects')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, () => {
+        loadProspects();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [navigate]);
+
+  const loadProspects = async () => {
+    const { data, error } = await supabase
+      .from('prospects')
+      .select('*');
+
+    if (error) {
+      console.error('Error loading prospects:', error);
       return;
     }
 
-    // Load prospects from localStorage
-    const stored = localStorage.getItem("crm_prospects");
-    if (stored) {
-      const loadedProspects = JSON.parse(stored);
-      setProspects(loadedProspects);
+    const loadedProspects: Prospect[] = data.map((p: any) => ({
+      id: p.id,
+      fullName: p.full_name,
+      company: p.company,
+      position: p.position || "",
+      linkedinUrl: p.linkedin_url || "",
+      status: p.status,
+      priority: p.priority,
+      qualification: p.qualification,
+      hype: p.hype,
+      tags: p.tags || [],
+      notes: [],
+      history: [],
+      reminderDate: p.reminder_date,
+      firstMessageDate: p.first_message_date,
+      assignedTo: p.assigned_to || "",
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+      lastContact: p.last_contact,
+      followUpCount: p.follow_up_count || 0,
+    }));
 
-      // Calculate today count
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const count = loadedProspects.filter((p: Prospect) => {
-        if (!p.reminderDate) return false;
-        const reminder = new Date(p.reminderDate);
-        reminder.setHours(0, 0, 0, 0);
-        return reminder <= today;
-      }).length;
-      setTodayCount(count);
-    }
-  }, [navigate]);
+    setProspects(loadedProspects);
+
+    // Calculate today count
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const count = loadedProspects.filter((p: Prospect) => {
+      if (!p.reminderDate) return false;
+      const reminder = new Date(p.reminderDate);
+      reminder.setHours(0, 0, 0, 0);
+      return reminder <= today;
+    }).length;
+    setTodayCount(count);
+  };
   const stats = [{
     label: "Total prospects",
     value: prospects.length,

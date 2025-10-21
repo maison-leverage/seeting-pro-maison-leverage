@@ -13,6 +13,7 @@ import TemplateForm from "@/components/templates/TemplateForm";
 import TemplateCopyModal from "@/components/templates/TemplateCopyModal";
 import TemplateStatsModal from "@/components/templates/TemplateStatsModal";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Templates = () => {
   const navigate = useNavigate();
@@ -27,27 +28,73 @@ const Templates = () => {
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
 
   useEffect(() => {
-    const user = localStorage.getItem("crm_user");
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-    loadTemplates();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      loadTemplates();
+    });
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('templates-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'templates' }, () => {
+        loadTemplates();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [navigate]);
 
   useEffect(() => {
     filterTemplates();
   }, [templates, searchQuery, categoryFilter, statusFilter]);
 
-  const loadTemplates = () => {
-    const stored = localStorage.getItem("crm_templates");
-    if (stored) {
-      setTemplates(JSON.parse(stored));
+  const loadTemplates = async () => {
+    const { data, error } = await supabase
+      .from('templates')
+      .select('*');
+
+    if (error) {
+      console.error('Error loading templates:', error);
+      return;
     }
+
+    const loadedTemplates: Template[] = data.map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      category: t.sequence as any || "premier_contact",
+      content: t.content,
+      status: "actif" as const,
+      targetProfile: {
+        types: t.target_types || [],
+        sectors: t.target_sectors || [],
+        sizes: t.target_sizes || []
+      },
+      metrics: {
+        sends: t.sent_count || 0,
+        responses: t.response_count || 0,
+        calls: 0,
+        responseRate: t.sent_count > 0 ? ((t.response_count || 0) / t.sent_count) * 100 : 0,
+        callRate: 0,
+        rating: 1
+      },
+      tags: t.tags || [],
+      notes: t.notes || "",
+      createdAt: t.created_at,
+      updatedAt: t.updated_at,
+      usageHistory: [],
+    }));
+
+    setTemplates(loadedTemplates);
   };
 
-  const saveTemplates = (newTemplates: Template[]) => {
-    localStorage.setItem("crm_templates", JSON.stringify(newTemplates));
+  const saveTemplates = async (newTemplates: Template[]) => {
+    // Cette fonction n'est plus utilisée directement
+    // Les saves sont faits individuellement dans handleSaveTemplate
     setTemplates(newTemplates);
   };
 
@@ -73,35 +120,61 @@ const Templates = () => {
     setFilteredTemplates(filtered);
   };
 
-  const handleSaveTemplate = (templateData: Partial<Template>) => {
+  const handleSaveTemplate = async (templateData: Partial<Template>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     if (templateData.id) {
-      const updated = templates.map((t) =>
-        t.id === templateData.id
-          ? updateTemplateMetrics({ ...t, ...templateData, updatedAt: new Date().toISOString() })
-          : t
-      );
-      saveTemplates(updated);
+      // Update existing
+      const { error } = await supabase
+        .from('templates')
+        .update({
+          name: templateData.name,
+          content: templateData.content,
+          sequence: templateData.category,
+          notes: templateData.notes,
+          tags: templateData.tags,
+          target_types: templateData.targetProfile?.types,
+          target_sectors: templateData.targetProfile?.sectors,
+          target_sizes: templateData.targetProfile?.sizes,
+        })
+        .eq('id', templateData.id);
+
+      if (error) {
+        console.error('Error updating template:', error);
+        toast({ title: "Erreur lors de la modification" });
+        return;
+      }
       toast({ title: "Template modifié avec succès" });
     } else {
-      const newTemplate: Template = {
-        id: Date.now().toString(),
-        name: templateData.name || "",
-        category: templateData.category || "premier_contact",
-        content: templateData.content || "",
-        status: "actif",
-        targetProfile: templateData.targetProfile || { types: [], sectors: [], sizes: [] },
-        metrics: { sends: 0, responses: 0, calls: 0, responseRate: 0, callRate: 0, rating: 1 },
-        tags: templateData.tags || [],
-        notes: templateData.notes || "",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        usageHistory: [],
-      };
-      saveTemplates([...templates, newTemplate]);
+      // Create new
+      const { error } = await supabase
+        .from('templates')
+        .insert({
+          user_id: user.id,
+          name: templateData.name || "",
+          content: templateData.content || "",
+          sequence: templateData.category || "premier_contact",
+          notes: templateData.notes || "",
+          tags: templateData.tags || [],
+          target_types: templateData.targetProfile?.types || [],
+          target_sectors: templateData.targetProfile?.sectors || [],
+          target_sizes: templateData.targetProfile?.sizes || [],
+          sent_count: 0,
+          response_count: 0,
+        });
+
+      if (error) {
+        console.error('Error creating template:', error);
+        toast({ title: "Erreur lors de la création" });
+        return;
+      }
       toast({ title: "Template créé avec succès" });
     }
+    
     setIsFormOpen(false);
     setSelectedTemplate(null);
+    loadTemplates();
   };
 
   const handleTrackSend = (templateId: string) => {
@@ -118,36 +191,44 @@ const Templates = () => {
     saveTemplates(updated);
   };
 
-  const handleIncrementSend = (templateId: string) => {
-    handleTrackSend(templateId);
+  const handleIncrementSend = async (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    const { error } = await supabase
+      .from('templates')
+      .update({ sent_count: (template.metrics.sends || 0) + 1 })
+      .eq('id', templateId);
+
+    if (error) {
+      console.error('Error incrementing send:', error);
+      return;
+    }
+
     toast({ title: "Envoi enregistré" });
+    loadTemplates();
   };
 
-  const handleIncrementResponse = (templateId: string) => {
-    const updated = templates.map((t) => {
-      if (t.id === templateId) {
-        return updateTemplateMetrics({
-          ...t,
-          metrics: { ...t.metrics, responses: t.metrics.responses + 1 },
-        });
-      }
-      return t;
-    });
-    saveTemplates(updated);
+  const handleIncrementResponse = async (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    const { error } = await supabase
+      .from('templates')
+      .update({ response_count: (template.metrics.responses || 0) + 1 })
+      .eq('id', templateId);
+
+    if (error) {
+      console.error('Error incrementing response:', error);
+      return;
+    }
+
     toast({ title: "Réponse enregistrée" });
+    loadTemplates();
   };
 
-  const handleIncrementCall = (templateId: string) => {
-    const updated = templates.map((t) => {
-      if (t.id === templateId) {
-        return updateTemplateMetrics({
-          ...t,
-          metrics: { ...t.metrics, calls: t.metrics.calls + 1 },
-        });
-      }
-      return t;
-    });
-    saveTemplates(updated);
+  const handleIncrementCall = async (templateId: string) => {
+    // Calls not tracked in DB yet, just show toast
     toast({ title: "Call enregistré" });
   };
 
@@ -159,10 +240,21 @@ const Templates = () => {
     toast({ title: "Template archivé" });
   };
 
-  const handleDelete = (template: Template) => {
+  const handleDelete = async (template: Template) => {
     if (confirm("Supprimer ce template ?")) {
-      saveTemplates(templates.filter((t) => t.id !== template.id));
+      const { error } = await supabase
+        .from('templates')
+        .delete()
+        .eq('id', template.id);
+
+      if (error) {
+        console.error('Error deleting template:', error);
+        toast({ title: "Erreur lors de la suppression" });
+        return;
+      }
+
       toast({ title: "Template supprimé" });
+      loadTemplates();
     }
   };
 

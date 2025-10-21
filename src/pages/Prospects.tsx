@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Prospects = () => {
   const navigate = useNavigate();
@@ -26,13 +27,26 @@ const Prospects = () => {
   const [todayCount, setTodayCount] = useState(0);
 
   useEffect(() => {
-    const user = localStorage.getItem("crm_user");
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
+    // Check auth
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      loadProspects();
+    });
 
-    loadProspects();
+    // Realtime subscription
+    const channel = supabase
+      .channel('prospects-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, () => {
+        loadProspects();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -50,27 +64,51 @@ const Prospects = () => {
     }
   }, [searchParams, navigate, view]);
 
-  const loadProspects = () => {
-    const stored = localStorage.getItem("crm_prospects");
-    if (stored) {
-      const loadedProspects = JSON.parse(stored).map((p: any) => ({
-        ...p,
-        // Assurer que followUpCount existe (migration pour anciens prospects)
-        followUpCount: p.followUpCount ?? 0,
-      }));
-      setProspects(loadedProspects);
+  const loadProspects = async () => {
+    const { data, error } = await supabase
+      .from('prospects')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      // Calculate today count
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const count = loadedProspects.filter((p: Prospect) => {
-        if (!p.reminderDate) return false;
-        const reminder = new Date(p.reminderDate);
-        reminder.setHours(0, 0, 0, 0);
-        return reminder <= today;
-      }).length;
-      setTodayCount(count);
+    if (error) {
+      console.error('Error loading prospects:', error);
+      return;
     }
+
+    const loadedProspects: Prospect[] = data.map((p: any) => ({
+      id: p.id,
+      fullName: p.full_name,
+      company: p.company,
+      position: p.position || "",
+      linkedinUrl: p.linkedin_url || "",
+      status: p.status,
+      priority: p.priority,
+      qualification: p.qualification,
+      hype: p.hype,
+      tags: p.tags || [],
+      notes: [],
+      history: [],
+      reminderDate: p.reminder_date,
+      firstMessageDate: p.first_message_date,
+      assignedTo: p.assigned_to || "",
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+      lastContact: p.last_contact,
+      followUpCount: p.follow_up_count || 0,
+    }));
+
+    setProspects(loadedProspects);
+
+    // Calculate today count
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const count = loadedProspects.filter((p: Prospect) => {
+      if (!p.reminderDate) return false;
+      const reminder = new Date(p.reminderDate);
+      reminder.setHours(0, 0, 0, 0);
+      return reminder <= today;
+    }).length;
+    setTodayCount(count);
   };
 
   const applyFilters = () => {
@@ -139,59 +177,67 @@ const Prospects = () => {
     setFilteredProspects(filtered);
   };
 
-  const handleSubmit = (prospectData: Partial<Prospect>) => {
-    const user = JSON.parse(localStorage.getItem("crm_user") || "{}");
+  const handleSubmit = async (prospectData: Partial<Prospect>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
     if (editingProspect) {
       // Update existing
-      const updated = prospects.map((p) =>
-        p.id === editingProspect.id
-          ? {
-              ...p,
-              ...prospectData,
-              history: [
-                ...p.history,
-                {
-                  id: Date.now().toString(),
-                  action: "Modification",
-                  details: `Modifié par ${user.name}`,
-                  createdAt: new Date().toISOString(),
-                  createdBy: user.name,
-                },
-              ],
-            }
-          : p
-      );
-      setProspects(updated);
-      localStorage.setItem("crm_prospects", JSON.stringify(updated));
+      const { error } = await supabase
+        .from('prospects')
+        .update({
+          full_name: prospectData.fullName,
+          company: prospectData.company,
+          position: prospectData.position,
+          linkedin_url: prospectData.linkedinUrl,
+          status: prospectData.status,
+          priority: prospectData.priority,
+          qualification: prospectData.qualification,
+          hype: prospectData.hype,
+          tags: prospectData.tags,
+          reminder_date: prospectData.reminderDate,
+          first_message_date: prospectData.firstMessageDate,
+          last_contact: prospectData.lastContact,
+          follow_up_count: prospectData.followUpCount,
+        })
+        .eq('id', editingProspect.id);
+
+      if (error) {
+        console.error('Error updating prospect:', error);
+        toast.error("Erreur lors de la modification");
+        return;
+      }
+      toast.success("Prospect modifié !");
     } else {
       // Create new
-      const newProspect: Prospect = {
-        id: Date.now().toString(),
-        fullName: prospectData.fullName!,
-        company: prospectData.company!,
-        position: prospectData.position || "",
-        linkedinUrl: prospectData.linkedinUrl || "",
-        status: prospectData.status || "premier_message",
-        priority: prospectData.priority || "2",
-        qualification: prospectData.qualification || "loom",
-        hype: prospectData.hype || "tiede",
-        tags: prospectData.tags || [],
-        notes: prospectData.notes || [],
-        history: prospectData.history || [],
-        reminderDate: prospectData.reminderDate,
-        assignedTo: prospectData.assignedTo || user.id,
-        createdAt: prospectData.createdAt!,
-        updatedAt: prospectData.updatedAt!,
-        followUpCount: 0,
-      };
+      const { error } = await supabase
+        .from('prospects')
+        .insert({
+          user_id: user.id,
+          full_name: prospectData.fullName!,
+          company: prospectData.company!,
+          position: prospectData.position,
+          linkedin_url: prospectData.linkedinUrl,
+          status: prospectData.status || "premier_message",
+          priority: prospectData.priority || "2",
+          qualification: prospectData.qualification || "loom",
+          hype: prospectData.hype || "tiede",
+          tags: prospectData.tags || [],
+          reminder_date: prospectData.reminderDate,
+          first_message_date: prospectData.firstMessageDate,
+          follow_up_count: 0,
+        });
 
-      const updated = [...prospects, newProspect];
-      setProspects(updated);
-      localStorage.setItem("crm_prospects", JSON.stringify(updated));
+      if (error) {
+        console.error('Error creating prospect:', error);
+        toast.error("Erreur lors de la création");
+        return;
+      }
+      toast.success("Prospect ajouté !");
     }
 
     setEditingProspect(undefined);
+    loadProspects();
   };
 
   const handleEdit = (prospect: Prospect) => {
@@ -199,13 +245,22 @@ const Prospects = () => {
     setFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Supprimer ce prospect ?")) return;
 
-    const updated = prospects.filter((p) => p.id !== id);
-    setProspects(updated);
-    localStorage.setItem("crm_prospects", JSON.stringify(updated));
+    const { error } = await supabase
+      .from('prospects')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting prospect:', error);
+      toast.error("Erreur lors de la suppression");
+      return;
+    }
+
     toast.success("Prospect supprimé");
+    loadProspects();
   };
 
   const getViewTitle = () => {

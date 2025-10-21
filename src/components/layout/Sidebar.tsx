@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -48,14 +50,23 @@ interface SidebarProps {
 
 const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
   const navigate = useNavigate();
+  const [userEmail, setUserEmail] = useState("");
 
-  const handleLogout = () => {
-    localStorage.removeItem("crm_user");
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUserEmail(user.email || "");
+      }
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     toast.success("Déconnexion réussie");
     navigate("/auth");
   };
 
-  const user = JSON.parse(localStorage.getItem("crm_user") || "{}");
+  const userName = userEmail.split("@")[0] || "User";
 
   return (
     <div className="w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0">
@@ -134,11 +145,11 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
       <div className="p-4 border-t border-sidebar-border space-y-3">
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm">
-            {user.name?.[0] || "?"}
+            {userName[0]?.toUpperCase() || "?"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            <p className="text-sm font-medium truncate">{userName}</p>
+            <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
           </div>
         </div>
         <Button
