@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 interface ProspectFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,6 +25,7 @@ const ProspectForm = ({
   onSubmit,
   initialData
 }: ProspectFormProps) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<Partial<Prospect>>(initialData || {
     fullName: "",
     company: "",
@@ -73,12 +75,11 @@ const ProspectForm = ({
       toast.error("Date du premier message est obligatoire");
       return;
     }
-    const user = JSON.parse(localStorage.getItem("crm_user") || "{}");
     const prospectData: Partial<Prospect> = {
       ...formData,
       reminderDate: reminderDate?.toISOString(),
       firstMessageDate: firstMessageDate?.toISOString(),
-      assignedTo: formData.assignedTo || user.id,
+      assignedTo: formData.assignedTo || user?.id,
       updatedAt: new Date().toISOString(),
       ...(!initialData && {
         createdAt: new Date().toISOString(),
@@ -87,9 +88,9 @@ const ProspectForm = ({
         history: [{
           id: Date.now().toString(),
           action: "Création du prospect",
-          details: `Créé par ${user.name}`,
+          details: `Créé par ${user?.user_metadata?.name || user?.email || "Utilisateur"}`,
           createdAt: new Date().toISOString(),
-          createdBy: user.name
+          createdBy: user?.user_metadata?.name || user?.email || "Utilisateur"
         }],
         score: 0,
         followUpCount: 0

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -48,14 +49,13 @@ interface SidebarProps {
 
 const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("crm_user");
+  const handleLogout = async () => {
+    await signOut();
     toast.success("Déconnexion réussie");
     navigate("/auth");
   };
-
-  const user = JSON.parse(localStorage.getItem("crm_user") || "{}");
 
   return (
     <div className="w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0">
@@ -134,11 +134,11 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
       <div className="p-4 border-t border-sidebar-border space-y-3">
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm">
-            {user.name?.[0] || "?"}
+            {user?.user_metadata?.name?.[0] || user?.email?.[0] || "?"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            <p className="text-sm font-medium truncate">{user?.user_metadata?.name || "Utilisateur"}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           </div>
         </div>
         <Button
