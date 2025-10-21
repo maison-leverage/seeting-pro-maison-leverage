@@ -37,6 +37,8 @@ export const useProspects = () => {
         hype: p.hype,
         tags: Array.isArray(p.tags) ? p.tags : [],
         reminderDate: p.reminder_date,
+        firstMessageDate: p.first_message_date,
+        lastContact: p.last_contact,
         assignedTo: p.assigned_to || user.id,
         followUpCount: p.follow_up_count || 0,
         createdAt: p.created_at,
@@ -77,6 +79,8 @@ export const useProspects = () => {
           hype: prospectData.hype || "tiede",
           tags: JSON.stringify(prospectData.tags || []),
           reminder_date: prospectData.reminderDate,
+          first_message_date: prospectData.firstMessageDate,
+          last_contact: prospectData.lastContact,
           assigned_to: user.id,
           follow_up_count: 0,
         }])
@@ -110,6 +114,8 @@ export const useProspects = () => {
       if (data.hype) updateData.hype = data.hype;
       if (data.tags) updateData.tags = JSON.stringify(data.tags);
       if (data.reminderDate !== undefined) updateData.reminder_date = data.reminderDate;
+      if (data.firstMessageDate !== undefined) updateData.first_message_date = data.firstMessageDate;
+      if (data.lastContact !== undefined) updateData.last_contact = data.lastContact;
       if (data.followUpCount !== undefined) updateData.follow_up_count = data.followUpCount;
 
       const { error } = await supabase
