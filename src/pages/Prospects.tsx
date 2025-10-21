@@ -46,14 +46,17 @@ const Prospects = () => {
     // Check if we should open the form (from "Nouveau prospect" button)
     const shouldOpenForm = searchParams.get("new");
     console.log("Prospects page - searchParams:", { shouldOpenForm, view, formOpen });
-    if (shouldOpenForm === "true") {
+    if (shouldOpenForm === "true" && !formOpen) {
       console.log("Opening form from 'new' param");
       setEditingProspect(undefined);
       setFormOpen(true);
-      // Clear the query param
-      navigate("/prospects?view=" + view, { replace: true });
+      // Clear the query param immediately
+      const timer = setTimeout(() => {
+        navigate("/prospects?view=" + view, { replace: true });
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [searchParams, navigate, view]);
+  }, [searchParams, navigate, view, formOpen]);
 
   const loadProspects = () => {
     const stored = localStorage.getItem("crm_prospects");

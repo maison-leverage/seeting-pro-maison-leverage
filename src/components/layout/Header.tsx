@@ -46,7 +46,9 @@ const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
 
           {/* New Prospect */}
           <Button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               if (onNewProspect) {
                 onNewProspect();
               } else {
