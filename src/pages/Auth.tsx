@@ -1,54 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Linkedin, Lock, Mail } from "lucide-react";
-
-const USERS = [
-  { id: "1", email: "toi@crm.com", password: "admin123", name: "Toi" },
-  { id: "2", email: "oceane@crm.com", password: "admin123", name: "Océane" },
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/prospects");
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && event === 'SIGNED_IN') {
+        toast.success(`Bienvenue ! 👋`);
+        navigate("/prospects");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
-      const user = USERS.find(
-        (u) => u.email === email && u.password === password
-      );
-
-      if (user) {
-        localStorage.setItem("crm_user", JSON.stringify(user));
-        toast.success(`Bienvenue ${user.name} ! 👋`);
-        navigate("/prospects");
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          },
+        });
+        
+        if (error) throw error;
+        toast.success("Compte créé ! Tu peux te connecter maintenant.");
+        setIsSignUp(false);
       } else {
-        toast.error("Email ou mot de passe incorrect");
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
       }
+    } catch (error: any) {
+      toast.error(error.message || "Une erreur est survenue");
+    } finally {
       setLoading(false);
-    }, 800);
-  };
-
-  const quickLogin = (userEmail: string) => {
-    setLoading(true);
-    
-    setTimeout(() => {
-      const user = USERS.find((u) => u.email === userEmail);
-      
-      if (user) {
-        localStorage.setItem("crm_user", JSON.stringify(user));
-        toast.success(`Bienvenue ${user.name} ! 👋`);
-        navigate("/prospects");
-      }
-      setLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -72,7 +85,7 @@ const Auth = () => {
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground/90">
                 Email
@@ -112,34 +125,18 @@ const Auth = () => {
               className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all shadow-lg hover:shadow-xl glow-primary"
               disabled={loading}
             >
-              {loading ? "Connexion..." : "Se connecter"}
+              {loading ? (isSignUp ? "Création..." : "Connexion...") : (isSignUp ? "Créer un compte" : "Se connecter")}
             </Button>
           </form>
 
-          {/* Quick login */}
-          <div className="mt-8 pt-6 border-t border-border/50">
-            <p className="text-sm text-muted-foreground mb-3 text-center">
-              Connexion rapide :
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => quickLogin("toi@crm.com")}
-                className="border-border/50 hover:border-primary hover:bg-primary/10 transition-all"
-              >
-                👤 Toi
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => quickLogin("oceane@crm.com")}
-                className="border-border/50 hover:border-secondary hover:bg-secondary/10 transition-all"
-              >
-                👤 Océane
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              Mot de passe : admin123
-            </p>
+          {/* Toggle sign up / login */}
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              {isSignUp ? "Déjà un compte ? Se connecter" : "Pas encore de compte ? S'inscrire"}
+            </button>
           </div>
         </div>
 
