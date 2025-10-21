@@ -40,6 +40,7 @@ const ProspectForm = ({
 
   // Reset form when dialog opens
   useEffect(() => {
+    console.log("ProspectForm - open changed:", open, "initialData:", initialData?.fullName);
     if (open) {
       if (initialData) {
         setFormData(initialData);

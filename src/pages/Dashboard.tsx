@@ -96,10 +96,15 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stats.map((stat, index) => {
               const isClickable = stat.label === "À relancer aujourd'hui" || stat.label === "En discussion";
-              const handleClick = () => {
+              const handleClick = (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Dashboard card clicked:", stat.label);
                 if (stat.label === "À relancer aujourd'hui") {
+                  console.log("Navigating to /prospects?view=today");
                   navigate("/prospects?view=today");
                 } else if (stat.label === "En discussion") {
+                  console.log("Navigating to /prospects?view=all");
                   navigate("/prospects?view=all");
                 }
               };

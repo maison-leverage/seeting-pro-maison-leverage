@@ -45,7 +45,9 @@ const Prospects = () => {
   useEffect(() => {
     // Check if we should open the form (from "Nouveau prospect" button)
     const shouldOpenForm = searchParams.get("new");
+    console.log("Prospects page - searchParams:", { shouldOpenForm, view, formOpen });
     if (shouldOpenForm === "true") {
+      console.log("Opening form from 'new' param");
       setEditingProspect(undefined);
       setFormOpen(true);
       // Clear the query param
