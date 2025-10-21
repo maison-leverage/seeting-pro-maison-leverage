@@ -65,7 +65,18 @@ const Prospects = () => {
     if (stored) {
       const loadedProspects = JSON.parse(stored).map((p: any) => ({
         ...p,
-        // Assurer que followUpCount existe (migration pour anciens prospects)
+        // Migration pour anciens prospects - assurer que tous les champs requis existent
+        fullName: p.fullName || "",
+        company: p.company || "",
+        position: p.position || "",
+        linkedinUrl: p.linkedinUrl || "",
+        status: p.status || "premier_message",
+        priority: p.priority || "2",
+        qualification: p.qualification || "loom",
+        hype: p.hype || "tiede",
+        tags: p.tags || [],
+        notes: p.notes || [],
+        history: p.history || [],
         followUpCount: p.followUpCount ?? 0,
       }));
       setProspects(loadedProspects);
@@ -117,9 +128,9 @@ const Prospects = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (p) =>
-          p.fullName.toLowerCase().includes(query) ||
-          p.company.toLowerCase().includes(query) ||
-          p.position.toLowerCase().includes(query)
+          (p.fullName || "").toLowerCase().includes(query) ||
+          (p.company || "").toLowerCase().includes(query) ||
+          (p.position || "").toLowerCase().includes(query)
       );
     }
 
