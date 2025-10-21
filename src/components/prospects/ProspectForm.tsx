@@ -36,6 +36,7 @@ const ProspectForm = ({
     followUpCount: 0
   });
   const [reminderDate, setReminderDate] = useState<Date | undefined>(initialData?.reminderDate ? new Date(initialData.reminderDate) : undefined);
+  const [firstMessageDate, setFirstMessageDate] = useState<Date | undefined>(initialData?.firstMessageDate ? new Date(initialData.firstMessageDate) : undefined);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -43,6 +44,7 @@ const ProspectForm = ({
       if (initialData) {
         setFormData(initialData);
         setReminderDate(initialData.reminderDate ? new Date(initialData.reminderDate) : undefined);
+        setFirstMessageDate(initialData.firstMessageDate ? new Date(initialData.firstMessageDate) : undefined);
       } else {
         setFormData({
           fullName: "",
@@ -56,6 +58,7 @@ const ProspectForm = ({
           followUpCount: 0
         });
         setReminderDate(undefined);
+        setFirstMessageDate(undefined);
       }
     }
   }, [open, initialData]);
@@ -69,6 +72,7 @@ const ProspectForm = ({
     const prospectData: Partial<Prospect> = {
       ...formData,
       reminderDate: reminderDate?.toISOString(),
+      firstMessageDate: firstMessageDate?.toISOString(),
       assignedTo: formData.assignedTo || user.id,
       updatedAt: new Date().toISOString(),
       ...(!initialData && {
@@ -214,20 +218,37 @@ const ProspectForm = ({
             </div>
           </div>
 
-          {/* Date de rappel */}
-          <div className="space-y-2">
-            <Label>Recontacter le...</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-input border-border/50", !reminderDate && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {reminderDate ? format(reminderDate, "PPP") : "Choisir une date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-popover border-border/50" align="start">
-                <Calendar mode="single" selected={reminderDate} onSelect={setReminderDate} initialFocus className="pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Prise de contact le...</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-input border-border/50", !firstMessageDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {firstMessageDate ? format(firstMessageDate, "PPP") : "Choisir une date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-popover border-border/50" align="start">
+                  <Calendar mode="single" selected={firstMessageDate} onSelect={setFirstMessageDate} initialFocus className="pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Recontacter le...</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-input border-border/50", !reminderDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {reminderDate ? format(reminderDate, "PPP") : "Choisir une date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-popover border-border/50" align="start">
+                  <Calendar mode="single" selected={reminderDate} onSelect={setReminderDate} initialFocus className="pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Assignation */}

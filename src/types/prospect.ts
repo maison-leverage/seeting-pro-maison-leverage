@@ -48,6 +48,7 @@ export interface Prospect {
   notes: ProspectNote[];
   history: ProspectHistory[];
   reminderDate?: string;
+  firstMessageDate?: string; // Date de prise de contact
   assignedTo: string; // user id
   createdAt: string;
   updatedAt: string;

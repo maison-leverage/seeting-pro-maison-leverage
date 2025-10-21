@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Prospect } from "@/types/prospect";
 import { Template } from "@/types/template";
-import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award } from "lucide-react";
+import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { 
   startOfMonth, 
@@ -18,14 +18,19 @@ import {
   subMonths
 } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
-type DateFilter = "thisMonth" | "lastMonth" | "all";
+type DateFilter = "thisMonth" | "lastMonth" | "all" | "custom";
 
 const Analytics = () => {
   const navigate = useNavigate();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [dateFilter, setDateFilter] = useState<DateFilter>("thisMonth");
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     const user = localStorage.getItem("crm_user");
@@ -70,6 +75,20 @@ const Analytics = () => {
           start: new Date(0),
           end: new Date(),
           label: "Toutes les données"
+        };
+      case "custom":
+        if (customStartDate && customEndDate) {
+          return {
+            start: startOfDay(customStartDate),
+            end: endOfDay(customEndDate),
+            label: `${format(customStartDate, "dd MMM yyyy", { locale: fr })} - ${format(customEndDate, "dd MMM yyyy", { locale: fr })}`
+          };
+        }
+        // Par défaut si les dates ne sont pas définies
+        return {
+          start: startOfMonth(now),
+          end: endOfMonth(now),
+          label: "Sélectionner une période"
         };
     }
   };
@@ -147,7 +166,7 @@ const Analytics = () => {
               <p className="text-muted-foreground mt-1">Vue d'ensemble de vos performances</p>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={dateFilter === "thisMonth" ? "default" : "outline"}
                 onClick={() => setDateFilter("thisMonth")}
@@ -169,6 +188,84 @@ const Analytics = () => {
               >
                 Tout
               </Button>
+              
+              {/* Période personnalisée */}
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={dateFilter === "custom" ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !customStartDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customStartDate ? format(customStartDate, "dd/MM/yy") : "Du..."}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-popover border-border/50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customStartDate}
+                      onSelect={(date) => {
+                        setCustomStartDate(date);
+                        if (date && customEndDate) {
+                          setDateFilter("custom");
+                        }
+                      }}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={dateFilter === "custom" ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !customEndDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customEndDate ? format(customEndDate, "dd/MM/yy") : "Au..."}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-popover border-border/50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customEndDate}
+                      onSelect={(date) => {
+                        setCustomEndDate(date);
+                        if (customStartDate && date) {
+                          setDateFilter("custom");
+                        }
+                      }}
+                      disabled={(date) => customStartDate ? date < customStartDate : false}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {dateFilter === "custom" && customStartDate && customEndDate && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCustomStartDate(undefined);
+                      setCustomEndDate(undefined);
+                      setDateFilter("thisMonth");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
