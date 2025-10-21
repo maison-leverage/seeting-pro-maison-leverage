@@ -147,7 +147,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
 
   return (
     <Card
-      className={`p-4 border-border/50 hover:border-primary/50 transition-all hover-scale relative ${
+      className={`p-4 border-border/50 hover:border-primary/50 transition-all relative ${
         hasReminderToday ? "border-destructive/50 glow-secondary" : ""
       }`}
     >
@@ -158,7 +158,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
       )}
 
       <div className="flex items-center gap-4 justify-between">
-        <div className="flex-shrink-0 min-w-0">
+        <div className="flex-shrink-0 min-w-0 cursor-pointer" onClick={() => onEdit(prospect)}>
           <h3 className="text-lg font-bold truncate">
             {prospect.fullName}
           </h3>
