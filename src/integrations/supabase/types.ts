@@ -14,7 +14,205 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prospect_history: {
+        Row: {
+          action: string
+          created_at: string
+          created_by: string
+          details: string | null
+          id: string
+          prospect_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          created_by: string
+          details?: string | null
+          id?: string
+          prospect_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          created_by?: string
+          details?: string | null
+          id?: string
+          prospect_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_history_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospect_notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          prospect_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          prospect_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          prospect_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_notes_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          assigned_to: string | null
+          company: string
+          created_at: string
+          follow_up_count: number | null
+          full_name: string
+          hype: string
+          id: string
+          linkedin_url: string | null
+          position: string | null
+          priority: string
+          qualification: string
+          reminder_date: string | null
+          status: string
+          tags: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company: string
+          created_at?: string
+          follow_up_count?: number | null
+          full_name: string
+          hype?: string
+          id?: string
+          linkedin_url?: string | null
+          position?: string | null
+          priority?: string
+          qualification?: string
+          reminder_date?: string | null
+          status?: string
+          tags?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string
+          created_at?: string
+          follow_up_count?: number | null
+          full_name?: string
+          hype?: string
+          id?: string
+          linkedin_url?: string | null
+          position?: string | null
+          priority?: string
+          qualification?: string
+          reminder_date?: string | null
+          status?: string
+          tags?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          response_count: number | null
+          sent_count: number | null
+          sequence: string
+          tags: Json | null
+          target_sectors: Json | null
+          target_sizes: Json | null
+          target_types: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          response_count?: number | null
+          sent_count?: number | null
+          sequence: string
+          tags?: Json | null
+          target_sectors?: Json | null
+          target_sizes?: Json | null
+          target_types?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          response_count?: number | null
+          sent_count?: number | null
+          sequence?: string
+          tags?: Json | null
+          target_sectors?: Json | null
+          target_sizes?: Json | null
+          target_types?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
