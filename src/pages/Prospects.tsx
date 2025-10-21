@@ -200,6 +200,7 @@ const Prospects = () => {
       localStorage.setItem("crm_prospects", JSON.stringify(updated));
     }
 
+    setFormOpen(false);
     setEditingProspect(undefined);
   };
 
@@ -351,7 +352,12 @@ const Prospects = () => {
 
       <ProspectForm
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) {
+            setEditingProspect(undefined);
+          }
+        }}
         onSubmit={handleSubmit}
         initialData={editingProspect}
       />
