@@ -161,10 +161,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
         </div>
       )}
 
-      <div 
-        className="flex items-center gap-4 justify-between cursor-pointer"
-        onClick={() => onEdit(prospect)}
-      >
+      <div className="flex items-center gap-4 justify-between">
         <div className="flex-shrink-0 min-w-0">
           <h3 className="text-lg font-bold truncate">
             {prospect.fullName}
