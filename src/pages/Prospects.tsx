@@ -9,9 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Download } from "lucide-react";
-import { exportProspectsToCSV } from "@/utils/exportUtils";
-import { Template } from "@/types/template";
+import { Search, Filter } from "lucide-react";
 
 const Prospects = () => {
   const navigate = useNavigate();
@@ -19,7 +17,6 @@ const Prospects = () => {
   const view = searchParams.get("view") || "all";
 
   const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [filteredProspects, setFilteredProspects] = useState<Prospect[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | undefined>();
@@ -45,38 +42,20 @@ const Prospects = () => {
   useEffect(() => {
     // Check if we should open the form (from "Nouveau prospect" button)
     const shouldOpenForm = searchParams.get("new");
-    console.log("Prospects page - searchParams:", { shouldOpenForm, view, formOpen });
-    if (shouldOpenForm === "true" && !formOpen) {
-      console.log("Opening form from 'new' param");
+    if (shouldOpenForm === "true") {
       setEditingProspect(undefined);
       setFormOpen(true);
-      // Clear the query param immediately
-      const timer = setTimeout(() => {
-        navigate("/prospects?view=" + view, { replace: true });
-      }, 100);
-      return () => clearTimeout(timer);
+      // Clear the query param
+      navigate("/prospects?view=" + view, { replace: true });
     }
-  }, [searchParams, navigate, view, formOpen]);
+  }, [searchParams, navigate, view]);
 
   const loadProspects = () => {
     const stored = localStorage.getItem("crm_prospects");
-    const storedTemplates = localStorage.getItem("crm_templates");
-    
     if (stored) {
       const loadedProspects = JSON.parse(stored).map((p: any) => ({
         ...p,
-        // Migration pour anciens prospects - assurer que tous les champs requis existent
-        fullName: p.fullName || "",
-        company: p.company || "",
-        position: p.position || "",
-        linkedinUrl: p.linkedinUrl || "",
-        status: p.status || "premier_message",
-        priority: p.priority || "2",
-        qualification: p.qualification || "loom",
-        hype: p.hype || "tiede",
-        tags: p.tags || [],
-        notes: p.notes || [],
-        history: p.history || [],
+        // Assurer que followUpCount existe (migration pour anciens prospects)
         followUpCount: p.followUpCount ?? 0,
       }));
       setProspects(loadedProspects);
@@ -91,10 +70,6 @@ const Prospects = () => {
         return reminder <= today;
       }).length;
       setTodayCount(count);
-    }
-    
-    if (storedTemplates) {
-      setTemplates(JSON.parse(storedTemplates));
     }
   };
 
@@ -128,9 +103,9 @@ const Prospects = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (p) =>
-          (p.fullName || "").toLowerCase().includes(query) ||
-          (p.company || "").toLowerCase().includes(query) ||
-          (p.position || "").toLowerCase().includes(query)
+          p.fullName.toLowerCase().includes(query) ||
+          p.company.toLowerCase().includes(query) ||
+          p.position.toLowerCase().includes(query)
       );
     }
 
@@ -216,7 +191,6 @@ const Prospects = () => {
       localStorage.setItem("crm_prospects", JSON.stringify(updated));
     }
 
-    setFormOpen(false);
     setEditingProspect(undefined);
   };
 
@@ -270,13 +244,6 @@ const Prospects = () => {
                 {filteredProspects.length} prospect{filteredProspects.length > 1 ? "s" : ""}
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => exportProspectsToCSV(prospects)}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
           </div>
 
           {/* Filters */}
@@ -345,20 +312,8 @@ const Prospects = () => {
                 <ProspectCard
                   key={prospect.id}
                   prospect={prospect}
-                  templates={templates}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  onUpdateTemplates={(updated) => {
-                    setTemplates(updated);
-                    localStorage.setItem("crm_templates", JSON.stringify(updated));
-                  }}
-                  onUpdateProspect={(updated) => {
-                    const updatedProspects = prospects.map((p) =>
-                      p.id === updated.id ? updated : p
-                    );
-                    setProspects(updatedProspects);
-                    localStorage.setItem("crm_prospects", JSON.stringify(updatedProspects));
-                  }}
                 />
               ))}
             </div>
@@ -368,12 +323,7 @@ const Prospects = () => {
 
       <ProspectForm
         open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) {
-            setEditingProspect(undefined);
-          }
-        }}
+        onOpenChange={setFormOpen}
         onSubmit={handleSubmit}
         initialData={editingProspect}
       />

@@ -57,20 +57,26 @@ export const getTemplatePreview = (content: string, maxLines: number = 2): strin
   return lines.slice(0, maxLines).join("\n") + (lines.length > maxLines ? "..." : "");
 };
 
-export const getSequenceColor = (sequence: number): string => {
-  const colors: Record<number, string> = {
-    1: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    2: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-    3: "bg-teal-500/10 text-teal-400 border-teal-500/20",
-    4: "bg-green-500/10 text-green-400 border-green-500/20",
-    5: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    6: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    7: "bg-red-500/10 text-red-400 border-red-500/20",
-    8: "bg-pink-500/10 text-pink-400 border-pink-500/20",
-    9: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    10: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+export const getCategoryColor = (category: string): string => {
+  const colors: Record<string, string> = {
+    premier_contact: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    relance_1: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_2: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_3: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_4: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_5: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_6: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_7: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_8: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_9: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    relance_10: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    reponse_tiede: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    accelerateur: "bg-red-500/10 text-red-400 border-red-500/20",
+    bombe_valeur: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    closing_rdv: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    reactivation: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
   };
-  return colors[sequence] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
+  return colors[category] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
 };
 
 export const getStatisticalConfidence = (sends: number): { label: string; color: string; variant: "default" | "secondary" | "outline" | "destructive" } => {
@@ -78,74 +84,4 @@ export const getStatisticalConfidence = (sends: number): { label: string; color:
   if (sends >= 30) return { label: "🟡 À confirmer", color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20", variant: "secondary" };
   if (sends >= 10) return { label: "🟠 Test en cours", color: "bg-orange-500/10 text-orange-400 border-orange-500/20", variant: "outline" };
   return { label: "⚠️ Données insuffisantes", color: "bg-red-500/10 text-red-400 border-red-500/20", variant: "destructive" };
-};
-
-export const getTemplateRecommendation = (template: Template): {
-  status: "champion" | "testing" | "needs_improvement" | "insufficient_data";
-  message: string;
-  color: string;
-} => {
-  const { sends, responseRate, callRate } = template.metrics;
-  
-  // Pas assez de données
-  if (sends < 20) {
-    return {
-      status: "insufficient_data",
-      message: `${20 - sends} envois nécessaires`,
-      color: "bg-gray-500/10 text-gray-400 border-gray-500/20",
-    };
-  }
-  
-  // En test (20-50 envois)
-  if (sends < 50) {
-    return {
-      status: "testing",
-      message: "En phase de test",
-      color: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    };
-  }
-  
-  // Champion (>50 envois + bon taux)
-  if (sends >= 50 && (responseRate > 20 || callRate > 10)) {
-    return {
-      status: "champion",
-      message: "✨ Template performant",
-      color: "bg-green-500/10 text-green-400 border-green-500/20",
-    };
-  }
-  
-  // À améliorer
-  return {
-    status: "needs_improvement",
-    message: "⚠️ Performance faible",
-    color: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  };
-};
-
-export const suggestTemplatesForProspect = (
-  prospect: import("@/types/prospect").Prospect,
-  templates: Template[]
-): Template[] => {
-  // Déterminer la prochaine séquence
-  const lastSent = prospect.templateUsage?.[prospect.templateUsage.length - 1];
-  const lastSequence = lastSent
-    ? templates.find((t) => t.id === lastSent.templateId)?.sequence || 1
-    : 0;
-  const nextSequence = (lastSequence + 1) as import("@/types/template").TemplateSequence;
-  
-  if (nextSequence > 10) {
-    return []; // Fin de séquence
-  }
-  
-  // Filtrer par séquence
-  let candidates = templates.filter((t) => t.sequence === nextSequence);
-  
-  // Trier par performance (callRate 60% + responseRate 40%)
-  candidates = candidates.sort((a, b) => {
-    const scoreA = a.metrics.callRate * 0.6 + a.metrics.responseRate * 0.4;
-    const scoreB = b.metrics.callRate * 0.6 + b.metrics.responseRate * 0.4;
-    return scoreB - scoreA;
-  });
-  
-  return candidates.slice(0, 3); // Top 3
 };

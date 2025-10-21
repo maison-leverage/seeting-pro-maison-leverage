@@ -36,16 +36,13 @@ const ProspectForm = ({
     followUpCount: 0
   });
   const [reminderDate, setReminderDate] = useState<Date | undefined>(initialData?.reminderDate ? new Date(initialData.reminderDate) : undefined);
-  const [firstMessageDate, setFirstMessageDate] = useState<Date | undefined>(initialData?.firstMessageDate ? new Date(initialData.firstMessageDate) : undefined);
 
   // Reset form when dialog opens
   useEffect(() => {
-    console.log("ProspectForm - open changed:", open, "initialData:", initialData?.fullName);
     if (open) {
       if (initialData) {
         setFormData(initialData);
         setReminderDate(initialData.reminderDate ? new Date(initialData.reminderDate) : undefined);
-        setFirstMessageDate(initialData.firstMessageDate ? new Date(initialData.firstMessageDate) : undefined);
       } else {
         setFormData({
           fullName: "",
@@ -59,7 +56,6 @@ const ProspectForm = ({
           followUpCount: 0
         });
         setReminderDate(undefined);
-        setFirstMessageDate(undefined);
       }
     }
   }, [open, initialData]);
@@ -69,15 +65,10 @@ const ProspectForm = ({
       toast.error("Nom complet et entreprise sont obligatoires");
       return;
     }
-    if (!initialData && !firstMessageDate) {
-      toast.error("Date du premier message est obligatoire");
-      return;
-    }
     const user = JSON.parse(localStorage.getItem("crm_user") || "{}");
     const prospectData: Partial<Prospect> = {
       ...formData,
       reminderDate: reminderDate?.toISOString(),
-      firstMessageDate: firstMessageDate?.toISOString(),
       assignedTo: formData.assignedTo || user.id,
       updatedAt: new Date().toISOString(),
       ...(!initialData && {
@@ -221,22 +212,6 @@ const ProspectForm = ({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {/* Date du premier message */}
-          <div className="space-y-2">
-            <Label>Date du premier message *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-input border-border/50", !firstMessageDate && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {firstMessageDate ? format(firstMessageDate, "PPP") : "Choisir une date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-popover border-border/50" align="start">
-                <Calendar mode="single" selected={firstMessageDate} onSelect={setFirstMessageDate} initialFocus className="pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
           </div>
 
           {/* Date de rappel */}

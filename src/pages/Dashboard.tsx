@@ -94,40 +94,26 @@ const Dashboard = () => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stats.map((stat, index) => {
-              const isClickable = stat.label === "À relancer aujourd'hui" || stat.label === "En discussion";
-              const handleClick = (e: React.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log("Dashboard card clicked:", stat.label);
+            {stats.map((stat, index) => <Card 
+              key={index} 
+              onClick={() => {
                 if (stat.label === "À relancer aujourd'hui") {
-                  console.log("Navigating to /prospects?view=today");
                   navigate("/prospects?view=today");
-                } else if (stat.label === "En discussion") {
-                  console.log("Navigating to /prospects?view=all");
-                  navigate("/prospects?view=all");
                 }
-              };
-
-              return (
-                <Card 
-                  key={index} 
-                  onClick={isClickable ? handleClick : undefined}
-                  className={`p-6 border-border/50 transition-all ${isClickable ? 'hover:border-primary/50 hover-scale cursor-pointer' : ''} ${stat.glow || ""}`}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        {stat.label}
-                      </p>
-                      <p className="text-3xl font-bold">{stat.value}</p>
-                    </div>
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
-                      <stat.icon className="w-6 h-6 text-white" />
-                    </div>
+              }}
+              className={`p-6 border-border/50 hover:border-primary/50 transition-all hover-scale cursor-pointer ${stat.glow || ""}`}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {stat.label}
+                    </p>
+                    <p className="text-3xl font-bold">{stat.value}</p>
                   </div>
-                </Card>
-              );
-            })}
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                    <stat.icon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </Card>)}
           </div>
 
           {/* Top Prospects */}

@@ -4,11 +4,9 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Prospect } from "@/types/prospect";
-import { Template, TemplateSequence } from "@/types/template";
-import { CalendarIcon, TrendingUp, Phone, Flame, Award, MessageSquare, BarChart2, Target } from "lucide-react";
+import { Template } from "@/types/template";
+import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { 
   startOfMonth, 
@@ -20,17 +18,14 @@ import {
   subMonths
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import type { DateRange } from "react-day-picker";
-import { cn } from "@/lib/utils";
+
+type DateFilter = "thisMonth" | "lastMonth" | "all";
 
 const Analytics = () => {
   const navigate = useNavigate();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
-  });
+  const [dateFilter, setDateFilter] = useState<DateFilter>("thisMonth");
 
   useEffect(() => {
     const user = localStorage.getItem("crm_user");
@@ -53,35 +48,43 @@ const Analytics = () => {
     }
   };
 
-  // Formater la période sélectionnée
-  const getDateRangeLabel = () => {
-    if (!dateRange?.from) return "Sélectionner une période";
-    if (!dateRange.to) return format(dateRange.from, "d MMM yyyy", { locale: fr });
-    return `${format(dateRange.from, "d MMM yyyy", { locale: fr })} - ${format(dateRange.to, "d MMM yyyy", { locale: fr })}`;
+  // Calculer les dates de filtrage
+  const getDateRange = () => {
+    const now = new Date();
+    switch (dateFilter) {
+      case "thisMonth":
+        return {
+          start: startOfMonth(now),
+          end: endOfMonth(now),
+          label: format(now, "MMMM yyyy", { locale: fr })
+        };
+      case "lastMonth":
+        const lastMonth = subMonths(now, 1);
+        return {
+          start: startOfMonth(lastMonth),
+          end: endOfMonth(lastMonth),
+          label: format(lastMonth, "MMMM yyyy", { locale: fr })
+        };
+      case "all":
+        return {
+          start: new Date(0),
+          end: new Date(),
+          label: "Toutes les données"
+        };
+    }
   };
 
-  // NOUVELLES CONVERSATIONS = prospects avec premier message dans la période
-  const newConversations = prospects.filter((p) => {
-    if (!dateRange?.from) return false;
-    // Utiliser firstMessageDate si disponible, sinon fallback sur createdAt
-    const messageDate = new Date(p.firstMessageDate || p.createdAt);
-    const start = startOfDay(dateRange.from);
-    const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-    return isWithinInterval(messageDate, { start, end });
+  const dateRange = getDateRange();
+
+  // Filtrer les prospects par date
+  const filteredProspects = prospects.filter((p) => {
+    if (dateFilter === "all") return true;
+    const prospectDate = new Date(p.createdAt);
+    return isWithinInterval(prospectDate, { start: dateRange.start, end: dateRange.end });
   });
 
-  // R1 BOOKÉS issus de ces nouvelles conversations
-  const r1FromNewConversations = newConversations.filter(
-    (p) => p.status === "r1_programme"
-  );
-
-  // Taux de conversion réel : nouvelles conversations → R1
-  const realConversionRate = newConversations.length > 0 
-    ? (r1FromNewConversations.length / newConversations.length) * 100
-    : 0;
-
-  // Pour la compatibilité avec le reste du code (répartition hype)
-  const filteredProspects = newConversations;
+  // Calculer les R1 bookés
+  const r1Booked = filteredProspects.filter((p) => p.status === "r1_programme").length;
 
   // Statistiques par hype
   const byHype = {
@@ -90,14 +93,16 @@ const Analytics = () => {
     chaud: filteredProspects.filter((p) => p.hype === "chaud").length,
   };
 
+  // Taux de conversion vers R1
+  const conversionRate = filteredProspects.length > 0 
+    ? ((r1Booked / filteredProspects.length) * 100).toFixed(1)
+    : "0";
+
   // Filtrer les templates utilisés dans la période
   const templatesWithActivity = templates.map((t) => {
     const usageInPeriod = t.usageHistory?.filter((u) => {
-      if (!dateRange?.from) return false;
       const usageDate = new Date(u.date);
-      const start = startOfDay(dateRange.from);
-      const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-      return isWithinInterval(usageDate, { start, end });
+      return isWithinInterval(usageDate, { start: dateRange.start, end: dateRange.end });
     }) || [];
 
     const sendsInPeriod = usageInPeriod.length;
@@ -122,47 +127,6 @@ const Analytics = () => {
     })
     .slice(0, 3);
 
-  // NOUVELLE SECTION: Performance par séquence
-  const sequencePerformance = Array.from({ length: 10 }, (_, i) => {
-    const sequence = (i + 1) as TemplateSequence;
-    const templatesInSequence = templates.filter((t) => t.sequence === sequence);
-    
-    const totalSends = templatesInSequence.reduce((sum, t) => sum + t.metrics.sends, 0);
-    const totalResponses = templatesInSequence.reduce((sum, t) => sum + t.metrics.responses, 0);
-    const totalCalls = templatesInSequence.reduce((sum, t) => sum + t.metrics.calls, 0);
-    
-    return {
-      sequence,
-      sends: totalSends,
-      responseRate: totalSends > 0 ? (totalResponses / totalSends) * 100 : 0,
-      callRate: totalSends > 0 ? (totalCalls / totalSends) * 100 : 0,
-      responses: totalResponses,
-      calls: totalCalls,
-    };
-  }).filter((s) => s.sends > 0); // Seulement les séquences utilisées
-
-  // NOUVELLE SECTION: Attribution des R1 par message
-  const r1Attribution = prospects
-    .filter((p) => p.status === "r1_programme" && p.templateUsage && p.templateUsage.length > 0)
-    .map((p) => {
-      const lastTemplate = p.templateUsage[p.templateUsage.length - 1];
-      const template = templates.find((t) => t.id === lastTemplate.templateId);
-      return {
-        prospectName: p.fullName,
-        sequence: template?.sequence || 0,
-        templateName: template?.name || "Template supprimé",
-        date: lastTemplate.sentAt,
-      };
-    });
-
-  const r1BySequence = Array.from({ length: 10 }, (_, i) => {
-    const sequence = (i + 1) as TemplateSequence;
-    return {
-      sequence,
-      count: r1Attribution.filter((r) => r.sequence === sequence).length,
-    };
-  }).filter((s) => s.count > 0);
-
   const hypeConfig = {
     froid: { label: "Froid", color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" },
     tiede: { label: "Tiède", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
@@ -183,37 +147,35 @@ const Analytics = () => {
               <p className="text-muted-foreground mt-1">Vue d'ensemble de vos performances</p>
             </div>
             
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[300px] justify-start text-left font-normal",
-                    !dateRange?.from && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {getDateRangeLabel()}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                  locale={fr}
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex gap-2">
+              <Button
+                variant={dateFilter === "thisMonth" ? "default" : "outline"}
+                onClick={() => setDateFilter("thisMonth")}
+                size="sm"
+              >
+                Ce mois-ci
+              </Button>
+              <Button
+                variant={dateFilter === "lastMonth" ? "default" : "outline"}
+                onClick={() => setDateFilter("lastMonth")}
+                size="sm"
+              >
+                Mois dernier
+              </Button>
+              <Button
+                variant={dateFilter === "all" ? "default" : "outline"}
+                onClick={() => setDateFilter("all")}
+                size="sm"
+              >
+                Tout
+              </Button>
+            </div>
           </div>
 
           <Card className="p-4 border-border/50 bg-card/50">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CalendarIcon className="h-4 w-4" />
-              <span>Période : {getDateRangeLabel()}</span>
+              <span>Période : {dateRange.label}</span>
             </div>
           </Card>
 
@@ -221,27 +183,14 @@ const Analytics = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <MessageSquare className="h-5 w-5 text-purple-500" />
-                </div>
-                <div className="text-sm text-muted-foreground">Nouvelles conversations</div>
-              </div>
-              <div className="text-4xl font-bold text-purple-400">{newConversations.length}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                premiers messages envoyés
-              </div>
-            </Card>
-
-            <Card className="p-6 border-border/50 bg-card/50">
-              <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 rounded-lg bg-green-500/10">
                   <Phone className="h-5 w-5 text-green-500" />
                 </div>
                 <div className="text-sm text-muted-foreground">R1 Bookés</div>
               </div>
-              <div className="text-4xl font-bold text-green-400">{r1FromNewConversations.length}</div>
+              <div className="text-4xl font-bold text-green-400">{r1Booked}</div>
               <div className="text-xs text-muted-foreground mt-1">
-                issus de ces conversations
+                sur {filteredProspects.length} prospects
               </div>
             </Card>
 
@@ -250,11 +199,24 @@ const Analytics = () => {
                 <div className="p-2 rounded-lg bg-blue-500/10">
                   <TrendingUp className="h-5 w-5 text-blue-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">Taux de conversion</div>
+                <div className="text-sm text-muted-foreground">Taux conversion</div>
               </div>
-              <div className="text-4xl font-bold text-blue-400">{realConversionRate.toFixed(1)}%</div>
+              <div className="text-4xl font-bold text-blue-400">{conversionRate}%</div>
               <div className="text-xs text-muted-foreground mt-1">
-                conversations → R1
+                vers R1
+              </div>
+            </Card>
+
+            <Card className="p-6 border-border/50 bg-card/50">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-purple-500/10">
+                  <Users className="h-5 w-5 text-purple-500" />
+                </div>
+                <div className="text-sm text-muted-foreground">Total prospects</div>
+              </div>
+              <div className="text-4xl font-bold text-purple-400">{filteredProspects.length}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                dans la période
               </div>
             </Card>
 
@@ -271,7 +233,6 @@ const Analytics = () => {
               </div>
             </Card>
           </div>
-
 
           {/* Répartition par hype */}
           <Card className="p-6 border-border/50 bg-card/50">
@@ -338,88 +299,6 @@ const Analytics = () => {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {template.callsInPeriod} appels générés
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </Card>
-          )}
-
-          {/* NOUVELLE SECTION: Performance par séquence */}
-          {sequencePerformance.length > 0 && (
-            <Card className="p-6 border-border/50 bg-card/50">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <BarChart2 className="h-5 w-5 text-blue-500" />
-                Performance par séquence
-              </h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Analyse des performances par numéro de message
-              </p>
-              <div className="space-y-3">
-                {sequencePerformance.map((seq) => (
-                  <div
-                    key={seq.sequence}
-                    className="flex items-center gap-4 p-3 border rounded bg-card/30"
-                  >
-                    <div className="flex-shrink-0 w-24">
-                      <Badge variant="outline" className="text-sm">
-                        Message {seq.sequence}
-                      </Badge>
-                    </div>
-                    <div className="flex-1 grid grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <div className="text-muted-foreground text-xs">Envois</div>
-                        <div className="font-semibold">{seq.sends}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground text-xs">Réponses</div>
-                        <div className="font-semibold">{seq.responses}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground text-xs">Taux réponse</div>
-                        <div className="font-semibold text-blue-400">
-                          {seq.responseRate.toFixed(1)}%
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground text-xs">Taux call</div>
-                        <div className="font-semibold text-green-400">
-                          {seq.callRate.toFixed(1)}%
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* NOUVELLE SECTION: Attribution R1 par message */}
-          {r1BySequence.length > 0 && (
-            <Card className="p-6 border-border/50 bg-card/50">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Target className="h-5 w-5 text-green-500" />
-                Attribution des R1 par message
-              </h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Quel message a généré les R1 ?
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {r1BySequence.map((seq) => {
-                  const percentage = r1Attribution.length > 0
-                    ? ((seq.count / r1Attribution.length) * 100).toFixed(0)
-                    : 0;
-                  return (
-                    <Card key={seq.sequence} className="p-4 bg-background/50 text-center">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        Message {seq.sequence}
-                      </div>
-                      <div className="text-3xl font-bold text-green-400 mb-1">
-                        {seq.count}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {percentage}% des R1
                       </div>
                     </Card>
                   );

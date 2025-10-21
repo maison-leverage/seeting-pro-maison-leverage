@@ -1,82 +1,52 @@
 import { useState, useEffect } from "react";
 import { Template } from "@/types/template";
-import { Prospect } from "@/types/prospect";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { replaceVariables } from "@/utils/templateUtils";
 import { Copy, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface TemplateCopyModalProps {
   template: Template | null;
-  prospects: Prospect[];
   open: boolean;
   onClose: () => void;
-  onTrackSend?: (templateId: string, prospectId: string) => void;
+  onTrackSend?: (templateId: string) => void;
 }
 
-const TemplateCopyModal = ({ template, prospects, open, onClose, onTrackSend }: TemplateCopyModalProps) => {
+const TemplateCopyModal = ({ template, open, onClose, onTrackSend }: TemplateCopyModalProps) => {
   const [variables, setVariables] = useState({
     prenom: "",
     nom: "",
     entreprise: "",
     poste: "",
   });
-  const [selectedProspectId, setSelectedProspectId] = useState("");
+  const [trackSend, setTrackSend] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setVariables({ prenom: "", nom: "", entreprise: "", poste: "" });
-      setSelectedProspectId("");
+      setTrackSend(true);
       setCopied(false);
     }
   }, [open]);
 
-  // Auto-fill variables when prospect is selected
-  useEffect(() => {
-    if (selectedProspectId) {
-      const prospect = prospects.find((p) => p.id === selectedProspectId);
-      if (prospect) {
-        const [prenom, ...nomParts] = prospect.fullName.split(" ");
-        setVariables({
-          prenom: prenom || "",
-          nom: nomParts.join(" ") || "",
-          entreprise: prospect.company || "",
-          poste: prospect.position || "",
-        });
-      }
-    }
-  }, [selectedProspectId, prospects]);
-
   const finalMessage = template ? replaceVariables(template.content, variables) : "";
 
   const handleCopy = async () => {
-    if (!selectedProspectId) {
-      toast({
-        title: "Prospect requis",
-        description: "Veuillez sélectionner un prospect pour tracker l'envoi",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       await navigator.clipboard.writeText(finalMessage);
       setCopied(true);
-      
-      if (template && onTrackSend) {
-        onTrackSend(template.id, selectedProspectId);
+      if (trackSend && template && onTrackSend) {
+        onTrackSend(template.id);
       }
-      
       toast({
         title: "Copié !",
-        description: "Message copié et envoi enregistré automatiquement",
+        description: trackSend ? "Message copié et envoi enregistré" : "Message copié",
       });
-      
       setTimeout(() => {
         setCopied(false);
         onClose();
@@ -99,22 +69,6 @@ const TemplateCopyModal = ({ template, prospects, open, onClose, onTrackSend }: 
           <DialogTitle>Copier le template : {template.name}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="prospect">Prospect * (pour tracking automatique)</Label>
-            <Select value={selectedProspectId} onValueChange={setSelectedProspectId}>
-              <SelectTrigger id="prospect">
-                <SelectValue placeholder="Sélectionner un prospect" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-border max-h-[200px]">
-                {prospects.map((prospect) => (
-                  <SelectItem key={prospect.id} value={prospect.id}>
-                    {prospect.fullName} - {prospect.company}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="prenom">Prénom</Label>
@@ -161,11 +115,18 @@ const TemplateCopyModal = ({ template, prospects, open, onClose, onTrackSend }: 
             </div>
           </div>
 
+          <div className="flex items-center space-x-2">
+            <Checkbox id="track" checked={trackSend} onCheckedChange={(checked) => setTrackSend(checked as boolean)} />
+            <Label htmlFor="track" className="cursor-pointer">
+              Enregistrer cet envoi (incrémente le compteur)
+            </Label>
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
               Annuler
             </Button>
-            <Button onClick={handleCopy} disabled={copied || !selectedProspectId}>
+            <Button onClick={handleCopy} disabled={copied}>
               {copied ? (
                 <>
                   <Check className="h-4 w-4 mr-2" />
@@ -174,7 +135,7 @@ const TemplateCopyModal = ({ template, prospects, open, onClose, onTrackSend }: 
               ) : (
                 <>
                   <Copy className="h-4 w-4 mr-2" />
-                  Copier et tracker
+                  Copier dans le presse-papier
                 </>
               )}
             </Button>

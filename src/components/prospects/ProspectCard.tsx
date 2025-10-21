@@ -1,20 +1,13 @@
 import { Prospect } from "@/types/prospect";
-import { Template } from "@/types/template";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Clock, CheckCircle, Phone, ChevronDown, ChevronUp } from "lucide-react";
-import { updateTemplateMetrics, suggestTemplatesForProspect } from "@/utils/templateUtils";
-import { toast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { Edit, Trash2, Clock } from "lucide-react";
 
 interface ProspectCardProps {
   prospect: Prospect;
   onEdit: (prospect: Prospect) => void;
   onDelete: (id: string) => void;
-  templates?: Template[];
-  onUpdateTemplates?: (templates: Template[]) => void;
-  onUpdateProspect?: (prospect: Prospect) => void;
 }
 
 const getStatusLabel = (status: string, followUpCount: number) => {
@@ -59,9 +52,7 @@ const hypeConfig = {
   chaud: { label: "🔥 Chaud", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
-const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemplates, onUpdateProspect }: ProspectCardProps) => {
-  const [expanded, setExpanded] = useState(false);
-  
+const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
   const isReminderToday = () => {
     if (!prospect.reminderDate) return false;
     const today = new Date();
@@ -73,84 +64,14 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
 
   const hasReminderToday = isReminderToday();
 
-  // Générer la timeline
-  const timeline = [
-    { date: prospect.createdAt, icon: "🆕", label: "Prospect ajouté" },
-    ...(prospect.templateUsage || []).map((t) => ({
-      date: t.sentAt,
-      icon: "📧",
-      label: `Message ${t.sequence} envoyé : ${t.templateName}`,
-    })),
-    ...(prospect.history || []).map((h) => ({
-      date: h.createdAt,
-      icon: "📝",
-      label: h.details,
-    })),
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  // Suggestions de templates
-  const suggestedTemplates = suggestTemplatesForProspect(prospect, templates);
-
-  const handleResponse = () => {
-    if (!prospect.templateUsage || prospect.templateUsage.length === 0) {
-      toast({ title: "Aucun template envoyé", description: "Impossible d'enregistrer une réponse", variant: "destructive" });
-      return;
-    }
-
-    const lastTemplate = prospect.templateUsage[prospect.templateUsage.length - 1];
-    if (templates && onUpdateTemplates) {
-      const updated = templates.map((t) => {
-        if (t.id === lastTemplate.templateId) {
-          return updateTemplateMetrics({
-            ...t,
-            metrics: { ...t.metrics, responses: t.metrics.responses + 1 },
-          });
-        }
-        return t;
-      });
-      onUpdateTemplates(updated);
-    }
-
-    if (onUpdateProspect) {
-      onUpdateProspect({ ...prospect, status: "discussion" });
-    }
-
-    toast({ title: "Réponse enregistrée", description: `Template "${lastTemplate.templateName}" crédité` });
-  };
-
-  const handleCall = () => {
-    if (!prospect.templateUsage || prospect.templateUsage.length === 0) {
-      toast({ title: "Aucun template envoyé", description: "Impossible d'enregistrer un R1", variant: "destructive" });
-      return;
-    }
-
-    const lastTemplate = prospect.templateUsage[prospect.templateUsage.length - 1];
-    if (templates && onUpdateTemplates) {
-      const updated = templates.map((t) => {
-        if (t.id === lastTemplate.templateId) {
-          return updateTemplateMetrics({
-            ...t,
-            metrics: { ...t.metrics, calls: t.metrics.calls + 1 },
-          });
-        }
-        return t;
-      });
-      onUpdateTemplates(updated);
-    }
-
-    if (onUpdateProspect) {
-      onUpdateProspect({ ...prospect, status: "r1_programme" });
-    }
-
-    toast({ title: "R1 enregistré", description: `Template "${lastTemplate.templateName}" crédité` });
-  };
-
   return (
     <Card
-      className={`p-4 border-border/50 hover:border-primary/50 transition-all relative ${
+      className={`p-4 border-border/50 hover:border-primary/50 transition-all hover-scale relative cursor-pointer ${
         hasReminderToday ? "border-destructive/50 glow-secondary" : ""
       }`}
+      onClick={() => onEdit(prospect)}
     >
+      {/* Badge reminder */}
       {hasReminderToday && (
         <div className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-xs font-bold animate-pulse">
           À relancer !
@@ -158,6 +79,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
       )}
 
       <div className="flex items-center gap-4 justify-between">
+        {/* Left: Name and Company */}
         <div className="flex-shrink-0 min-w-0">
           <h3 className="text-lg font-bold truncate">
             {prospect.fullName}
@@ -167,6 +89,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
           </p>
         </div>
 
+        {/* Center: Badges */}
         <div className="flex gap-2 flex-shrink-0">
           <Badge variant="outline" className={statusConfig[prospect.status].color}>
             {getStatusLabel(prospect.status, prospect.followUpCount)}
@@ -182,6 +105,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
           </Badge>
         </div>
 
+        {/* Right: Reminder info and Actions */}
         <div className="flex items-center gap-4 flex-shrink-0">
           {prospect.reminderDate && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -195,33 +119,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
               size="sm"
               variant="outline"
               onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleResponse();
-              }}
-              className="border-border/50 hover:border-blue-500 hover:bg-blue-500/10"
-              title="Marquer comme ayant répondu"
-            >
-              <CheckCircle className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleCall();
-              }}
-              className="border-border/50 hover:border-green-500 hover:bg-green-500/10"
-              title="Marquer R1 programmé"
-            >
-              <Phone className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.preventDefault();
                 e.stopPropagation();
                 onEdit(prospect);
               }}
@@ -233,7 +130,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
               size="sm"
               variant="outline"
               onClick={(e) => {
-                e.preventDefault();
                 e.stopPropagation();
                 onDelete(prospect.id);
               }}
@@ -244,86 +140,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete, templates = [], onUpdateTemp
           </div>
         </div>
       </div>
-
-      {/* Toggle Timeline/Suggestions */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setExpanded(!expanded);
-        }}
-        className="mt-3 w-full"
-      >
-        {expanded ? (
-          <>
-            <ChevronUp className="w-4 h-4 mr-2" />
-            Masquer l'historique
-          </>
-        ) : (
-          <>
-            <ChevronDown className="w-4 h-4 mr-2" />
-            Voir l'historique ({timeline.length})
-          </>
-        )}
-      </Button>
-
-      {/* Expanded Content */}
-      {expanded && (
-        <div className="mt-4 space-y-4 border-t pt-4">
-          {/* Templates suggérés */}
-          {suggestedTemplates.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                📌 Templates suggérés pour le prochain message
-              </h4>
-              <div className="space-y-2">
-                {suggestedTemplates.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between p-2 border rounded bg-card/30"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t.metrics.callRate.toFixed(1)}% calls | {t.metrics.sends} envois
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => toast({ title: "Utilise le bouton 'Copier' sur le template" })}
-                    >
-                      →
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Timeline */}
-          <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2">
-              📅 Historique
-            </h4>
-            <div className="space-y-3">
-              {timeline.map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="text-2xl flex-shrink-0">{item.icon}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(item.date).toLocaleString("fr-FR")}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </Card>
   );
 };

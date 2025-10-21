@@ -2,15 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Template } from "@/types/template";
-import { getTemplateRecommendation, getStatisticalConfidence } from "@/utils/templateUtils";
-import { TestTube, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trophy } from "lucide-react";
+import { ABTest } from "@/types/template";
+import { toast } from "@/hooks/use-toast";
 
 const TemplateABTests = () => {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [abTests, setAbTests] = useState<ABTest[]>([]);
 
   useEffect(() => {
     const user = localStorage.getItem("crm_user");
@@ -18,95 +18,18 @@ const TemplateABTests = () => {
       navigate("/auth");
       return;
     }
-    loadData();
+    loadABTests();
   }, [navigate]);
 
-  const loadData = () => {
-    const storedTemplates = localStorage.getItem("crm_templates");
-    if (storedTemplates) {
-      setTemplates(JSON.parse(storedTemplates));
+  const loadABTests = () => {
+    const stored = localStorage.getItem("crm_ab_tests");
+    if (stored) {
+      setAbTests(JSON.parse(stored));
     }
   };
 
-  // Grouper les templates par statut
-  const champions = templates.filter(t => {
-    const rec = getTemplateRecommendation(t);
-    return rec.status === "champion";
-  });
-
-  const testing = templates.filter(t => {
-    const rec = getTemplateRecommendation(t);
-    return rec.status === "testing";
-  });
-
-  const needsImprovement = templates.filter(t => {
-    const rec = getTemplateRecommendation(t);
-    return rec.status === "needs_improvement";
-  });
-
-  const insufficientData = templates.filter(t => {
-    const rec = getTemplateRecommendation(t);
-    return rec.status === "insufficient_data";
-  });
-
-  const renderTemplateList = (templateList: Template[], title: string, icon: React.ReactNode, emptyMessage: string) => (
-    <Card className="p-6 border-border/50 bg-card/50">
-      <div className="flex items-center gap-3 mb-4">
-        {icon}
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <Badge variant="outline" className="ml-auto">
-          {templateList.length}
-        </Badge>
-      </div>
-
-      {templateList.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">{emptyMessage}</p>
-      ) : (
-        <div className="space-y-3">
-          {templateList.map(template => {
-            const rec = getTemplateRecommendation(template);
-            const confidence = getStatisticalConfidence(template.metrics.sends);
-            
-            return (
-              <Card key={template.id} className="p-4 bg-background/50">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">{template.name}</h3>
-                    <p className="text-xs text-muted-foreground">Message {template.sequence}</p>
-                  </div>
-                  <Badge className={rec.color}>{rec.message}</Badge>
-                </div>
-
-                <div className="grid grid-cols-4 gap-3 mt-3 text-sm">
-                  <div>
-                    <div className="text-muted-foreground text-xs">Envois</div>
-                    <div className="font-semibold">{template.metrics.sends}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground text-xs">Taux réponse</div>
-                    <div className="font-semibold text-blue-400">
-                      {template.metrics.responseRate.toFixed(1)}%
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground text-xs">Taux call</div>
-                    <div className="font-semibold text-green-400">
-                      {template.metrics.callRate.toFixed(1)}%
-                    </div>
-                  </div>
-                  <div>
-                    <Badge variant={confidence.variant} className={confidence.color}>
-                      {confidence.label}
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </Card>
-  );
+  const ongoingTests = abTests.filter((t) => t.status === "en_cours");
+  const completedTests = abTests.filter((t) => t.status === "termine");
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -114,80 +37,95 @@ const TemplateABTests = () => {
       <div className="flex-1 ml-64">
         <Header />
         <main className="p-6 space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              A/B Tests & Recommandations
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Analyse automatique de la performance de tes templates
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate("/templates")}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                  A/B Tests
+                </h1>
+                <p className="text-muted-foreground mt-1">Testez et optimisez vos templates</p>
+              </div>
+            </div>
+            <Button onClick={() => toast({ title: "Fonctionnalité à venir", description: "La création d'A/B tests sera disponible bientôt" })}>
+              <Plus className="h-4 w-4 mr-2" />
+              Créer un A/B test
+            </Button>
           </div>
 
-          {/* Vue d'ensemble */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="p-4 border-border/50 bg-card/50">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <div className="text-sm text-muted-foreground">Champions</div>
+          {ongoingTests.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Tests en cours</h2>
+              <div className="grid gap-4">
+                {ongoingTests.map((test) => (
+                  <Card key={test.id} className="p-6 border-border/50 bg-card/50">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">{test.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          J{test.currentDay}/{test.duration} • En cours
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Objectif</div>
+                        <div className="text-lg font-semibold">{test.targetSends} envois/template</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Card className="p-4 bg-background/50">
+                        <div className="text-sm text-muted-foreground mb-2">TEMPLATE A</div>
+                        <div className="text-xs text-muted-foreground">En attente de données...</div>
+                      </Card>
+                      <Card className="p-4 bg-background/50">
+                        <div className="text-sm text-muted-foreground mb-2">TEMPLATE B</div>
+                        <div className="text-xs text-muted-foreground">En attente de données...</div>
+                      </Card>
+                    </div>
+                  </Card>
+                ))}
               </div>
-              <div className="text-3xl font-bold text-green-400">{champions.length}</div>
-            </Card>
-
-            <Card className="p-4 border-border/50 bg-card/50">
-              <div className="flex items-center gap-2 mb-2">
-                <TestTube className="h-5 w-5 text-blue-500" />
-                <div className="text-sm text-muted-foreground">En test</div>
-              </div>
-              <div className="text-3xl font-bold text-blue-400">{testing.length}</div>
-            </Card>
-
-            <Card className="p-4 border-border/50 bg-card/50">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
-                <div className="text-sm text-muted-foreground">À améliorer</div>
-              </div>
-              <div className="text-3xl font-bold text-orange-400">{needsImprovement.length}</div>
-            </Card>
-
-            <Card className="p-4 border-border/50 bg-card/50">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-5 w-5 text-gray-500" />
-                <div className="text-sm text-muted-foreground">Données insuffisantes</div>
-              </div>
-              <div className="text-3xl font-bold text-gray-400">{insufficientData.length}</div>
-            </Card>
-          </div>
-
-          {/* Champions */}
-          {renderTemplateList(
-            champions,
-            "✨ Templates Champions",
-            <CheckCircle className="h-6 w-6 text-green-500" />,
-            "Aucun template champion pour le moment. Continue d'envoyer pour identifier les meilleurs !"
+            </div>
           )}
 
-          {/* En test */}
-          {renderTemplateList(
-            testing,
-            "🧪 Templates en phase de test",
-            <TestTube className="h-6 w-6 text-blue-500" />,
-            "Aucun template en phase de test"
+          {completedTests.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Tests terminés</h2>
+              <div className="grid gap-4">
+                {completedTests.map((test) => (
+                  <Card key={test.id} className="p-6 border-border/50 bg-card/50">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">{test.name}</h3>
+                        <p className="text-sm text-muted-foreground">Test terminé</p>
+                      </div>
+                      {test.results && (
+                        <div className="flex items-center gap-2 text-yellow-500">
+                          <Trophy className="h-5 w-5" />
+                          <span className="font-semibold">Gagnant identifié</span>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
           )}
 
-          {/* À améliorer */}
-          {renderTemplateList(
-            needsImprovement,
-            "⚠️ Templates à améliorer ou supprimer",
-            <AlertTriangle className="h-6 w-6 text-orange-500" />,
-            "Aucun template sous-performant"
-          )}
-
-          {/* Données insuffisantes */}
-          {renderTemplateList(
-            insufficientData,
-            "📊 Templates avec données insuffisantes",
-            <TrendingUp className="h-6 w-6 text-gray-500" />,
-            "Tous tes templates ont assez de données pour être analysés"
+          {abTests.length === 0 && (
+            <Card className="p-12 text-center border-border/50 bg-card/50">
+              <div className="max-w-md mx-auto">
+                <h3 className="text-xl font-semibold mb-2">Aucun A/B test</h3>
+                <p className="text-muted-foreground mb-6">
+                  Créez votre premier A/B test pour comparer les performances de vos templates
+                </p>
+                <Button onClick={() => toast({ title: "Fonctionnalité à venir" })}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Créer un A/B test
+                </Button>
+              </div>
+            </Card>
           )}
         </main>
       </div>

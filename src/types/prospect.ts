@@ -48,16 +48,9 @@ export interface Prospect {
   notes: ProspectNote[];
   history: ProspectHistory[];
   reminderDate?: string;
-  firstMessageDate?: string;
   assignedTo: string; // user id
   createdAt: string;
   updatedAt: string;
   lastContact?: string;
   followUpCount: number; // nombre de relances
-  templateUsage?: {
-    sequence: number; // 1 à 10
-    templateId: string;
-    templateName: string;
-    sentAt: string;
-  }[];
 }
