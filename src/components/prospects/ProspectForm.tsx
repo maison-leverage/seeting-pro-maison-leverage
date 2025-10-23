@@ -29,10 +29,10 @@ const ProspectForm = ({
     company: "",
     position: "",
     linkedinUrl: "",
-    status: "premier_message",
-    priority: "2",
-    qualification: "loom",
-    hype: "tiede",
+    status: "rien",
+    priority: "rien",
+    qualification: "rien",
+    hype: "rien",
     followUpCount: 0
   });
   const [reminderDate, setReminderDate] = useState<Date | undefined>(initialData?.reminderDate ? new Date(initialData.reminderDate) : undefined);
@@ -51,10 +51,10 @@ const ProspectForm = ({
           company: "",
           position: "",
           linkedinUrl: "",
-          status: "premier_message",
-          priority: "2",
-          qualification: "loom",
-          hype: "tiede",
+          status: "rien",
+          priority: "rien",
+          qualification: "rien",
+          hype: "rien",
           followUpCount: 0
         });
         setReminderDate(undefined);
@@ -152,6 +152,7 @@ const ProspectForm = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border/50">
+                  <SelectItem value="rien">⚪ Rien</SelectItem>
                   <SelectItem value="premier_message">📩 1ᵉʳ message envoyé</SelectItem>
                   <SelectItem value="discussion">🗣️ En discussion</SelectItem>
                   <SelectItem value="r1_programme">🎯 R1 programmé</SelectItem>
@@ -169,6 +170,7 @@ const ProspectForm = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border/50">
+                  <SelectItem value="rien">⚪ Rien</SelectItem>
                   <SelectItem value="2">2e relance</SelectItem>
                   <SelectItem value="3">3e relance</SelectItem>
                   <SelectItem value="4">4e relance</SelectItem>
@@ -192,6 +194,7 @@ const ProspectForm = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border/50">
+                  <SelectItem value="rien">⚪ Rien</SelectItem>
                   <SelectItem value="loom">🎥 Loom</SelectItem>
                   <SelectItem value="video_youtube">▶️ Vidéo Youtube</SelectItem>
                   <SelectItem value="presentation_genspark">✨ Présentation Genspark</SelectItem>
@@ -210,6 +213,7 @@ const ProspectForm = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border/50">
+                  <SelectItem value="rien">⚪ Rien</SelectItem>
                   <SelectItem value="froid">❄️ Froid</SelectItem>
                   <SelectItem value="tiede">🌤️ Tiède</SelectItem>
                   <SelectItem value="chaud">🔥 Chaud</SelectItem>

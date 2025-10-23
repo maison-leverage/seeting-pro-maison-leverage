@@ -218,10 +218,10 @@ const Prospects = () => {
           company: prospectData.company!,
           position: prospectData.position,
           linkedin_url: prospectData.linkedinUrl,
-          status: prospectData.status || "premier_message",
-          priority: prospectData.priority || "2",
-          qualification: prospectData.qualification || "loom",
-          hype: prospectData.hype || "tiede",
+          status: prospectData.status || "rien",
+          priority: prospectData.priority || "rien",
+          qualification: prospectData.qualification || "rien",
+          hype: prospectData.hype || "rien",
           tags: prospectData.tags || [],
           reminder_date: prospectData.reminderDate,
           first_message_date: prospectData.firstMessageDate,
@@ -322,6 +322,7 @@ const Prospects = () => {
               </SelectTrigger>
               <SelectContent className="bg-popover border-border/50">
                 <SelectItem value="all">Tous les statuts</SelectItem>
+                <SelectItem value="rien">⚪ Rien</SelectItem>
                 <SelectItem value="premier_message">📩 1ᵉʳ message envoyé</SelectItem>
                 <SelectItem value="discussion">🗣️ En discussion</SelectItem>
                 <SelectItem value="r1_programme">🎯 R1 programmé</SelectItem>
@@ -335,6 +336,7 @@ const Prospects = () => {
               </SelectTrigger>
               <SelectContent className="bg-popover border-border/50">
                 <SelectItem value="all">Toutes relances</SelectItem>
+                <SelectItem value="rien">⚪ Rien</SelectItem>
                 <SelectItem value="2">2e relance</SelectItem>
                 <SelectItem value="3">3e relance</SelectItem>
                 <SelectItem value="4">4e relance</SelectItem>

@@ -1,17 +1,19 @@
 export type ProspectStatus =
+  | "rien"
   | "premier_message"
   | "discussion"
   | "r1_programme";
 
-export type ProspectPriority = "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
+export type ProspectPriority = "rien" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
 
 export type ProspectQualification =
+  | "rien"
   | "loom"
   | "video_youtube"
   | "presentation_genspark"
   | "magnus_opus";
 
-export type ProspectHype = "froid" | "tiede" | "chaud";
+export type ProspectHype = "rien" | "froid" | "tiede" | "chaud";
 
 export interface ProspectTag {
   id: string;

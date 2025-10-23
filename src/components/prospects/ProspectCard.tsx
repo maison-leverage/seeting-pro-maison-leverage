@@ -12,6 +12,7 @@ interface ProspectCardProps {
 
 const getStatusLabel = (status: string, followUpCount: number) => {
   const baseLabels = {
+    rien: "⚪ Rien",
     premier_message: "📩 1ᵉʳ message envoyé",
     discussion: "🗣️ En discussion",
     r1_programme: "🎯 R1 programmé",
@@ -22,12 +23,14 @@ const getStatusLabel = (status: string, followUpCount: number) => {
 };
 
 const statusConfig = {
+  rien: { color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
   premier_message: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
   discussion: { color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
   r1_programme: { color: "bg-green-500/20 text-green-400 border-green-500/30" },
 };
 
 const priorityConfig = {
+  "rien": { label: "⚪ Rien", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
   "2": { label: "2e relance", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
   "3": { label: "3e relance", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
   "4": { label: "4e relance", color: "bg-teal-500/20 text-teal-400 border-teal-500/30" },
@@ -40,6 +43,7 @@ const priorityConfig = {
 };
 
 const qualificationConfig = {
+  rien: { label: "⚪ Rien", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
   loom: { label: "🎥 Loom", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
   video_youtube: { label: "▶️ Vidéo Youtube", color: "bg-red-500/20 text-red-400 border-red-500/30" },
   presentation_genspark: { label: "✨ Présentation Genspark", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
@@ -47,6 +51,7 @@ const qualificationConfig = {
 };
 
 const hypeConfig = {
+  rien: { label: "⚪ Rien", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
   froid: { label: "❄️ Froid", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
   tiede: { label: "🌤️ Tiède", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
   chaud: { label: "🔥 Chaud", color: "bg-red-500/20 text-red-400 border-red-500/30" },
