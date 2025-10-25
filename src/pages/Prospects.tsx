@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Prospects = () => {
@@ -263,6 +263,60 @@ const Prospects = () => {
     loadProspects();
   };
 
+  const handleExportCSV = () => {
+    if (filteredProspects.length === 0) {
+      toast.error("Aucun prospect à exporter");
+      return;
+    }
+
+    const headers = [
+      "Nom complet",
+      "Entreprise",
+      "Poste",
+      "LinkedIn",
+      "Statut",
+      "Relances",
+      "Value Bomb/Qualification",
+      "Hype",
+      "Date de relance",
+      "Date premier message",
+      "Nombre de follow-up"
+    ];
+
+    const csvRows = [headers.join(",")];
+
+    filteredProspects.forEach((prospect) => {
+      const row = [
+        `"${prospect.fullName}"`,
+        `"${prospect.company}"`,
+        `"${prospect.position}"`,
+        `"${prospect.linkedinUrl}"`,
+        `"${prospect.status}"`,
+        `"${prospect.priority}"`,
+        `"${prospect.qualification}"`,
+        `"${prospect.hype}"`,
+        prospect.reminderDate ? new Date(prospect.reminderDate).toLocaleDateString("fr-FR") : "",
+        prospect.firstMessageDate ? new Date(prospect.firstMessageDate).toLocaleDateString("fr-FR") : "",
+        prospect.followUpCount || 0
+      ];
+      csvRows.push(row.join(","));
+    });
+
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `prospects_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success(`${filteredProspects.length} prospects exportés !`);
+  };
+
   const getViewTitle = () => {
     switch (view) {
       case "today":
@@ -314,6 +368,16 @@ const Prospects = () => {
                 />
               </div>
             </div>
+
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              className="gap-2"
+              disabled={filteredProspects.length === 0}
+            >
+              <Download className="w-4 h-4" />
+              Exporter CSV
+            </Button>
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px] bg-input border-border/50">
