@@ -120,6 +120,8 @@ const Prospects = () => {
     switch (view) {
       case "today":
         filtered = filtered.filter((p) => {
+          // Exclure les prospects avec R1 programmé
+          if (p.status === "r1_programme") return false;
           if (!p.reminderDate) return false;
           const reminder = new Date(p.reminderDate);
           reminder.setHours(0, 0, 0, 0);

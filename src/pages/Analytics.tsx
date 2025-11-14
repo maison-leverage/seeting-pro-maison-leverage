@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Prospect } from "@/types/prospect";
 import { Template } from "@/types/template";
-import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award, X } from "lucide-react";
+import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award, X, ChevronDown, ChevronUp } from "lucide-react";
+import { ProspectMessageManager } from "@/components/prospects/ProspectMessageManager";
 import { Badge } from "@/components/ui/badge";
 import { 
   startOfMonth, 
@@ -32,6 +33,7 @@ const Analytics = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>("thisMonth");
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
+  const [expandedProspectId, setExpandedProspectId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -452,6 +454,60 @@ const Analytics = () => {
               </div>
             </Card>
           )}
+
+          {/* Section R1 Programmé */}
+          <Card className="p-6 border-border/50 bg-card/50">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Phone className="h-5 w-5 text-green-500" />
+              R1 Programmé
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Prospects avec un premier rendez-vous planifié
+            </p>
+            <div className="space-y-4">
+              {prospects.filter(p => p.status === "r1_programme").length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Aucun prospect avec R1 programmé
+                </div>
+              ) : (
+                prospects
+                  .filter(p => p.status === "r1_programme")
+                  .map((prospect) => (
+                    <Card key={prospect.id} className="p-4 bg-background/50">
+                      <div
+                        className="flex items-center justify-between cursor-pointer"
+                        onClick={() => setExpandedProspectId(
+                          expandedProspectId === prospect.id ? null : prospect.id
+                        )}
+                      >
+                        <div className="flex-1">
+                          <div className="font-semibold text-foreground">{prospect.fullName}</div>
+                          <div className="text-sm text-muted-foreground">{prospect.company}</div>
+                          {prospect.reminderDate && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              📅 Rappel : {new Date(prospect.reminderDate).toLocaleDateString("fr-FR")}
+                            </div>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          {expandedProspectId === prospect.id ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+
+                      {expandedProspectId === prospect.id && (
+                        <div className="mt-4 pt-4 border-t border-border">
+                          <ProspectMessageManager prospectId={prospect.id} />
+                        </div>
+                      )}
+                    </Card>
+                  ))
+              )}
+            </div>
+          </Card>
 
           {filteredProspects.length === 0 && (
             <Card className="p-12 text-center border-border/50 bg-card/50">
