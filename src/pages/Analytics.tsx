@@ -158,8 +158,8 @@ const Analytics = () => {
     return isWithinInterval(prospectDate, { start: dateRange.start, end: dateRange.end });
   });
 
-  // Calculer les R1 bookés
-  const r1Booked = filteredProspects.filter((p) => p.status === "r1_programme").length;
+  // Calculer les R1 bookés (tous les R1, pas filtré par date)
+  const r1Booked = prospects.filter((p) => p.status === "r1_programme").length;
 
   // Calculer le taux de no show
   const r1WithNoShow = prospects.filter((p) => p.status === "r1_programme" && p.no_show === true).length;
