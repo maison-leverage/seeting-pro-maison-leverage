@@ -5,7 +5,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, BarChart3, TestTube } from "lucide-react";
+import { Plus, Search, BarChart3 } from "lucide-react";
 import { Template, TEMPLATE_CATEGORIES } from "@/types/template";
 import { updateTemplateMetrics } from "@/utils/templateUtils";
 import TemplateCard from "@/components/templates/TemplateCard";
@@ -277,10 +277,6 @@ const Templates = () => {
               <Button variant="outline" onClick={() => navigate("/templates/analytics")}>
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Analytics
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/templates/ab-tests")}>
-                <TestTube className="h-4 w-4 mr-2" />
-                A/B Tests
               </Button>
               <Button onClick={() => { setSelectedTemplate(null); setIsFormOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" />

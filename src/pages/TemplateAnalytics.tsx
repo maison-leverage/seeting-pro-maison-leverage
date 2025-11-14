@@ -4,62 +4,119 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Trophy } from "lucide-react";
-import { Template, TEMPLATE_CATEGORIES } from "@/types/template";
+import { ArrowLeft, Trophy, Phone, TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface TemplateWithR1 {
+  id: string;
+  name: string;
+  r1Count: number;
+  totalMessages: number;
+  conversionRate: number;
+}
 
 const TemplateAnalytics = () => {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templates, setTemplates] = useState<TemplateWithR1[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = localStorage.getItem("crm_user");
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-    loadTemplates();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      loadAnalytics();
+    });
   }, [navigate]);
 
-  const loadTemplates = () => {
-    const stored = localStorage.getItem("crm_templates");
-    if (stored) {
-      setTemplates(JSON.parse(stored));
+  const loadAnalytics = async () => {
+    setLoading(true);
+    
+    // Récupérer tous les templates
+    const { data: templatesData } = await supabase
+      .from('templates')
+      .select('id, name');
+
+    // Récupérer tous les prospects avec R1 programmé
+    const { data: r1Prospects } = await supabase
+      .from('prospects')
+      .select('id')
+      .eq('status', 'r1_programme');
+
+    if (!templatesData || !r1Prospects) {
+      setLoading(false);
+      return;
     }
+
+    const r1ProspectIds = r1Prospects.map(p => p.id);
+
+    // Récupérer tous les messages
+    const { data: allMessages } = await supabase
+      .from('prospect_messages')
+      .select('prospect_id, template_id');
+
+    if (!allMessages) {
+      setLoading(false);
+      return;
+    }
+
+    // Calculer les stats par template
+    const templateStats = templatesData.map(template => {
+      // Messages envoyés avec ce template
+      const messagesWithTemplate = allMessages.filter(m => m.template_id === template.id);
+      const totalMessages = messagesWithTemplate.length;
+
+      // Prospects uniques qui ont reçu ce template
+      const uniqueProspects = new Set(messagesWithTemplate.map(m => m.prospect_id));
+      
+      // Prospects avec ce template qui ont obtenu un R1
+      const r1WithTemplate = messagesWithTemplate.filter(m => 
+        r1ProspectIds.includes(m.prospect_id)
+      );
+      
+      // Compter les prospects uniques avec R1
+      const uniqueR1Prospects = new Set(r1WithTemplate.map(m => m.prospect_id));
+      const r1Count = uniqueR1Prospects.size;
+
+      // Taux de conversion = (prospects uniques avec R1 / prospects uniques contactés) * 100
+      const conversionRate = uniqueProspects.size > 0 
+        ? (r1Count / uniqueProspects.size) * 100 
+        : 0;
+
+      return {
+        id: template.id,
+        name: template.name,
+        r1Count,
+        totalMessages,
+        conversionRate
+      };
+    });
+
+    // Trier par nombre de R1 générés
+    const sortedTemplates = templateStats
+      .filter(t => t.totalMessages > 0)
+      .sort((a, b) => b.r1Count - a.r1Count);
+
+    setTemplates(sortedTemplates);
+    setLoading(false);
   };
 
-  const activeTemplates = templates.filter((t) => t.status === "actif");
-  
-  // Calculs de volume
-  const totalSends = templates.reduce((sum, t) => sum + t.metrics.sends, 0);
-  const avgSendsPerTemplate = templates.length > 0 ? totalSends / templates.length : 0;
-  
-  const avgResponseRate =
-    activeTemplates.length > 0
-      ? activeTemplates.reduce((sum, t) => sum + t.metrics.responseRate, 0) / activeTemplates.length
-      : 0;
-  const avgCallRate =
-    activeTemplates.length > 0
-      ? activeTemplates.reduce((sum, t) => sum + t.metrics.callRate, 0) / activeTemplates.length
-      : 0;
+  // Top 3 templates par R1 générés
+  const topByR1 = templates.slice(0, 3);
 
-  // Top Performers avec pondération par volume et focus sur call rate
-  const topPerformers = [...templates]
-    .filter(t => t.metrics.sends >= 30) // Minimum de significativité
-    .sort((a, b) => {
-      // Pondération : 60% call rate, 30% response rate, 10% volume normalisé
-      const scoreA = (a.metrics.callRate * 0.6) + (a.metrics.responseRate * 0.3) + (Math.min(a.metrics.sends / 10, 10) * 0.1);
-      const scoreB = (b.metrics.callRate * 0.6) + (b.metrics.responseRate * 0.3) + (Math.min(b.metrics.sends / 10, 10) * 0.1);
-      return scoreB - scoreA;
-    })
+  // Top 3 templates par taux de conversion (minimum 5 messages)
+  const topByConversion = [...templates]
+    .filter(t => t.totalMessages >= 5)
+    .sort((a, b) => b.conversionRate - a.conversionRate)
     .slice(0, 3);
 
-  // Templates éprouvés et performants
-  const provenPerformers = templates.filter(t => 
-    t.metrics.sends >= 100 && 
-    t.metrics.callRate >= 15
-  );
-
-  const needsOptimization = templates.filter((t) => t.metrics.responseRate < 15 && t.metrics.sends > 10);
+  // Stats globales
+  const totalR1 = templates.reduce((sum, t) => sum + t.r1Count, 0);
+  const totalMessages = templates.reduce((sum, t) => sum + t.totalMessages, 0);
+  const avgConversion = templates.length > 0
+    ? templates.reduce((sum, t) => sum + t.conversionRate, 0) / templates.length
+    : 0;
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -75,113 +132,63 @@ const TemplateAnalytics = () => {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                 Analytics Templates
               </h1>
-              <p className="text-muted-foreground mt-1">Performances globales de vos templates</p>
+              <p className="text-muted-foreground mt-1">Performance des templates pour générer des R1</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {/* Métriques globales */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-6 border-border/50 bg-card/50">
-              <div className="text-sm text-muted-foreground mb-1">Templates totaux</div>
+              <div className="text-sm text-muted-foreground mb-1">Templates utilisés</div>
               <div className="text-3xl font-bold">{templates.length}</div>
             </Card>
             <Card className="p-6 border-border/50 bg-card/50">
-              <div className="text-sm text-muted-foreground mb-1">Templates actifs</div>
-              <div className="text-3xl font-bold text-green-400">{activeTemplates.length}</div>
+              <div className="text-sm text-muted-foreground mb-1">Messages envoyés</div>
+              <div className="text-3xl font-bold text-blue-400">{totalMessages}</div>
             </Card>
             <Card className="p-6 border-border/50 bg-card/50">
-              <div className="text-sm text-muted-foreground mb-1">Envois totaux</div>
-              <div className="text-3xl font-bold text-orange-400">{totalSends}</div>
-              <div className="text-xs text-muted-foreground mt-1">~{avgSendsPerTemplate.toFixed(0)}/template</div>
+              <div className="text-sm text-muted-foreground mb-1">R1 générés</div>
+              <div className="text-3xl font-bold text-green-400">{totalR1}</div>
             </Card>
             <Card className="p-6 border-border/50 bg-card/50">
-              <div className="text-sm text-muted-foreground mb-1">Taux réponse moyen</div>
-              <div className="text-3xl font-bold text-blue-400">{avgResponseRate.toFixed(1)}%</div>
-            </Card>
-            <Card className="p-6 border-border/50 bg-card/50">
-              <div className="text-sm text-muted-foreground mb-1">Taux call moyen</div>
-              <div className="text-3xl font-bold text-purple-400">{avgCallRate.toFixed(1)}%</div>
+              <div className="text-sm text-muted-foreground mb-1">Conversion moyenne</div>
+              <div className="text-3xl font-bold text-purple-400">{avgConversion.toFixed(1)}%</div>
             </Card>
           </div>
 
-          <Card className="p-6 border-border/50 bg-card/50">
-            <h2 className="text-xl font-semibold mb-6">🏆 Top 3 Performers</h2>
-            <p className="text-sm text-muted-foreground mb-4">Basé sur le taux d'appels (60%), le taux de réponse (30%) et le volume (10%)</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {topPerformers.length > 0 ? topPerformers.map((template, index) => {
-                const categoryInfo = TEMPLATE_CATEGORIES.find((c) => c.value === template.category);
-                const medals = ["🥇", "🥈", "🥉"];
-                return (
-                  <Card key={template.id} className="p-6 bg-background/50 text-center">
-                    <div className="text-4xl mb-2">{medals[index]}</div>
-                    <div className="font-semibold mb-1">{template.name}</div>
-                    <div className="text-xs text-muted-foreground mb-3">
-                      {categoryInfo?.emoji} {categoryInfo?.label} • {template.metrics.sends} envois
-                    </div>
-                    <div className="text-2xl font-bold text-blue-400">{template.metrics.responseRate}%</div>
-                    <div className="text-xs text-muted-foreground">réponse</div>
-                    <div className="text-2xl font-bold text-green-400 mt-2">{template.metrics.callRate}%</div>
-                    <div className="text-xs text-muted-foreground">call</div>
-                  </Card>
-                );
-              }) : (
-                <div className="col-span-3 text-center text-muted-foreground py-8">
-                  Aucun template avec au moins 30 envois pour calculer le top performers
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {provenPerformers.length > 0 && (
+          {/* Top 3 par R1 générés */}
+          {topByR1.length > 0 && (
             <Card className="p-6 border-border/50 bg-card/50">
-              <h2 className="text-xl font-semibold mb-4">✅ Templates éprouvés et performants</h2>
-              <p className="text-muted-foreground mb-4">
-                Ces templates ont fait leurs preuves avec plus de 100 envois et un excellent taux d'appels (&ge;15%)
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-500" />
+                Top 3 Templates - R1 Générés
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Templates qui ont généré le plus de rendez-vous
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {provenPerformers.map((template) => {
-                  const categoryInfo = TEMPLATE_CATEGORIES.find((c) => c.value === template.category);
-                  const stars = "⭐".repeat(template.metrics.rating);
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {topByR1.map((template, index) => {
+                  const medals = ["🥇", "🥈", "🥉"];
                   return (
-                    <Card key={template.id} className="p-4 bg-background/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Trophy className="h-5 w-5 text-yellow-500" />
-                        <div className="font-semibold">{template.name}</div>
+                    <Card key={template.id} className="p-6 bg-background/50">
+                      <div className="text-4xl mb-2 text-center">{medals[index]}</div>
+                      <div className="font-semibold mb-2 text-center line-clamp-2">{template.name}</div>
+                      <div className="text-xs text-muted-foreground mb-3 text-center">
+                        {template.totalMessages} messages envoyés
                       </div>
-                      <div className="text-xs text-muted-foreground mb-3">
-                        {categoryInfo?.emoji} {categoryInfo?.label} • {template.metrics.sends} envois
-                      </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="text-yellow-500">{stars}</span>
-                        <span className="text-green-400 font-bold">{template.metrics.callRate}% call</span>
-                        <span className="text-blue-400">{template.metrics.responseRate}% rép.</span>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </Card>
-          )}
-
-          {needsOptimization.length > 0 && (
-            <Card className="p-6 border-border/50 bg-card/50">
-              <h2 className="text-xl font-semibold mb-4">⚠️ Templates à optimiser</h2>
-              <p className="text-muted-foreground mb-4">
-                Ces templates ont un taux de réponse inférieur à 15%
-              </p>
-              <div className="space-y-2">
-                {needsOptimization.map((template) => {
-                  const categoryInfo = TEMPLATE_CATEGORIES.find((c) => c.value === template.category);
-                  return (
-                    <Card key={template.id} className="p-4 bg-background/30 flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{template.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {categoryInfo?.emoji} {categoryInfo?.label} • {template.metrics.sends} envois
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <Phone className="h-4 w-4 text-green-500" />
+                        <div className="text-2xl font-bold text-green-400">
+                          {template.r1Count}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-red-400">{template.metrics.responseRate}%</div>
-                        <div className="text-xs text-muted-foreground">Créer une variation en A/B test</div>
+                      <div className="text-xs text-muted-foreground text-center">
+                        R1 programmés
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <div className="text-xs text-muted-foreground text-center">
+                          Taux de conversion : <span className="text-purple-400 font-semibold">{template.conversionRate.toFixed(1)}%</span>
+                        </div>
                       </div>
                     </Card>
                   );
@@ -190,13 +197,72 @@ const TemplateAnalytics = () => {
             </Card>
           )}
 
-          {templates.length === 0 && (
-            <Card className="p-12 text-center border-border/50 bg-card/50">
-              <p className="text-muted-foreground">
-                Aucune donnée disponible. Créez vos premiers templates pour voir les analytics.
+          {/* Top 3 par taux de conversion */}
+          {topByConversion.length > 0 && (
+            <Card className="p-6 border-border/50 bg-card/50">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-purple-500" />
+                Top 3 Templates - Taux de Conversion
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Templates avec le meilleur ratio R1/Messages (minimum 5 messages)
               </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {topByConversion.map((template, index) => {
+                  const medals = ["🥇", "🥈", "🥉"];
+                  return (
+                    <Card key={template.id} className="p-6 bg-background/50">
+                      <div className="text-4xl mb-2 text-center">{medals[index]}</div>
+                      <div className="font-semibold mb-2 text-center line-clamp-2">{template.name}</div>
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-purple-500" />
+                        <div className="text-2xl font-bold text-purple-400">
+                          {template.conversionRate.toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground text-center">
+                        de conversion
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground text-center">
+                        {template.r1Count} R1 sur {template.totalMessages} messages
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
             </Card>
           )}
+
+          {/* Liste complète des templates */}
+          <Card className="p-6 border-border/50 bg-card/50">
+            <h2 className="text-xl font-semibold mb-4">Tous les Templates</h2>
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Chargement des analytics...
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Aucun template utilisé pour le moment
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {templates.map((template) => (
+                  <Card key={template.id} className="p-4 bg-background/30 flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="font-medium">{template.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {template.totalMessages} messages • {template.r1Count} R1 générés
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-purple-400">{template.conversionRate.toFixed(1)}%</div>
+                      <div className="text-xs text-muted-foreground">conversion</div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </Card>
         </main>
       </div>
     </div>
