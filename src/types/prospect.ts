@@ -56,4 +56,8 @@ export interface Prospect {
   updatedAt: string;
   lastContact?: string;
   followUpCount: number; // nombre de relances
+  no_show?: boolean; // Si la personne a fait un no show au R1
+  proposal_sent?: boolean; // Si une proposition a été envoyée
+  r2_scheduled?: boolean; // Si un R2 a été programmé
+  no_follow_up?: boolean; // Si le prospect n'a pas de suite
 }

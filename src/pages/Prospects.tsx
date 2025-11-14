@@ -95,6 +95,10 @@ const Prospects = () => {
       updatedAt: p.updated_at,
       lastContact: p.last_contact,
       followUpCount: p.follow_up_count || 0,
+      no_show: p.no_show || false,
+      proposal_sent: p.proposal_sent || false,
+      r2_scheduled: p.r2_scheduled || false,
+      no_follow_up: p.no_follow_up || false,
     }));
 
     setProspects(loadedProspects);
