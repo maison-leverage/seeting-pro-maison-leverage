@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Prospect } from "@/types/prospect";
 import { Template } from "@/types/template";
-import { CalendarIcon, TrendingUp, Users, Phone, Flame, Award, X, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarIcon, Users, Phone, Award, X, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { ProspectMessageManager } from "@/components/prospects/ProspectMessageManager";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -70,6 +71,10 @@ const Analytics = () => {
         updatedAt: p.updated_at,
         lastContact: p.last_contact,
         followUpCount: p.follow_up_count || 0,
+        no_show: p.no_show || false,
+        proposal_sent: p.proposal_sent || false,
+        r2_scheduled: p.r2_scheduled || false,
+        no_follow_up: p.no_follow_up || false,
       }));
       setProspects(loadedProspects);
     }
@@ -156,16 +161,10 @@ const Analytics = () => {
   // Calculer les R1 bookés
   const r1Booked = filteredProspects.filter((p) => p.status === "r1_programme").length;
 
-  // Statistiques par hype
-  const byHype = {
-    froid: filteredProspects.filter((p) => p.hype === "froid").length,
-    tiede: filteredProspects.filter((p) => p.hype === "tiede").length,
-    chaud: filteredProspects.filter((p) => p.hype === "chaud").length,
-  };
-
-  // Taux de conversion vers R1
-  const conversionRate = filteredProspects.length > 0 
-    ? ((r1Booked / filteredProspects.length) * 100).toFixed(1)
+  // Calculer le taux de no show
+  const r1WithNoShow = prospects.filter((p) => p.status === "r1_programme" && p.no_show === true).length;
+  const noShowRate = r1Booked > 0 
+    ? ((r1WithNoShow / r1Booked) * 100).toFixed(1)
     : "0";
 
   // Filtrer les templates utilisés dans la période
@@ -197,10 +196,19 @@ const Analytics = () => {
     })
     .slice(0, 3);
 
-  const hypeConfig = {
-    froid: { label: "Froid", color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" },
-    tiede: { label: "Tiède", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
-    chaud: { label: "Chaud", color: "bg-red-500/10 text-red-500 border-red-500/20" },
+  const handleCheckboxChange = async (prospectId: string, field: string, value: boolean) => {
+    const { error } = await supabase
+      .from('prospects')
+      .update({ [field]: value })
+      .eq('id', prospectId);
+
+    if (error) {
+      console.error('Error updating prospect:', error);
+      return;
+    }
+
+    // Recharger les données
+    loadData();
   };
 
   return (
@@ -328,7 +336,7 @@ const Analytics = () => {
           </Card>
 
           {/* Métriques principales */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 rounded-lg bg-green-500/10">
@@ -344,14 +352,14 @@ const Analytics = () => {
 
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <TrendingUp className="h-5 w-5 text-blue-500" />
+                <div className="p-2 rounded-lg bg-red-500/10">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">Taux conversion</div>
+                <div className="text-sm text-muted-foreground">Taux de No Show</div>
               </div>
-              <div className="text-4xl font-bold text-blue-400">{conversionRate}%</div>
+              <div className="text-4xl font-bold text-red-400">{noShowRate}%</div>
               <div className="text-xs text-muted-foreground mt-1">
-                vers R1
+                {r1WithNoShow} no show sur {r1Booked} R1
               </div>
             </Card>
 
@@ -367,57 +375,8 @@ const Analytics = () => {
                 dans la période
               </div>
             </Card>
-
-            <Card className="p-6 border-border/50 bg-card/50">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-orange-500/10">
-                  <Flame className="h-5 w-5 text-orange-500" />
-                </div>
-                <div className="text-sm text-muted-foreground">Prospects chauds</div>
-              </div>
-              <div className="text-4xl font-bold text-orange-400">{byHype.chaud}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                niveau hype max
-              </div>
-            </Card>
           </div>
 
-          {/* Répartition par hype */}
-          <Card className="p-6 border-border/50 bg-card/50">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Flame className="h-5 w-5" />
-              Répartition par niveau de hype
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="p-4 bg-cyan-500/5 border-cyan-500/20">
-                <div className="text-sm text-muted-foreground mb-1">❄️ Froid</div>
-                <div className="text-3xl font-bold text-cyan-400">{byHype.froid}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {filteredProspects.length > 0 
-                    ? ((byHype.froid / filteredProspects.length) * 100).toFixed(0)
-                    : 0}% du total
-                </div>
-              </Card>
-              <Card className="p-4 bg-yellow-500/5 border-yellow-500/20">
-                <div className="text-sm text-muted-foreground mb-1">🌡️ Tiède</div>
-                <div className="text-3xl font-bold text-yellow-400">{byHype.tiede}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {filteredProspects.length > 0 
-                    ? ((byHype.tiede / filteredProspects.length) * 100).toFixed(0)
-                    : 0}% du total
-                </div>
-              </Card>
-              <Card className="p-4 bg-red-500/5 border-red-500/20">
-                <div className="text-sm text-muted-foreground mb-1">🔥 Chaud</div>
-                <div className="text-3xl font-bold text-red-400">{byHype.chaud}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {filteredProspects.length > 0 
-                    ? ((byHype.chaud / filteredProspects.length) * 100).toFixed(0)
-                    : 0}% du total
-                </div>
-              </Card>
-            </div>
-          </Card>
 
           {/* Top templates du mois */}
           {topTemplates.length > 0 && (
@@ -488,6 +447,73 @@ const Analytics = () => {
                               📅 Rappel : {new Date(prospect.reminderDate).toLocaleDateString("fr-FR")}
                             </div>
                           )}
+                          
+                          {/* Checkboxes pour le suivi */}
+                          <div className="flex flex-wrap gap-3 mt-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              <Checkbox 
+                                id={`no-show-${prospect.id}`}
+                                checked={prospect.no_show || false}
+                                onCheckedChange={(checked) => 
+                                  handleCheckboxChange(prospect.id, 'no_show', checked as boolean)
+                                }
+                              />
+                              <label 
+                                htmlFor={`no-show-${prospect.id}`}
+                                className="text-xs text-muted-foreground cursor-pointer"
+                              >
+                                No Show
+                              </label>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <Checkbox 
+                                id={`proposal-${prospect.id}`}
+                                checked={prospect.proposal_sent || false}
+                                onCheckedChange={(checked) => 
+                                  handleCheckboxChange(prospect.id, 'proposal_sent', checked as boolean)
+                                }
+                              />
+                              <label 
+                                htmlFor={`proposal-${prospect.id}`}
+                                className="text-xs text-muted-foreground cursor-pointer"
+                              >
+                                Propal envoyée
+                              </label>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <Checkbox 
+                                id={`r2-${prospect.id}`}
+                                checked={prospect.r2_scheduled || false}
+                                onCheckedChange={(checked) => 
+                                  handleCheckboxChange(prospect.id, 'r2_scheduled', checked as boolean)
+                                }
+                              />
+                              <label 
+                                htmlFor={`r2-${prospect.id}`}
+                                className="text-xs text-muted-foreground cursor-pointer"
+                              >
+                                R2 programmé
+                              </label>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <Checkbox 
+                                id={`no-follow-${prospect.id}`}
+                                checked={prospect.no_follow_up || false}
+                                onCheckedChange={(checked) => 
+                                  handleCheckboxChange(prospect.id, 'no_follow_up', checked as boolean)
+                                }
+                              />
+                              <label 
+                                htmlFor={`no-follow-${prospect.id}`}
+                                className="text-xs text-muted-foreground cursor-pointer"
+                              >
+                                Sans suite
+                              </label>
+                            </div>
+                          </div>
                         </div>
                         <Button variant="ghost" size="sm">
                           {expandedProspectId === prospect.id ? (
