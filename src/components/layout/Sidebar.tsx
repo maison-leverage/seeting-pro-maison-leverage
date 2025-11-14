@@ -9,7 +9,6 @@ import {
   Linkedin,
   Flame,
   Pin,
-  TestTube,
   LineChart,
   BookOpen,
 } from "lucide-react";
@@ -38,7 +37,6 @@ const navigation = [
     icon: FileText,
     subItems: [
       { name: "Bibliothèque de templates", href: "/templates", icon: BookOpen },
-      { name: "A/B Tests en cours", href: "/templates/ab-tests", icon: TestTube },
       { name: "Analytics des performances", href: "/templates/analytics", icon: LineChart },
     ],
   },
