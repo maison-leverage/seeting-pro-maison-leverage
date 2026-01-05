@@ -9,6 +9,7 @@ import Prospects from "./pages/Prospects";
 import Analytics from "./pages/Analytics";
 import Templates from "./pages/Templates";
 import TemplateAnalytics from "./pages/TemplateAnalytics";
+import Formation from "./pages/Formation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/templates/analytics" element={<TemplateAnalytics />} />
+          <Route path="/formation" element={<Formation />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
