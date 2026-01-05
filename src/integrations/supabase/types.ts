@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          type: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          type: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          type?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
