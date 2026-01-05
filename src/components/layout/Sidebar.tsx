@@ -11,6 +11,7 @@ import {
   Pin,
   LineChart,
   BookOpen,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -40,6 +41,7 @@ const navigation = [
       { name: "Analytics des performances", href: "/templates/analytics", icon: LineChart },
     ],
   },
+  { name: "Formation", href: "/formation", icon: GraduationCap },
 ];
 
 interface SidebarProps {

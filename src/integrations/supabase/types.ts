@@ -73,6 +73,33 @@ export type Database = {
           },
         ]
       }
+      prospect_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message_content: string
+          prospect_id: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_content: string
+          prospect_id: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_content?: string
+          prospect_id?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prospect_notes: {
         Row: {
           content: string
@@ -117,9 +144,13 @@ export type Database = {
           id: string
           last_contact: string | null
           linkedin_url: string | null
+          no_follow_up: boolean | null
+          no_show: boolean | null
           position: string | null
           priority: string
+          proposal_sent: boolean | null
           qualification: string
+          r2_scheduled: boolean | null
           reminder_date: string | null
           status: string
           tags: Json | null
@@ -137,9 +168,13 @@ export type Database = {
           id?: string
           last_contact?: string | null
           linkedin_url?: string | null
+          no_follow_up?: boolean | null
+          no_show?: boolean | null
           position?: string | null
           priority?: string
+          proposal_sent?: boolean | null
           qualification?: string
+          r2_scheduled?: boolean | null
           reminder_date?: string | null
           status?: string
           tags?: Json | null
@@ -157,9 +192,13 @@ export type Database = {
           id?: string
           last_contact?: string | null
           linkedin_url?: string | null
+          no_follow_up?: boolean | null
+          no_show?: boolean | null
           position?: string | null
           priority?: string
+          proposal_sent?: boolean | null
           qualification?: string
+          r2_scheduled?: boolean | null
           reminder_date?: string | null
           status?: string
           tags?: Json | null
