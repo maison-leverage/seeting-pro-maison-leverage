@@ -4,7 +4,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Send, MessageCircle, Phone, CheckCircle, X, TrendingUp, Users } from "lucide-react";
+import { CalendarIcon, Send, MessageCircle, Phone, CheckCircle, X, TrendingUp, Users, Trash2 } from "lucide-react";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 type DateFilter = "thisMonth" | "lastMonth" | "all" | "custom";
 
@@ -149,6 +150,24 @@ const Analytics = () => {
     }
 
     setLoading(false);
+  };
+
+  const handleDeleteActivity = async (id: string) => {
+    if (!confirm("Supprimer cette activité ?")) return;
+
+    const { error } = await supabase
+      .from('activity_logs')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting activity:', error);
+      toast.error("Erreur lors de la suppression");
+      return;
+    }
+
+    toast.success("Activité supprimée");
+    loadData();
   };
 
   // Calculate date range
@@ -458,6 +477,7 @@ const Analytics = () => {
                     <TableHead>Entreprise</TableHead>
                     <TableHead>Par</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -477,6 +497,16 @@ const Analytics = () => {
                         <TableCell>{log.user_name}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(parseISO(log.created_at), "dd MMM yyyy HH:mm", { locale: fr })}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteActivity(log.id)}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
