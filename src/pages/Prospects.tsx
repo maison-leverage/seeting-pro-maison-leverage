@@ -442,6 +442,7 @@ const Prospects = () => {
                   prospect={prospect}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onActivityLogged={loadProspects}
                 />
               ))}
             </div>

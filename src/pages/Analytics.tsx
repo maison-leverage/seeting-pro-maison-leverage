@@ -4,12 +4,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Prospect } from "@/types/prospect";
-import { Template } from "@/types/template";
-import { CalendarIcon, Users, Phone, Award, X, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
-import { ProspectMessageManager } from "@/components/prospects/ProspectMessageManager";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { CalendarIcon, Send, MessageCircle, Phone, CheckCircle, X, TrendingUp, Users } from "lucide-react";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -17,24 +12,66 @@ import {
   endOfDay,
   isWithinInterval,
   format,
-  subMonths
+  subMonths,
+  parseISO
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 type DateFilter = "thisMonth" | "lastMonth" | "all" | "custom";
 
+interface ActivityLog {
+  id: string;
+  type: 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed';
+  created_at: string;
+  user_name: string;
+  lead_id: string;
+  prospect_name?: string;
+  prospect_company?: string;
+}
+
+const typeConfig = {
+  message_sent: { 
+    label: 'DM Envoyé', 
+    icon: Send, 
+    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' 
+  },
+  reply_received: { 
+    label: 'Réponse Reçue', 
+    icon: MessageCircle, 
+    color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' 
+  },
+  call_booked: { 
+    label: 'Call Booké', 
+    icon: Phone, 
+    color: 'bg-green-500/20 text-green-400 border-green-500/30' 
+  },
+  deal_closed: { 
+    label: 'Deal Closé', 
+    icon: CheckCircle, 
+    color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' 
+  },
+};
+
 const Analytics = () => {
   const navigate = useNavigate();
-  const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [dateFilter, setDateFilter] = useState<DateFilter>("thisMonth");
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
-  const [expandedProspectId, setExpandedProspectId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -44,72 +81,77 @@ const Analytics = () => {
       }
       loadData();
     });
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel('activity-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activity_logs'
+        },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [navigate]);
 
   const loadData = async () => {
-    const { data: prospectsData } = await supabase.from('prospects').select('*');
-    const { data: templatesData } = await supabase.from('templates').select('*');
+    setLoading(true);
     
-    if (prospectsData) {
-      const loadedProspects: Prospect[] = prospectsData.map((p: any) => ({
-        id: p.id,
-        fullName: p.full_name,
-        company: p.company,
-        position: p.position || "",
-        linkedinUrl: p.linkedin_url || "",
-        status: p.status,
-        priority: p.priority,
-        qualification: p.qualification,
-        hype: p.hype,
-        tags: p.tags || [],
-        notes: [],
-        history: [],
-        reminderDate: p.reminder_date,
-        firstMessageDate: p.first_message_date,
-        assignedTo: p.assigned_to || "",
-        createdAt: p.created_at,
-        updatedAt: p.updated_at,
-        lastContact: p.last_contact,
-        followUpCount: p.follow_up_count || 0,
-        no_show: p.no_show || false,
-        proposal_sent: p.proposal_sent || false,
-        r2_scheduled: p.r2_scheduled || false,
-        no_follow_up: p.no_follow_up || false,
-      }));
-      setProspects(loadedProspects);
+    // Load activity logs with prospect info
+    const { data: logsData, error } = await supabase
+      .from('activity_logs')
+      .select(`
+        id,
+        type,
+        created_at,
+        user_name,
+        lead_id
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading activity logs:', error);
+      setLoading(false);
+      return;
     }
 
-    if (templatesData) {
-      const loadedTemplates: Template[] = templatesData.map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        category: "premier_contact",
-        content: t.content,
-        status: "actif",
-        targetProfile: {
-          types: t.target_types || [],
-          sectors: t.target_sectors || [],
-          sizes: t.target_sizes || []
-        },
-        metrics: {
-          sends: t.sent_count || 0,
-          responses: t.response_count || 0,
-          calls: 0,
-          responseRate: 0,
-          callRate: 0,
-          rating: 1
-        },
-        tags: t.tags || [],
-        notes: t.notes || "",
-        createdAt: t.created_at,
-        updatedAt: t.updated_at,
-        usageHistory: [],
+    // Get prospect names for each log
+    if (logsData && logsData.length > 0) {
+      const leadIds = [...new Set(logsData.map(l => l.lead_id))];
+      const { data: prospectsData } = await supabase
+        .from('prospects')
+        .select('id, full_name, company')
+        .in('id', leadIds);
+
+      const prospectMap = new Map(
+        prospectsData?.map(p => [p.id, { name: p.full_name, company: p.company }]) || []
+      );
+
+      const enrichedLogs: ActivityLog[] = logsData.map(log => ({
+        ...log,
+        type: log.type as ActivityLog['type'],
+        prospect_name: prospectMap.get(log.lead_id)?.name || 'Prospect supprimé',
+        prospect_company: prospectMap.get(log.lead_id)?.company || '',
       }));
-      setTemplates(loadedTemplates);
+
+      setActivityLogs(enrichedLogs);
+    } else {
+      setActivityLogs([]);
     }
+
+    setLoading(false);
   };
 
-  // Calculer les dates de filtrage
+  // Calculate date range
   const getDateRange = () => {
     const now = new Date();
     switch (dateFilter) {
@@ -140,7 +182,6 @@ const Analytics = () => {
             label: `${format(customStartDate, "dd MMM yyyy", { locale: fr })} - ${format(customEndDate, "dd MMM yyyy", { locale: fr })}`
           };
         }
-        // Par défaut si les dates ne sont pas définies
         return {
           start: startOfMonth(now),
           end: endOfMonth(now),
@@ -151,65 +192,35 @@ const Analytics = () => {
 
   const dateRange = getDateRange();
 
-  // Filtrer les prospects par date
-  const filteredProspects = prospects.filter((p) => {
+  // Filter logs by date
+  const filteredLogs = activityLogs.filter((log) => {
     if (dateFilter === "all") return true;
-    const prospectDate = new Date(p.createdAt);
-    return isWithinInterval(prospectDate, { start: dateRange.start, end: dateRange.end });
+    const logDate = parseISO(log.created_at);
+    return isWithinInterval(logDate, { start: dateRange.start, end: dateRange.end });
   });
 
-  // Calculer les R1 bookés (tous les R1, pas filtré par date)
-  const r1Booked = prospects.filter((p) => p.status === "r1_programme").length;
+  // Calculate metrics
+  const messagesSent = filteredLogs.filter(l => l.type === 'message_sent').length;
+  const repliesReceived = filteredLogs.filter(l => l.type === 'reply_received').length;
+  const callsBooked = filteredLogs.filter(l => l.type === 'call_booked').length;
+  const dealsClosed = filteredLogs.filter(l => l.type === 'deal_closed').length;
 
-  // Calculer le taux de no show
-  const r1WithNoShow = prospects.filter((p) => p.status === "r1_programme" && p.no_show === true).length;
-  const noShowRate = r1Booked > 0 
-    ? ((r1WithNoShow / r1Booked) * 100).toFixed(1)
-    : "0";
+  // Calculate rates
+  const replyRate = messagesSent > 0 ? ((repliesReceived / messagesSent) * 100).toFixed(1) : "0";
+  const bookingRate = repliesReceived > 0 ? ((callsBooked / repliesReceived) * 100).toFixed(1) : "0";
+  const closeRate = callsBooked > 0 ? ((dealsClosed / callsBooked) * 100).toFixed(1) : "0";
 
-  // Filtrer les templates utilisés dans la période
-  const templatesWithActivity = templates.map((t) => {
-    const usageInPeriod = t.usageHistory?.filter((u) => {
-      const usageDate = new Date(u.date);
-      return isWithinInterval(usageDate, { start: dateRange.start, end: dateRange.end });
-    }) || [];
-
-    const sendsInPeriod = usageInPeriod.length;
-    const callsInPeriod = usageInPeriod.filter((u) => u.hasCall).length;
-
-    return {
-      ...t,
-      sendsInPeriod,
-      callsInPeriod,
-      callRateInPeriod: sendsInPeriod > 0 ? (callsInPeriod / sendsInPeriod) * 100 : 0,
-    };
-  }).filter((t) => t.sendsInPeriod > 0);
-
-  // Top 3 templates du mois
-  const topTemplates = [...templatesWithActivity]
-    .filter((t) => t.sendsInPeriod >= 5) // Minimum 5 envois pour être pertinent
-    .sort((a, b) => {
-      // Score: 70% call rate + 30% volume normalisé
-      const scoreA = a.callRateInPeriod * 0.7 + Math.min(a.sendsInPeriod / 10, 10) * 3;
-      const scoreB = b.callRateInPeriod * 0.7 + Math.min(b.sendsInPeriod / 10, 10) * 3;
-      return scoreB - scoreA;
-    })
-    .slice(0, 3);
-
-  const handleCheckboxChange = async (prospectId: string, field: string, value: boolean) => {
-    const { error } = await supabase
-      .from('prospects')
-      .update({ [field]: value })
-      .eq('id', prospectId);
-
-    if (error) {
-      console.error('Error updating prospect:', error);
-      return;
+  // Get unique users with their stats
+  const userStats = filteredLogs.reduce((acc, log) => {
+    if (!acc[log.user_name]) {
+      acc[log.user_name] = { messages: 0, replies: 0, calls: 0, deals: 0 };
     }
-
-    // Recharger les données
-    loadData();
-  };
+    if (log.type === 'message_sent') acc[log.user_name].messages++;
+    if (log.type === 'reply_received') acc[log.user_name].replies++;
+    if (log.type === 'call_booked') acc[log.user_name].calls++;
+    if (log.type === 'deal_closed') acc[log.user_name].deals++;
+    return acc;
+  }, {} as Record<string, { messages: number; replies: number; calls: number; deals: number }>);
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -220,9 +231,9 @@ const Analytics = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                Analytics CRM
+                Analytics Performance
               </h1>
-              <p className="text-muted-foreground mt-1">Vue d'ensemble de vos performances</p>
+              <p className="text-muted-foreground mt-1">Suivi des activités et performances</p>
             </div>
             
             <div className="flex flex-wrap gap-2">
@@ -248,7 +259,7 @@ const Analytics = () => {
                 Tout
               </Button>
               
-              {/* Période personnalisée */}
+              {/* Custom period */}
               <div className="flex items-center gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
@@ -335,213 +346,145 @@ const Analytics = () => {
             </div>
           </Card>
 
-          {/* Métriques principales */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Main metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <Phone className="h-5 w-5 text-green-500" />
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <Send className="h-5 w-5 text-blue-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">R1 Bookés</div>
+                <div className="text-sm text-muted-foreground">DM Envoyés</div>
               </div>
-              <div className="text-4xl font-bold text-green-400">{r1Booked}</div>
+              <div className="text-4xl font-bold text-blue-400">{messagesSent}</div>
+            </Card>
+
+            <Card className="p-6 border-border/50 bg-card/50">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-yellow-500/10">
+                  <MessageCircle className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div className="text-sm text-muted-foreground">Réponses Reçues</div>
+              </div>
+              <div className="text-4xl font-bold text-yellow-400">{repliesReceived}</div>
               <div className="text-xs text-muted-foreground mt-1">
-                sur {filteredProspects.length} prospects
+                Taux de réponse : {replyRate}%
               </div>
             </Card>
 
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-red-500/10">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <Phone className="h-5 w-5 text-green-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">Taux de No Show</div>
+                <div className="text-sm text-muted-foreground">Calls Bookés</div>
               </div>
-              <div className="text-4xl font-bold text-red-400">{noShowRate}%</div>
+              <div className="text-4xl font-bold text-green-400">{callsBooked}</div>
               <div className="text-xs text-muted-foreground mt-1">
-                {r1WithNoShow} no show sur {r1Booked} R1
+                Taux de booking : {bookingRate}%
               </div>
             </Card>
 
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 rounded-lg bg-purple-500/10">
-                  <Users className="h-5 w-5 text-purple-500" />
+                  <CheckCircle className="h-5 w-5 text-purple-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">Total prospects</div>
+                <div className="text-sm text-muted-foreground">Deals Closés</div>
               </div>
-              <div className="text-4xl font-bold text-purple-400">{filteredProspects.length}</div>
+              <div className="text-4xl font-bold text-purple-400">{dealsClosed}</div>
               <div className="text-xs text-muted-foreground mt-1">
-                dans la période
+                Taux de closing : {closeRate}%
               </div>
             </Card>
           </div>
 
-
-          {/* Top templates du mois */}
-          {topTemplates.length > 0 && (
+          {/* User performance */}
+          {Object.keys(userStats).length > 0 && (
             <Card className="p-6 border-border/50 bg-card/50">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Award className="h-5 w-5 text-yellow-500" />
-                Top 3 Messages de la période
+                <Users className="h-5 w-5 text-primary" />
+                Performance par utilisateur
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Les templates qui ont généré le plus d'appels
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {topTemplates.map((template, index) => {
-                  const medals = ["🥇", "🥈", "🥉"];
-                  return (
-                    <Card key={template.id} className="p-6 bg-background/50 text-center">
-                      <div className="text-4xl mb-2">{medals[index]}</div>
-                      <div className="font-semibold mb-2 line-clamp-2">{template.name}</div>
-                      <div className="text-xs text-muted-foreground mb-3">
-                        {template.sendsInPeriod} envois
-                      </div>
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <Phone className="h-4 w-4 text-green-500" />
-                        <div className="text-2xl font-bold text-green-400">
-                          {template.callRateInPeriod.toFixed(1)}%
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {template.callsInPeriod} appels générés
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Utilisateur</TableHead>
+                    <TableHead className="text-center">DM Envoyés</TableHead>
+                    <TableHead className="text-center">Réponses</TableHead>
+                    <TableHead className="text-center">Calls</TableHead>
+                    <TableHead className="text-center">Deals</TableHead>
+                    <TableHead className="text-center">Taux Réponse</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(userStats).map(([userName, stats]) => (
+                    <TableRow key={userName}>
+                      <TableCell className="font-medium">{userName}</TableCell>
+                      <TableCell className="text-center text-blue-400">{stats.messages}</TableCell>
+                      <TableCell className="text-center text-yellow-400">{stats.replies}</TableCell>
+                      <TableCell className="text-center text-green-400">{stats.calls}</TableCell>
+                      <TableCell className="text-center text-purple-400">{stats.deals}</TableCell>
+                      <TableCell className="text-center">
+                        {stats.messages > 0 ? ((stats.replies / stats.messages) * 100).toFixed(1) : 0}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </Card>
           )}
 
-          {/* Section R1 Programmé */}
+          {/* Activity log table */}
           <Card className="p-6 border-border/50 bg-card/50">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Phone className="h-5 w-5 text-green-500" />
-              R1 Programmé
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Historique des activités
             </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Prospects avec un premier rendez-vous planifié
-            </p>
-            <div className="space-y-4">
-              {prospects.filter(p => p.status === "r1_programme").length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Aucun prospect avec R1 programmé
-                </div>
-              ) : (
-                prospects
-                  .filter(p => p.status === "r1_programme")
-                  .map((prospect) => (
-                    <Card key={prospect.id} className="p-4 bg-background/50">
-                      <div
-                        className="flex items-center justify-between cursor-pointer"
-                        onClick={() => setExpandedProspectId(
-                          expandedProspectId === prospect.id ? null : prospect.id
-                        )}
-                      >
-                        <div className="flex-1">
-                          <div className="font-semibold text-foreground">{prospect.fullName}</div>
-                          <div className="text-sm text-muted-foreground">{prospect.company}</div>
-                          {prospect.reminderDate && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              📅 Rappel : {new Date(prospect.reminderDate).toLocaleDateString("fr-FR")}
-                            </div>
-                          )}
-                          
-                          {/* Checkboxes pour le suivi */}
-                          <div className="flex flex-wrap gap-3 mt-3" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-2">
-                              <Checkbox 
-                                id={`no-show-${prospect.id}`}
-                                checked={prospect.no_show || false}
-                                onCheckedChange={(checked) => 
-                                  handleCheckboxChange(prospect.id, 'no_show', checked as boolean)
-                                }
-                              />
-                              <label 
-                                htmlFor={`no-show-${prospect.id}`}
-                                className="text-xs text-muted-foreground cursor-pointer"
-                              >
-                                No Show
-                              </label>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <Checkbox 
-                                id={`proposal-${prospect.id}`}
-                                checked={prospect.proposal_sent || false}
-                                onCheckedChange={(checked) => 
-                                  handleCheckboxChange(prospect.id, 'proposal_sent', checked as boolean)
-                                }
-                              />
-                              <label 
-                                htmlFor={`proposal-${prospect.id}`}
-                                className="text-xs text-muted-foreground cursor-pointer"
-                              >
-                                Propal envoyée
-                              </label>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <Checkbox 
-                                id={`r2-${prospect.id}`}
-                                checked={prospect.r2_scheduled || false}
-                                onCheckedChange={(checked) => 
-                                  handleCheckboxChange(prospect.id, 'r2_scheduled', checked as boolean)
-                                }
-                              />
-                              <label 
-                                htmlFor={`r2-${prospect.id}`}
-                                className="text-xs text-muted-foreground cursor-pointer"
-                              >
-                                R2 programmé
-                              </label>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <Checkbox 
-                                id={`no-follow-${prospect.id}`}
-                                checked={prospect.no_follow_up || false}
-                                onCheckedChange={(checked) => 
-                                  handleCheckboxChange(prospect.id, 'no_follow_up', checked as boolean)
-                                }
-                              />
-                              <label 
-                                htmlFor={`no-follow-${prospect.id}`}
-                                className="text-xs text-muted-foreground cursor-pointer"
-                              >
-                                Sans suite
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          {expandedProspectId === prospect.id ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-
-                      {expandedProspectId === prospect.id && (
-                        <div className="mt-4 pt-4 border-t border-border">
-                          <ProspectMessageManager prospectId={prospect.id} />
-                        </div>
-                      )}
-                    </Card>
-                  ))
-              )}
-            </div>
+            
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Chargement...
+              </div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Aucune activité enregistrée pour cette période.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Prospect</TableHead>
+                    <TableHead>Entreprise</TableHead>
+                    <TableHead>Par</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredLogs.slice(0, 50).map((log) => {
+                    const config = typeConfig[log.type];
+                    const IconComponent = config.icon;
+                    return (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          <Badge variant="outline" className={config.color}>
+                            <IconComponent className="w-3 h-3 mr-1" />
+                            {config.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{log.prospect_name}</TableCell>
+                        <TableCell className="text-muted-foreground">{log.prospect_company}</TableCell>
+                        <TableCell>{log.user_name}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {format(parseISO(log.created_at), "dd MMM yyyy HH:mm", { locale: fr })}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </Card>
-
-          {filteredProspects.length === 0 && (
-            <Card className="p-12 text-center border-border/50 bg-card/50">
-              <p className="text-muted-foreground">
-                Aucune donnée disponible pour cette période.
-              </p>
-            </Card>
-          )}
         </main>
       </div>
     </div>
