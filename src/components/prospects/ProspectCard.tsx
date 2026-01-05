@@ -2,12 +2,15 @@ import { Prospect } from "@/types/prospect";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Clock } from "lucide-react";
+import { Edit, Trash2, Clock, Send, MessageCircle, Phone, CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ProspectCardProps {
   prospect: Prospect;
   onEdit: (prospect: Prospect) => void;
   onDelete: (id: string) => void;
+  onActivityLogged?: () => void;
 }
 
 const getStatusLabel = (status: string, followUpCount: number) => {
@@ -57,7 +60,9 @@ const hypeConfig = {
   chaud: { label: "🔥 Chaud", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
-const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
+type ActivityType = 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed';
+
+const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: ProspectCardProps) => {
   const isReminderToday = () => {
     if (!prospect.reminderDate) return false;
     const today = new Date();
@@ -68,6 +73,83 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
   };
 
   const hasReminderToday = isReminderToday();
+
+  const logActivity = async (type: ActivityType, updateStatus?: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+
+    // Get user profile for name
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    const userName = profile?.name || session.user.email || 'Utilisateur';
+
+    // Create activity log
+    const { error: logError } = await supabase
+      .from('activity_logs')
+      .insert({
+        type,
+        user_name: userName,
+        lead_id: prospect.id,
+        user_id: session.user.id
+      });
+
+    if (logError) {
+      console.error('Error logging activity:', logError);
+      toast.error("Erreur lors de l'enregistrement");
+      return;
+    }
+
+    // Update prospect status if needed
+    if (updateStatus) {
+      const { error: updateError } = await supabase
+        .from('prospects')
+        .update({ status: updateStatus })
+        .eq('id', prospect.id);
+
+      if (updateError) {
+        console.error('Error updating prospect:', updateError);
+        toast.error("Erreur lors de la mise à jour du statut");
+        return;
+      }
+    }
+
+    const labels = {
+      message_sent: 'DM envoyé',
+      reply_received: 'Réponse enregistrée',
+      call_booked: 'Call booké',
+      deal_closed: 'Deal closé'
+    };
+
+    toast.success(labels[type]);
+    onActivityLogged?.();
+  };
+
+  const handleDMSent = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    logActivity('message_sent', 'premier_message');
+  };
+
+  const handleReplyReceived = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    logActivity('reply_received', 'discussion');
+  };
+
+  const handleCallBooked = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    logActivity('call_booked', 'r1_programme');
+  };
+
+  const handleDealClosed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    logActivity('deal_closed');
+  };
 
   return (
     <Card
@@ -83,66 +165,109 @@ const ProspectCard = ({ prospect, onEdit, onDelete }: ProspectCardProps) => {
         </div>
       )}
 
-      <div className="flex items-center gap-4 justify-between">
-        {/* Left: Name and Company */}
-        <div className="flex-shrink-0 min-w-0">
-          <h3 className="text-lg font-bold truncate">
-            {prospect.fullName}
-          </h3>
-          <p className="text-muted-foreground text-sm truncate">
-            {prospect.position} {prospect.position && prospect.company && "chez"} {prospect.company}
-          </p>
-        </div>
-
-        {/* Center: Badges */}
-        <div className="flex gap-2 flex-shrink-0">
-          <Badge variant="outline" className={statusConfig[prospect.status].color}>
-            {getStatusLabel(prospect.status, prospect.followUpCount)}
-          </Badge>
-          <Badge variant="outline" className={priorityConfig[prospect.priority].color}>
-            {priorityConfig[prospect.priority].label}
-          </Badge>
-          <Badge variant="outline" className={qualificationConfig[prospect.qualification].color}>
-            {qualificationConfig[prospect.qualification].label}
-          </Badge>
-          <Badge variant="outline" className={hypeConfig[prospect.hype].color}>
-            {hypeConfig[prospect.hype].label}
-          </Badge>
-        </div>
-
-        {/* Right: Reminder info and Actions */}
-        <div className="flex items-center gap-4 flex-shrink-0">
-          {prospect.reminderDate && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              {new Date(prospect.reminderDate).toLocaleDateString("fr-FR")}
-            </div>
-          )}
-          
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(prospect);
-              }}
-              className="border-border/50 hover:border-primary hover:bg-primary/10"
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(prospect.id);
-              }}
-              className="border-border/50 hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+      <div className="flex flex-col gap-3">
+        {/* Top row: Name, Company, Badges */}
+        <div className="flex items-center gap-4 justify-between">
+          {/* Left: Name and Company */}
+          <div className="flex-shrink-0 min-w-0">
+            <h3 className="text-lg font-bold truncate">
+              {prospect.fullName}
+            </h3>
+            <p className="text-muted-foreground text-sm truncate">
+              {prospect.position} {prospect.position && prospect.company && "chez"} {prospect.company}
+            </p>
           </div>
+
+          {/* Center: Badges */}
+          <div className="flex gap-2 flex-shrink-0">
+            <Badge variant="outline" className={statusConfig[prospect.status].color}>
+              {getStatusLabel(prospect.status, prospect.followUpCount)}
+            </Badge>
+            <Badge variant="outline" className={priorityConfig[prospect.priority].color}>
+              {priorityConfig[prospect.priority].label}
+            </Badge>
+            <Badge variant="outline" className={qualificationConfig[prospect.qualification].color}>
+              {qualificationConfig[prospect.qualification].label}
+            </Badge>
+            <Badge variant="outline" className={hypeConfig[prospect.hype].color}>
+              {hypeConfig[prospect.hype].label}
+            </Badge>
+          </div>
+
+          {/* Right: Reminder info and Actions */}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {prospect.reminderDate && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                {new Date(prospect.reminderDate).toLocaleDateString("fr-FR")}
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(prospect);
+                }}
+                className="border-border/50 hover:border-primary hover:bg-primary/10"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(prospect.id);
+                }}
+                className="border-border/50 hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom row: Quick action buttons */}
+        <div className="flex gap-2 pt-2 border-t border-border/30">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDMSent}
+            className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500"
+          >
+            <Send className="w-4 h-4 mr-2" />
+            DM Envoyé
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReplyReceived}
+            className="flex-1 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:border-yellow-500"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Réponse Reçue
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCallBooked}
+            className="flex-1 border-green-500/30 text-green-400 hover:bg-green-500/10 hover:border-green-500"
+          >
+            <Phone className="w-4 h-4 mr-2" />
+            Call Booké
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDealClosed}
+            className="flex-1 border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Deal Closé
+          </Button>
         </div>
       </div>
     </Card>
