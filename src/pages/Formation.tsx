@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play } from "lucide-react";
+import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ interface FormationData {
   avatar: SectionContent;
   leads: SectionContent;
   daily: SectionContent;
+  booking: SectionContent;
 }
 
 const defaultData: FormationData = {
@@ -36,6 +37,7 @@ const defaultData: FormationData = {
   avatar: { text: "", videos: [] },
   leads: { text: "", videos: [] },
   daily: { text: "", videos: [] },
+  booking: { text: "", videos: [] },
 };
 
 const sections = [
@@ -43,6 +45,7 @@ const sections = [
   { key: "avatar", title: "Qui est notre avatar ?", icon: Target },
   { key: "leads", title: "Trouver des leads qualifiés", icon: Users },
   { key: "daily", title: "Que faire quotidiennement ?", icon: Calendar },
+  { key: "booking", title: "Comment booker un RDV ?", icon: CalendarCheck },
 ] as const;
 
 const extractYouTubeId = (url: string): string | null => {
@@ -63,12 +66,14 @@ const Formation = () => {
     avatar: "",
     leads: "",
     daily: "",
+    booking: "",
   });
   const [newVideoTitles, setNewVideoTitles] = useState<Record<string, string>>({
     seo: "",
     avatar: "",
     leads: "",
     daily: "",
+    booking: "",
   });
 
   useEffect(() => {
