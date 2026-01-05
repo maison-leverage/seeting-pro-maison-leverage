@@ -80,7 +80,9 @@ const Formation = () => {
     const saved = localStorage.getItem("formation-data");
     if (saved) {
       try {
-        setData(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Merge with defaultData to handle new sections
+        setData({ ...defaultData, ...parsed });
       } catch (e) {
         console.error("Error loading formation data:", e);
       }
