@@ -121,7 +121,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
     }
 
     const labels = {
-      message_sent: 'DM envoyé',
+      message_sent: 'Nouvelle conversation créée',
       reply_received: 'Réponse enregistrée',
       call_booked: 'Call booké',
       deal_closed: 'Deal closé'
@@ -239,7 +239,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500"
           >
             <Send className="w-4 h-4 mr-2" />
-            DM Envoyé
+            Nouvelle Conv.
           </Button>
           <Button
             size="sm"

@@ -45,7 +45,7 @@ interface ActivityLog {
 
 const typeConfig = {
   message_sent: { 
-    label: 'DM Envoyé', 
+    label: 'Nouvelle Conversation', 
     icon: Send, 
     color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' 
   },
@@ -372,7 +372,7 @@ const Analytics = () => {
                 <div className="p-2 rounded-lg bg-blue-500/10">
                   <Send className="h-5 w-5 text-blue-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">DM Envoyés</div>
+                <div className="text-sm text-muted-foreground">Nouvelles Conversations</div>
               </div>
               <div className="text-4xl font-bold text-blue-400">{messagesSent}</div>
             </Card>
@@ -428,7 +428,7 @@ const Analytics = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Utilisateur</TableHead>
-                    <TableHead className="text-center">DM Envoyés</TableHead>
+                    <TableHead className="text-center">Nouvelles Conv.</TableHead>
                     <TableHead className="text-center">Réponses</TableHead>
                     <TableHead className="text-center">Calls</TableHead>
                     <TableHead className="text-center">Deals</TableHead>
