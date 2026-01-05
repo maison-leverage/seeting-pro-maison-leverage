@@ -4,7 +4,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Send, MessageCircle, Phone, CheckCircle, X, TrendingUp, Users, Trash2 } from "lucide-react";
+import { CalendarIcon, Send, MessageCircle, Phone, CheckCircle, X, TrendingUp, Trash2 } from "lucide-react";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -229,18 +229,6 @@ const Analytics = () => {
   const bookingRate = repliesReceived > 0 ? ((callsBooked / repliesReceived) * 100).toFixed(1) : "0";
   const closeRate = callsBooked > 0 ? ((dealsClosed / callsBooked) * 100).toFixed(1) : "0";
 
-  // Get unique users with their stats
-  const userStats = filteredLogs.reduce((acc, log) => {
-    if (!acc[log.user_name]) {
-      acc[log.user_name] = { messages: 0, replies: 0, calls: 0, deals: 0 };
-    }
-    if (log.type === 'message_sent') acc[log.user_name].messages++;
-    if (log.type === 'reply_received') acc[log.user_name].replies++;
-    if (log.type === 'call_booked') acc[log.user_name].calls++;
-    if (log.type === 'deal_closed') acc[log.user_name].deals++;
-    return acc;
-  }, {} as Record<string, { messages: number; replies: number; calls: number; deals: number }>);
-
   return (
     <div className="min-h-screen flex w-full bg-background">
       <Sidebar />
@@ -417,41 +405,6 @@ const Analytics = () => {
             </Card>
           </div>
 
-          {/* User performance */}
-          {Object.keys(userStats).length > 0 && (
-            <Card className="p-6 border-border/50 bg-card/50">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Performance par utilisateur
-              </h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Utilisateur</TableHead>
-                    <TableHead className="text-center">Nouvelles Conv.</TableHead>
-                    <TableHead className="text-center">Réponses</TableHead>
-                    <TableHead className="text-center">Calls</TableHead>
-                    <TableHead className="text-center">Deals</TableHead>
-                    <TableHead className="text-center">Taux Réponse</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Object.entries(userStats).map(([userName, stats]) => (
-                    <TableRow key={userName}>
-                      <TableCell className="font-medium">{userName}</TableCell>
-                      <TableCell className="text-center text-blue-400">{stats.messages}</TableCell>
-                      <TableCell className="text-center text-yellow-400">{stats.replies}</TableCell>
-                      <TableCell className="text-center text-green-400">{stats.calls}</TableCell>
-                      <TableCell className="text-center text-purple-400">{stats.deals}</TableCell>
-                      <TableCell className="text-center">
-                        {stats.messages > 0 ? ((stats.replies / stats.messages) * 100).toFixed(1) : 0}%
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          )}
 
           {/* Activity log table */}
           <Card className="p-6 border-border/50 bg-card/50">
