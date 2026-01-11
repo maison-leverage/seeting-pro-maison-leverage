@@ -6,7 +6,6 @@ import {
   BarChart3,
   FileText,
   LogOut,
-  Linkedin,
   Flame,
   Pin,
   LineChart,
@@ -17,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import maisonLeverageLogo from "@/assets/maison-leverage-logo.png";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -72,15 +72,17 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
     <div className="w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0">
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-primary">
-            <Linkedin className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              CRM LinkedIn
-            </h1>
-            <p className="text-xs text-muted-foreground">Setting Pro</p>
+        <div className="flex flex-col gap-2">
+          <h1 className="font-bold text-lg text-foreground">
+            Setting Pro LinkedIn
+          </h1>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">by</span>
+            <img 
+              src={maisonLeverageLogo} 
+              alt="Maison Leverage" 
+              className="h-5 object-contain"
+            />
           </div>
         </div>
       </div>
@@ -144,7 +146,7 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
       {/* User profile & logout */}
       <div className="p-4 border-t border-sidebar-border space-y-3">
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
             {userName[0]?.toUpperCase() || "?"}
           </div>
           <div className="flex-1 min-w-0">
