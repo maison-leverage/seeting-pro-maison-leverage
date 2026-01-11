@@ -12,7 +12,7 @@ All colors MUST be HSL.
     --background: 0 0% 100%;
     --foreground: 0 0% 9%;
 
-    --card: 0 0% 98%;
+    --card: 0 0% 99%;
     --card-foreground: 0 0% 9%;
     --card-hover: 0 0% 96%;
 
@@ -23,30 +23,30 @@ All colors MUST be HSL.
     --primary-foreground: 0 0% 100%;
     --primary-glow: 0 0% 20%;
 
-    --secondary: 258 90% 66%;
+    --secondary: 258 90% 60%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 258 90% 76%;
+    --secondary-glow: 258 90% 70%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 35%;
 
-    --accent: 258 90% 66%;
+    --accent: 258 90% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 142 71% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 25 95% 53%;
+    --warning: 25 95% 48%;
     --warning-foreground: 0 0% 100%;
 
-    --alert: 48 96% 53%;
+    --alert: 48 96% 45%;
     --alert-foreground: 0 0% 9%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 96%;
+    --border: 0 0% 85%;
+    --input: 0 0% 95%;
     --ring: 0 0% 9%;
 
     --radius: 0.75rem;
