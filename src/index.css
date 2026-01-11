@@ -8,70 +8,70 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Dark mode design system - CRM LinkedIn */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    /* Light mode design system - Setting Pro LinkedIn by Maison Leverage */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
 
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
-    --card-hover: 217 33% 20%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 9%;
+    --card-hover: 0 0% 96%;
 
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 40% 98%;
-    --primary-glow: 217 91% 70%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 0 0% 20%;
 
     --secondary: 258 90% 66%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary-foreground: 0 0% 100%;
     --secondary-glow: 258 90% 76%;
 
-    --muted: 215 20% 25%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 258 90% 66%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 142 71% 45%;
-    --success-foreground: 210 40% 98%;
+    --success-foreground: 0 0% 100%;
 
     --warning: 25 95% 53%;
-    --warning-foreground: 210 40% 98%;
+    --warning-foreground: 0 0% 100%;
 
     --alert: 48 96% 53%;
-    --alert-foreground: 222 47% 11%;
+    --alert-foreground: 0 0% 9%;
 
-    --border: 217 33% 25%;
-    --input: 217 33% 20%;
-    --ring: 217 91% 60%;
+    --border: 0 0% 90%;
+    --input: 0 0% 96%;
+    --ring: 0 0% 9%;
 
     --radius: 0.75rem;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(258 90% 66%));
-    --gradient-subtle: linear-gradient(180deg, hsl(217 33% 17%), hsl(222 47% 11%));
-    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(217 91% 60% / 0.15), transparent 50%);
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 9%), hsl(0 0% 20%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 98%), hsl(0 0% 100%));
+    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(0 0% 9% / 0.05), transparent 50%);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.3);
-    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.4);
-    --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.5);
-    --shadow-glow: 0 0 20px hsl(217 91% 60% / 0.3);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1);
+    --shadow-glow: 0 0 20px hsl(0 0% 0% / 0.1);
     --shadow-glow-secondary: 0 0 20px hsl(258 90% 66% / 0.3);
 
     /* Sidebar */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217 33% 20%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 25%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 9%;
 
     /* Status colors */
     --status-nouveau: 217 91% 60%;
@@ -137,7 +137,7 @@ All colors MUST be HSL.
 
   /* Glassmorphism */
   .glass {
-    background: hsl(var(--card) / 0.6);
+    background: hsl(var(--card) / 0.8);
     backdrop-filter: blur(12px);
     border: 1px solid hsl(var(--border) / 0.5);
   }
