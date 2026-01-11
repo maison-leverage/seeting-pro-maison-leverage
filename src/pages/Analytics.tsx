@@ -35,7 +35,7 @@ type DateFilter = "thisMonth" | "lastMonth" | "all" | "custom";
 
 interface ActivityLog {
   id: string;
-  type: 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed';
+  type: 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed' | 'first_dm' | 'follow_up_dm';
   created_at: string;
   user_name: string;
   lead_id: string;
@@ -43,11 +43,23 @@ interface ActivityLog {
   prospect_company?: string;
 }
 
-const typeConfig = {
+import { RotateCcw } from "lucide-react";
+
+const typeConfig: Record<ActivityLog['type'], { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
   message_sent: { 
     label: 'Nouvelle Conversation', 
     icon: Send, 
     color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' 
+  },
+  first_dm: { 
+    label: '1er DM (quota)', 
+    icon: Send, 
+    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' 
+  },
+  follow_up_dm: { 
+    label: 'Relance (hors quota)', 
+    icon: RotateCcw, 
+    color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' 
   },
   reply_received: { 
     label: 'Réponse Reçue', 
@@ -218,14 +230,15 @@ const Analytics = () => {
     return isWithinInterval(logDate, { start: dateRange.start, end: dateRange.end });
   });
 
-  // Calculate metrics
-  const messagesSent = filteredLogs.filter(l => l.type === 'message_sent').length;
+  // Calculate metrics - only count first_dm for quotas (and legacy message_sent)
+  const firstDMs = filteredLogs.filter(l => l.type === 'first_dm' || l.type === 'message_sent').length;
+  const followUps = filteredLogs.filter(l => l.type === 'follow_up_dm').length;
   const repliesReceived = filteredLogs.filter(l => l.type === 'reply_received').length;
   const callsBooked = filteredLogs.filter(l => l.type === 'call_booked').length;
   const dealsClosed = filteredLogs.filter(l => l.type === 'deal_closed').length;
 
-  // Calculate rates
-  const replyRate = messagesSent > 0 ? ((repliesReceived / messagesSent) * 100).toFixed(1) : "0";
+  // Calculate rates based on first DMs only (not follow-ups)
+  const replyRate = firstDMs > 0 ? ((repliesReceived / firstDMs) * 100).toFixed(1) : "0";
   const bookingRate = repliesReceived > 0 ? ((callsBooked / repliesReceived) * 100).toFixed(1) : "0";
   const closeRate = callsBooked > 0 ? ((dealsClosed / callsBooked) * 100).toFixed(1) : "0";
 
@@ -354,15 +367,18 @@ const Analytics = () => {
           </Card>
 
           {/* Main metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <Card className="p-6 border-border/50 bg-card/50">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 rounded-lg bg-blue-500/10">
                   <Send className="h-5 w-5 text-blue-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">Nouvelles Conversations</div>
+                <div className="text-sm text-muted-foreground">1ers DM (quota)</div>
               </div>
-              <div className="text-4xl font-bold text-blue-400">{messagesSent}</div>
+              <div className="text-4xl font-bold text-blue-400">{firstDMs}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                + {followUps} relances (hors quota)
+              </div>
             </Card>
 
             <Card className="p-6 border-border/50 bg-card/50">
@@ -401,6 +417,23 @@ const Analytics = () => {
               <div className="text-4xl font-bold text-purple-400">{dealsClosed}</div>
               <div className="text-xs text-muted-foreground mt-1">
                 Taux de closing : {closeRate}%
+              </div>
+            </Card>
+
+            {/* Funnel visualization */}
+            <Card className="p-6 border-border/50 bg-gradient-to-br from-primary/10 to-purple-500/10">
+              <div className="text-sm text-muted-foreground mb-2">Funnel (pour 100 DM)</div>
+              <div className="space-y-1 text-sm">
+                <div className="text-blue-400 font-medium">100 → 1ers DM</div>
+                <div className="text-yellow-400 font-medium">
+                  {firstDMs > 0 ? Math.round((repliesReceived / firstDMs) * 100) : 0} → Réponses
+                </div>
+                <div className="text-green-400 font-medium">
+                  {firstDMs > 0 ? Math.round((callsBooked / firstDMs) * 100) : 0} → Calls
+                </div>
+                <div className="text-purple-400 font-medium">
+                  {firstDMs > 0 ? Math.round((dealsClosed / firstDMs) * 100) : 0} → Deals
+                </div>
               </div>
             </Card>
           </div>

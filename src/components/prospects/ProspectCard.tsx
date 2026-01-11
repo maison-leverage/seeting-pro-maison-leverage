@@ -2,7 +2,7 @@ import { Prospect } from "@/types/prospect";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Clock, Send, MessageCircle, Phone, CheckCircle } from "lucide-react";
+import { Edit, Trash2, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -60,7 +60,7 @@ const hypeConfig = {
   chaud: { label: "🔥 Chaud", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
-type ActivityType = 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed';
+type ActivityType = 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed' | 'first_dm' | 'follow_up_dm';
 
 const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: ProspectCardProps) => {
   const isReminderToday = () => {
@@ -120,20 +120,58 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
       }
     }
 
-    const labels = {
+    const labels: Record<ActivityType, string> = {
       message_sent: 'Nouvelle conversation créée',
       reply_received: 'Réponse enregistrée',
       call_booked: 'Call booké',
-      deal_closed: 'Deal closé'
+      deal_closed: 'Deal closé',
+      first_dm: 'Premier DM enregistré',
+      follow_up_dm: 'Relance enregistrée'
     };
 
     toast.success(labels[type]);
     onActivityLogged?.();
   };
 
-  const handleDMSent = (e: React.MouseEvent) => {
+  const handleDMSent = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    logActivity('message_sent', 'premier_message');
+    
+    // Bloquer si déjà contacté (anti-triche)
+    if (prospect.firstMessageDate) {
+      const date = new Date(prospect.firstMessageDate).toLocaleDateString('fr-FR');
+      toast.error(`Ce prospect a déjà été contacté le ${date}. Utilise "Relance" si tu veux le recontacter.`);
+      return;
+    }
+    
+    // Enregistrer le premier DM
+    await logActivity('first_dm', 'premier_message');
+    
+    // Mettre à jour first_message_date sur le prospect
+    const { error } = await supabase
+      .from('prospects')
+      .update({ first_message_date: new Date().toISOString() })
+      .eq('id', prospect.id);
+    
+    if (error) {
+      console.error('Error updating first_message_date:', error);
+    }
+  };
+
+  const handleFollowUpSent = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Les relances ne comptent pas dans les quotas
+    await logActivity('follow_up_dm');
+    
+    // Incrémenter le compteur de relances
+    const { error } = await supabase
+      .from('prospects')
+      .update({ follow_up_count: prospect.followUpCount + 1 })
+      .eq('id', prospect.id);
+    
+    if (error) {
+      console.error('Error updating follow_up_count:', error);
+    }
   };
 
   const handleReplyReceived = (e: React.MouseEvent) => {
@@ -232,14 +270,37 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
 
         {/* Bottom row: Quick action buttons */}
         <div className="flex gap-2 pt-2 border-t border-border/30">
+          {/* Premier DM - bloqué si déjà contacté */}
           <Button
             size="sm"
             variant="outline"
             onClick={handleDMSent}
-            className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500"
+            disabled={!!prospect.firstMessageDate}
+            className={`flex-1 ${
+              prospect.firstMessageDate 
+                ? 'border-gray-500/30 text-gray-500 cursor-not-allowed opacity-50' 
+                : 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500'
+            }`}
+            title={prospect.firstMessageDate ? `Déjà contacté le ${new Date(prospect.firstMessageDate).toLocaleDateString('fr-FR')}` : 'Enregistrer le premier DM'}
           >
             <Send className="w-4 h-4 mr-2" />
-            Nouvelle Conv.
+            1er DM
+          </Button>
+          {/* Relance - disponible uniquement si déjà contacté */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleFollowUpSent}
+            disabled={!prospect.firstMessageDate}
+            className={`flex-1 ${
+              !prospect.firstMessageDate 
+                ? 'border-gray-500/30 text-gray-500 cursor-not-allowed opacity-50' 
+                : 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500'
+            }`}
+            title={!prospect.firstMessageDate ? 'Doit être contacté en premier' : 'Enregistrer une relance (ne compte pas dans les quotas)'}
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Relance
           </Button>
           <Button
             size="sm"
@@ -248,7 +309,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             className="flex-1 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:border-yellow-500"
           >
             <MessageCircle className="w-4 h-4 mr-2" />
-            Réponse Reçue
+            Réponse
           </Button>
           <Button
             size="sm"
@@ -257,7 +318,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             className="flex-1 border-green-500/30 text-green-400 hover:bg-green-500/10 hover:border-green-500"
           >
             <Phone className="w-4 h-4 mr-2" />
-            Call Booké
+            Call
           </Button>
           <Button
             size="sm"
@@ -266,7 +327,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             className="flex-1 border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500"
           >
             <CheckCircle className="w-4 h-4 mr-2" />
-            Deal Closé
+            Deal
           </Button>
         </div>
       </div>
