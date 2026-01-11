@@ -242,6 +242,36 @@ export type Database = {
         }
         Relationships: []
       }
+      setter_objectives: {
+        Row: {
+          created_at: string
+          daily_target: number
+          id: string
+          updated_at: string
+          user_id: string | null
+          weekly_target: number
+          work_days: string[]
+        }
+        Insert: {
+          created_at?: string
+          daily_target?: number
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+          weekly_target?: number
+          work_days?: string[]
+        }
+        Update: {
+          created_at?: string
+          daily_target?: number
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+          weekly_target?: number
+          work_days?: string[]
+        }
+        Relationships: []
+      }
       templates: {
         Row: {
           content: string

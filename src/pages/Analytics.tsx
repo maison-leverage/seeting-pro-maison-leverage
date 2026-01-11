@@ -13,7 +13,10 @@ import {
   isWithinInterval,
   format,
   subMonths,
-  parseISO
+  parseISO,
+  startOfWeek,
+  endOfWeek,
+  subWeeks
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,8 +33,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import DailyBreakdownTable from "@/components/analytics/DailyBreakdownTable";
+import ContactedProspectsList from "@/components/analytics/ContactedProspectsList";
 
-type DateFilter = "thisMonth" | "lastMonth" | "all" | "custom";
+type DateFilter = "thisMonth" | "lastMonth" | "thisWeek" | "lastWeek" | "all" | "custom";
 
 interface ActivityLog {
   id: string;
@@ -81,10 +86,13 @@ const typeConfig: Record<ActivityLog['type'], { label: string; icon: React.Compo
 const Analytics = () => {
   const navigate = useNavigate();
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
-  const [dateFilter, setDateFilter] = useState<DateFilter>("thisMonth");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("thisWeek");
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [dailyTarget, setDailyTarget] = useState(25);
+  const [workDays, setWorkDays] = useState<string[]>(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
+  const [contactedProspects, setContactedProspects] = useState<any[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -93,6 +101,7 @@ const Analytics = () => {
         return;
       }
       loadData();
+      loadObjectives();
     });
 
     // Subscribe to realtime updates
@@ -115,6 +124,22 @@ const Analytics = () => {
       supabase.removeChannel(channel);
     };
   }, [navigate]);
+
+  const loadObjectives = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('setter_objectives')
+      .select('daily_target, work_days')
+      .eq('user_id', user.id)
+      .single();
+
+    if (data) {
+      setDailyTarget(data.daily_target);
+      setWorkDays(data.work_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -142,11 +167,16 @@ const Analytics = () => {
       const leadIds = [...new Set(logsData.map(l => l.lead_id))];
       const { data: prospectsData } = await supabase
         .from('prospects')
-        .select('id, full_name, company')
+        .select('id, full_name, company, linkedin_url, status')
         .in('id', leadIds);
 
       const prospectMap = new Map(
-        prospectsData?.map(p => [p.id, { name: p.full_name, company: p.company }]) || []
+        prospectsData?.map(p => [p.id, { 
+          name: p.full_name, 
+          company: p.company,
+          linkedin_url: p.linkedin_url,
+          status: p.status
+        }]) || []
       );
 
       const enrichedLogs: ActivityLog[] = logsData.map(log => ({
@@ -157,8 +187,57 @@ const Analytics = () => {
       }));
 
       setActivityLogs(enrichedLogs);
+
+      // Build contacted prospects list (unique prospects with first DM info)
+      const prospectDMMap = new Map<string, {
+        id: string;
+        prospect_id: string;
+        prospect_name: string;
+        prospect_company: string;
+        first_dm_date: string;
+        has_replied: boolean;
+        has_call: boolean;
+        linkedin_url?: string;
+        current_status: string;
+      }>();
+
+      // Sort logs by date (oldest first) to get first DM date correctly
+      const sortedLogs = [...logsData].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      for (const log of sortedLogs) {
+        if (log.type === 'first_dm' || log.type === 'message_sent') {
+          if (!prospectDMMap.has(log.lead_id)) {
+            const prospectInfo = prospectMap.get(log.lead_id);
+            prospectDMMap.set(log.lead_id, {
+              id: log.id,
+              prospect_id: log.lead_id,
+              prospect_name: prospectInfo?.name || 'Prospect supprimé',
+              prospect_company: prospectInfo?.company || '',
+              first_dm_date: log.created_at,
+              has_replied: false,
+              has_call: false,
+              linkedin_url: prospectInfo?.linkedin_url,
+              current_status: prospectInfo?.status || 'nouveau'
+            });
+          }
+        }
+      }
+
+      // Mark replied and calls
+      for (const log of logsData) {
+        const prospect = prospectDMMap.get(log.lead_id);
+        if (prospect) {
+          if (log.type === 'reply_received') prospect.has_replied = true;
+          if (log.type === 'call_booked') prospect.has_call = true;
+        }
+      }
+
+      setContactedProspects(Array.from(prospectDMMap.values()));
     } else {
       setActivityLogs([]);
+      setContactedProspects([]);
     }
 
     setLoading(false);
@@ -186,6 +265,19 @@ const Analytics = () => {
   const getDateRange = () => {
     const now = new Date();
     switch (dateFilter) {
+      case "thisWeek":
+        return {
+          start: startOfWeek(now, { weekStartsOn: 1 }),
+          end: endOfWeek(now, { weekStartsOn: 1 }),
+          label: `Semaine du ${format(startOfWeek(now, { weekStartsOn: 1 }), "dd MMM", { locale: fr })}`
+        };
+      case "lastWeek":
+        const lastWeekDate = subWeeks(now, 1);
+        return {
+          start: startOfWeek(lastWeekDate, { weekStartsOn: 1 }),
+          end: endOfWeek(lastWeekDate, { weekStartsOn: 1 }),
+          label: `Semaine du ${format(startOfWeek(lastWeekDate, { weekStartsOn: 1 }), "dd MMM", { locale: fr })}`
+        };
       case "thisMonth":
         return {
           start: startOfMonth(now),
@@ -257,6 +349,20 @@ const Analytics = () => {
             </div>
             
             <div className="flex flex-wrap gap-2">
+              <Button
+                variant={dateFilter === "thisWeek" ? "default" : "outline"}
+                onClick={() => setDateFilter("thisWeek")}
+                size="sm"
+              >
+                Cette semaine
+              </Button>
+              <Button
+                variant={dateFilter === "lastWeek" ? "default" : "outline"}
+                onClick={() => setDateFilter("lastWeek")}
+                size="sm"
+              >
+                Semaine dernière
+              </Button>
               <Button
                 variant={dateFilter === "thisMonth" ? "default" : "outline"}
                 onClick={() => setDateFilter("thisMonth")}
@@ -437,6 +543,25 @@ const Analytics = () => {
               </div>
             </Card>
           </div>
+
+
+          {/* Daily Breakdown Table */}
+          <DailyBreakdownTable 
+            activities={filteredLogs}
+            startDate={dateRange.start}
+            endDate={dateRange.end > new Date() ? new Date() : dateRange.end}
+            dailyTarget={dailyTarget}
+            workDays={workDays}
+          />
+
+          {/* Contacted Prospects List */}
+          <ContactedProspectsList 
+            prospects={contactedProspects.filter(p => {
+              const dmDate = parseISO(p.first_dm_date);
+              return isWithinInterval(dmDate, { start: dateRange.start, end: dateRange.end });
+            })}
+            loading={loading}
+          />
 
 
           {/* Activity log table */}
