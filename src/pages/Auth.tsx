@@ -64,6 +64,25 @@ const Auth = () => {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!email) {
+      toast.error("Entre ton email d'abord");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      toast.success("Email de réinitialisation envoyé ! Vérifie ta boîte mail.");
+    } catch (error: any) {
+      toast.error(error.message || "Une erreur est survenue");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
       {/* Gradient background */}
@@ -130,13 +149,22 @@ const Auth = () => {
           </form>
 
           {/* Toggle sign up / login */}
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
             <button
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors block w-full"
             >
               {isSignUp ? "Déjà un compte ? Se connecter" : "Pas encore de compte ? S'inscrire"}
             </button>
+            {!isSignUp && (
+              <button
+                onClick={handleResetPassword}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                disabled={loading}
+              >
+                Mot de passe oublié ?
+              </button>
+            )}
           </div>
         </div>
 
