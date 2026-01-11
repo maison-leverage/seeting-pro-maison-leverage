@@ -68,6 +68,7 @@ const Prospects = () => {
     const { data, error } = await supabase
       .from('prospects')
       .select('*')
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -253,20 +254,23 @@ const Prospects = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer ce prospect ?")) return;
+    if (!confirm("Archiver ce prospect ? Il ne sera plus visible mais restera dans les statistiques.")) return;
 
     const { error } = await supabase
       .from('prospects')
-      .delete()
+      .update({ 
+        is_deleted: true, 
+        deleted_at: new Date().toISOString() 
+      })
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting prospect:', error);
-      toast.error("Erreur lors de la suppression");
+      console.error('Error archiving prospect:', error);
+      toast.error("Erreur lors de l'archivage");
       return;
     }
 
-    toast.success("Prospect supprimé");
+    toast.success("Prospect archivé");
     loadProspects();
   };
 
