@@ -6,10 +6,23 @@ import { Users, TrendingUp, Clock, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Prospect } from "@/types/prospect";
 import { supabase } from "@/integrations/supabase/client";
+import TodayActivityCard from "@/components/dashboard/TodayActivityCard";
+import { startOfDay, endOfDay } from "date-fns";
+
+interface TodayActivity {
+  id: string;
+  type: 'first_dm' | 'follow_up_dm' | 'reply_received' | 'call_booked' | 'deal_closed' | 'message_sent';
+  created_at: string;
+  prospect_name: string;
+  prospect_company: string;
+}
 const Dashboard = () => {
   const navigate = useNavigate();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [todayCount, setTodayCount] = useState(0);
+  const [todayActivities, setTodayActivities] = useState<TodayActivity[]>([]);
+  const [dailyTarget, setDailyTarget] = useState(25);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
   useEffect(() => {
     // Check auth and load data
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -18,20 +31,92 @@ const Dashboard = () => {
         return;
       }
       loadProspects();
+      loadTodayActivities();
+      loadObjectives();
     });
 
-    // Realtime subscription
-    const channel = supabase
+    // Realtime subscription for prospects
+    const prospectsChannel = supabase
       .channel('dashboard-prospects')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, () => {
         loadProspects();
       })
       .subscribe();
 
+    // Realtime subscription for activity logs
+    const activityChannel = supabase
+      .channel('dashboard-activity')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_logs' }, () => {
+        loadTodayActivities();
+      })
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(prospectsChannel);
+      supabase.removeChannel(activityChannel);
     };
   }, [navigate]);
+
+  const loadObjectives = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('setter_objectives')
+      .select('daily_target')
+      .eq('user_id', user.id)
+      .single();
+
+    if (data) {
+      setDailyTarget(data.daily_target);
+    }
+  };
+
+  const loadTodayActivities = async () => {
+    setActivitiesLoading(true);
+    const today = new Date();
+    const start = startOfDay(today).toISOString();
+    const end = endOfDay(today).toISOString();
+
+    const { data: logsData, error } = await supabase
+      .from('activity_logs')
+      .select('id, type, created_at, lead_id')
+      .gte('created_at', start)
+      .lte('created_at', end)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading today activities:', error);
+      setActivitiesLoading(false);
+      return;
+    }
+
+    if (logsData && logsData.length > 0) {
+      const leadIds = [...new Set(logsData.map(l => l.lead_id))];
+      const { data: prospectsData } = await supabase
+        .from('prospects')
+        .select('id, full_name, company')
+        .in('id', leadIds);
+
+      const prospectMap = new Map(
+        prospectsData?.map(p => [p.id, { name: p.full_name, company: p.company }]) || []
+      );
+
+      const enrichedActivities: TodayActivity[] = logsData.map(log => ({
+        id: log.id,
+        type: log.type as TodayActivity['type'],
+        created_at: log.created_at,
+        prospect_name: prospectMap.get(log.lead_id)?.name || 'Prospect supprimé',
+        prospect_company: prospectMap.get(log.lead_id)?.company || '',
+      }));
+
+      setTodayActivities(enrichedActivities);
+    } else {
+      setTodayActivities([]);
+    }
+
+    setActivitiesLoading(false);
+  };
 
   const loadProspects = async () => {
     const { data, error } = await supabase
@@ -134,6 +219,13 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
+
+          {/* Today Activity Card */}
+          <TodayActivityCard 
+            activities={todayActivities}
+            dailyTarget={dailyTarget}
+            loading={activitiesLoading}
+          />
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
