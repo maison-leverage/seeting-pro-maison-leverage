@@ -19,6 +19,8 @@ export type Database = {
           created_at: string
           id: string
           lead_id: string
+          prospect_company: string | null
+          prospect_name: string | null
           type: string
           user_id: string
           user_name: string
@@ -27,6 +29,8 @@ export type Database = {
           created_at?: string
           id?: string
           lead_id: string
+          prospect_company?: string | null
+          prospect_name?: string | null
           type: string
           user_id: string
           user_name: string
@@ -35,6 +39,8 @@ export type Database = {
           created_at?: string
           id?: string
           lead_id?: string
+          prospect_company?: string | null
+          prospect_name?: string | null
           type?: string
           user_id?: string
           user_name?: string
@@ -172,11 +178,13 @@ export type Database = {
           assigned_to: string | null
           company: string
           created_at: string
+          deleted_at: string | null
           first_message_date: string | null
           follow_up_count: number | null
           full_name: string
           hype: string
           id: string
+          is_deleted: boolean | null
           last_contact: string | null
           linkedin_url: string | null
           no_follow_up: boolean | null
@@ -196,11 +204,13 @@ export type Database = {
           assigned_to?: string | null
           company: string
           created_at?: string
+          deleted_at?: string | null
           first_message_date?: string | null
           follow_up_count?: number | null
           full_name: string
           hype?: string
           id?: string
+          is_deleted?: boolean | null
           last_contact?: string | null
           linkedin_url?: string | null
           no_follow_up?: boolean | null
@@ -220,11 +230,13 @@ export type Database = {
           assigned_to?: string | null
           company?: string
           created_at?: string
+          deleted_at?: string | null
           first_message_date?: string | null
           follow_up_count?: number | null
           full_name?: string
           hype?: string
           id?: string
+          is_deleted?: boolean | null
           last_contact?: string | null
           linkedin_url?: string | null
           no_follow_up?: boolean | null

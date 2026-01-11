@@ -4,7 +4,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Send, MessageCircle, Phone, CheckCircle, X, TrendingUp, Trash2 } from "lucide-react";
+import { CalendarIcon, Send, MessageCircle, Phone, CheckCircle, X, TrendingUp } from "lucide-react";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import DailyBreakdownTable from "@/components/analytics/DailyBreakdownTable";
 import ContactedProspectsList from "@/components/analytics/ContactedProspectsList";
+import PerformanceChart from "@/components/analytics/PerformanceChart";
 
 type DateFilter = "thisMonth" | "lastMonth" | "thisWeek" | "lastWeek" | "all" | "custom";
 
@@ -144,7 +145,7 @@ const Analytics = () => {
   const loadData = async () => {
     setLoading(true);
     
-    // Load activity logs with prospect info
+    // Load activity logs with prospect info (including stored prospect_name/company for anti-cheat)
     const { data: logsData, error } = await supabase
       .from('activity_logs')
       .select(`
@@ -152,7 +153,9 @@ const Analytics = () => {
         type,
         created_at,
         user_name,
-        lead_id
+        lead_id,
+        prospect_name,
+        prospect_company
       `)
       .order('created_at', { ascending: false });
 
@@ -179,11 +182,12 @@ const Analytics = () => {
         }]) || []
       );
 
+      // Use stored prospect info first (anti-cheat: survives archiving), fallback to join
       const enrichedLogs: ActivityLog[] = logsData.map(log => ({
         ...log,
         type: log.type as ActivityLog['type'],
-        prospect_name: prospectMap.get(log.lead_id)?.name || 'Prospect supprimé',
-        prospect_company: prospectMap.get(log.lead_id)?.company || '',
+        prospect_name: log.prospect_name || prospectMap.get(log.lead_id)?.name || 'Prospect archivé',
+        prospect_company: log.prospect_company || prospectMap.get(log.lead_id)?.company || '',
       }));
 
       setActivityLogs(enrichedLogs);
@@ -210,16 +214,17 @@ const Analytics = () => {
         if (log.type === 'first_dm' || log.type === 'message_sent') {
           if (!prospectDMMap.has(log.lead_id)) {
             const prospectInfo = prospectMap.get(log.lead_id);
+            // Use stored prospect info first (anti-cheat), fallback to join
             prospectDMMap.set(log.lead_id, {
               id: log.id,
               prospect_id: log.lead_id,
-              prospect_name: prospectInfo?.name || 'Prospect supprimé',
-              prospect_company: prospectInfo?.company || '',
+              prospect_name: (log as any).prospect_name || prospectInfo?.name || 'Prospect archivé',
+              prospect_company: (log as any).prospect_company || prospectInfo?.company || '',
               first_dm_date: log.created_at,
               has_replied: false,
               has_call: false,
               linkedin_url: prospectInfo?.linkedin_url,
-              current_status: prospectInfo?.status || 'nouveau'
+              current_status: prospectInfo?.status || 'archivé'
             });
           }
         }
@@ -243,22 +248,10 @@ const Analytics = () => {
     setLoading(false);
   };
 
+  // Activity deletion is now disabled (anti-cheat: immutable logs)
+  // This function is kept but will show an error if called
   const handleDeleteActivity = async (id: string) => {
-    if (!confirm("Supprimer cette activité ?")) return;
-
-    const { error } = await supabase
-      .from('activity_logs')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting activity:', error);
-      toast.error("Erreur lors de la suppression");
-      return;
-    }
-
-    toast.success("Activité supprimée");
-    loadData();
+    toast.error("Les activités ne peuvent plus être supprimées (système anti-triche)");
   };
 
   // Calculate date range
@@ -544,6 +537,9 @@ const Analytics = () => {
             </Card>
           </div>
 
+          {/* Performance Evolution Chart */}
+          <PerformanceChart activities={activityLogs} />
+
 
           {/* Daily Breakdown Table */}
           <DailyBreakdownTable 
@@ -588,7 +584,6 @@ const Analytics = () => {
                     <TableHead>Entreprise</TableHead>
                     <TableHead>Par</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -608,16 +603,6 @@ const Analytics = () => {
                         <TableCell>{log.user_name}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(parseISO(log.created_at), "dd MMM yyyy HH:mm", { locale: fr })}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteActivity(log.id)}
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </TableCell>
                       </TableRow>
                     );

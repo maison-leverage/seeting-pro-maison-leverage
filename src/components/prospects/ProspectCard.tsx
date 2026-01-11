@@ -2,7 +2,7 @@ import { Prospect } from "@/types/prospect";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw } from "lucide-react";
+import { Edit, Archive, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -90,14 +90,16 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
 
     const userName = profile?.name || session.user.email || 'Utilisateur';
 
-    // Create activity log
+    // Create activity log with prospect info for anti-cheat (survives archiving)
     const { error: logError } = await supabase
       .from('activity_logs')
       .insert({
         type,
         user_name: userName,
         lead_id: prospect.id,
-        user_id: session.user.id
+        user_id: session.user.id,
+        prospect_name: prospect.fullName,
+        prospect_company: prospect.company
       });
 
     if (logError) {
@@ -260,9 +262,10 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
                   e.stopPropagation();
                   onDelete(prospect.id);
                 }}
-                className="border-border/50 hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="border-border/50 hover:border-orange-500 hover:bg-orange-500/10 hover:text-orange-500"
+                title="Archiver ce prospect"
               >
-                <Trash2 className="w-4 h-4" />
+                <Archive className="w-4 h-4" />
               </Button>
             </div>
           </div>
