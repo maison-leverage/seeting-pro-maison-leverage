@@ -26,38 +26,38 @@ const getStatusLabel = (status: string, followUpCount: number) => {
 };
 
 const statusConfig = {
-  rien: { color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
-  premier_message: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  discussion: { color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  r1_programme: { color: "bg-green-500/20 text-green-400 border-green-500/30" },
+  rien: { color: "bg-gray-100 text-gray-700 border-gray-300" },
+  premier_message: { color: "bg-blue-100 text-blue-700 border-blue-300" },
+  discussion: { color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
+  r1_programme: { color: "bg-green-100 text-green-700 border-green-300" },
 };
 
 const priorityConfig = {
-  "rien": { label: "⚪ Rien", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
-  "2": { label: "2e relance", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  "3": { label: "3e relance", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
-  "4": { label: "4e relance", color: "bg-teal-500/20 text-teal-400 border-teal-500/30" },
-  "5": { label: "5e relance", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-  "6": { label: "6e relance", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  "7": { label: "7e relance", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-  "8": { label: "8e relance", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-  "9": { label: "9e relance", color: "bg-pink-500/20 text-pink-400 border-pink-500/30" },
-  "10": { label: "10e relance", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  "rien": { label: "⚪ Rien", color: "bg-gray-100 text-gray-700 border-gray-300" },
+  "2": { label: "2e relance", color: "bg-blue-100 text-blue-700 border-blue-300" },
+  "3": { label: "3e relance", color: "bg-cyan-100 text-cyan-700 border-cyan-300" },
+  "4": { label: "4e relance", color: "bg-teal-100 text-teal-700 border-teal-300" },
+  "5": { label: "5e relance", color: "bg-green-100 text-green-700 border-green-300" },
+  "6": { label: "6e relance", color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
+  "7": { label: "7e relance", color: "bg-orange-100 text-orange-700 border-orange-300" },
+  "8": { label: "8e relance", color: "bg-red-100 text-red-700 border-red-300" },
+  "9": { label: "9e relance", color: "bg-pink-100 text-pink-700 border-pink-300" },
+  "10": { label: "10e relance", color: "bg-purple-100 text-purple-700 border-purple-300" },
 };
 
 const qualificationConfig = {
-  rien: { label: "⚪ Rien", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
-  loom: { label: "🎥 Loom", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-  video_youtube: { label: "▶️ Vidéo Youtube", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-  presentation_genspark: { label: "✨ Présentation Genspark", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  magnus_opus: { label: "💎 Magnus Opus", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+  rien: { label: "⚪ Rien", color: "bg-gray-100 text-gray-700 border-gray-300" },
+  loom: { label: "🎥 Loom", color: "bg-purple-100 text-purple-700 border-purple-300" },
+  video_youtube: { label: "▶️ Vidéo Youtube", color: "bg-red-100 text-red-700 border-red-300" },
+  presentation_genspark: { label: "✨ Présentation Genspark", color: "bg-blue-100 text-blue-700 border-blue-300" },
+  magnus_opus: { label: "💎 Magnus Opus", color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
 };
 
 const hypeConfig = {
-  rien: { label: "⚪ Rien", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
-  froid: { label: "❄️ Froid", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
-  tiede: { label: "🌤️ Tiède", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  chaud: { label: "🔥 Chaud", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  rien: { label: "⚪ Rien", color: "bg-gray-100 text-gray-700 border-gray-300" },
+  froid: { label: "❄️ Froid", color: "bg-cyan-100 text-cyan-700 border-cyan-300" },
+  tiede: { label: "🌤️ Tiède", color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
+  chaud: { label: "🔥 Chaud", color: "bg-red-100 text-red-700 border-red-300" },
 };
 
 type ActivityType = 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed' | 'first_dm' | 'follow_up_dm';
@@ -193,8 +193,8 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
 
   return (
     <Card
-      className={`p-4 border-border/50 hover:border-primary/50 transition-all hover-scale relative cursor-pointer ${
-        hasReminderToday ? "border-destructive/50 glow-secondary" : ""
+      className={`p-4 bg-card border-border hover:border-primary/50 transition-all hover-scale relative cursor-pointer shadow-sm ${
+        hasReminderToday ? "border-destructive/50 ring-2 ring-destructive/20" : ""
       }`}
       onClick={() => onEdit(prospect)}
     >
@@ -210,7 +210,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
         <div className="flex items-center gap-4 justify-between">
           {/* Left: Name and Company */}
           <div className="flex-shrink-0 min-w-0">
-            <h3 className="text-lg font-bold truncate">
+            <h3 className="text-lg font-bold text-foreground truncate">
               {prospect.fullName}
             </h3>
             <p className="text-muted-foreground text-sm truncate">
@@ -251,7 +251,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
                   e.stopPropagation();
                   onEdit(prospect);
                 }}
-                className="border-border/50 hover:border-primary hover:bg-primary/10"
+                className="border-border hover:border-primary hover:bg-primary/10"
               >
                 <Edit className="w-4 h-4" />
               </Button>
@@ -262,7 +262,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
                   e.stopPropagation();
                   onDelete(prospect.id);
                 }}
-                className="border-border/50 hover:border-orange-500 hover:bg-orange-500/10 hover:text-orange-500"
+                className="border-border hover:border-orange-500 hover:bg-orange-100 hover:text-orange-600"
                 title="Archiver ce prospect"
               >
                 <Archive className="w-4 h-4" />
@@ -272,7 +272,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
         </div>
 
         {/* Bottom row: Quick action buttons */}
-        <div className="flex gap-2 pt-2 border-t border-border/30">
+        <div className="flex gap-2 pt-2 border-t border-border">
           {/* Premier DM - bloqué si déjà contacté */}
           <Button
             size="sm"
@@ -281,8 +281,8 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             disabled={!!prospect.firstMessageDate}
             className={`flex-1 ${
               prospect.firstMessageDate 
-                ? 'border-gray-500/30 text-gray-500 cursor-not-allowed opacity-50' 
-                : 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500'
+                ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50' 
+                : 'border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400'
             }`}
             title={prospect.firstMessageDate ? `Déjà contacté le ${new Date(prospect.firstMessageDate).toLocaleDateString('fr-FR')}` : 'Enregistrer le premier DM'}
           >
@@ -297,8 +297,8 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             disabled={!prospect.firstMessageDate}
             className={`flex-1 ${
               !prospect.firstMessageDate 
-                ? 'border-gray-500/30 text-gray-500 cursor-not-allowed opacity-50' 
-                : 'border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500'
+                ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50' 
+                : 'border-cyan-300 text-cyan-600 hover:bg-cyan-50 hover:border-cyan-400'
             }`}
             title={!prospect.firstMessageDate ? 'Doit être contacté en premier' : 'Enregistrer une relance (ne compte pas dans les quotas)'}
           >
@@ -309,7 +309,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             size="sm"
             variant="outline"
             onClick={handleReplyReceived}
-            className="flex-1 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:border-yellow-500"
+            className="flex-1 border-yellow-300 text-yellow-600 hover:bg-yellow-50 hover:border-yellow-400"
           >
             <MessageCircle className="w-4 h-4 mr-2" />
             Réponse
@@ -318,7 +318,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             size="sm"
             variant="outline"
             onClick={handleCallBooked}
-            className="flex-1 border-green-500/30 text-green-400 hover:bg-green-500/10 hover:border-green-500"
+            className="flex-1 border-green-300 text-green-600 hover:bg-green-50 hover:border-green-400"
           >
             <Phone className="w-4 h-4 mr-2" />
             Call
@@ -327,7 +327,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             size="sm"
             variant="outline"
             onClick={handleDealClosed}
-            className="flex-1 border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500"
+            className="flex-1 border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400"
           >
             <CheckCircle className="w-4 h-4 mr-2" />
             Deal
