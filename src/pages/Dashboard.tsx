@@ -65,7 +65,7 @@ const Dashboard = () => {
       .from('setter_objectives')
       .select('daily_target')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (data) {
       setDailyTarget(data.daily_target);
