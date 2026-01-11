@@ -24,17 +24,17 @@ interface ContactedProspectsListProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  nouveau: { label: 'Nouveau', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  discussion: { label: 'Discussion', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-  r1_programme: { label: 'R1 Programmé', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-  perdu: { label: 'Perdu', color: 'bg-destructive/20 text-destructive border-destructive/30' },
-  pas_interesse: { label: 'Pas intéressé', color: 'bg-muted/50 text-muted-foreground border-border' },
+  nouveau: { label: 'Nouveau', color: 'bg-blue-100 text-blue-700 border-blue-300' },
+  discussion: { label: 'Discussion', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+  r1_programme: { label: 'R1 Programmé', color: 'bg-green-100 text-green-700 border-green-300' },
+  perdu: { label: 'Perdu', color: 'bg-red-100 text-red-700 border-red-300' },
+  pas_interesse: { label: 'Pas intéressé', color: 'bg-gray-100 text-gray-700 border-gray-300' },
 };
 
 const ContactedProspectsList = ({ prospects, loading, onViewProspect }: ContactedProspectsListProps) => {
   if (loading) {
     return (
-      <Card className="p-6 border-border/50 bg-card/50">
+      <Card className="p-6 border-border bg-card shadow-sm">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-muted rounded w-1/3"></div>
           <div className="space-y-2">
@@ -48,13 +48,13 @@ const ContactedProspectsList = ({ prospects, loading, onViewProspect }: Contacte
   }
 
   return (
-    <Card className="p-6 border-border/50 bg-card/50">
+    <Card className="p-6 border-border bg-card shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
+        <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground">
+          <Users className="h-5 w-5 text-foreground" />
           Prospects Contactés
         </h2>
-        <Badge variant="outline">{prospects.length} prospects</Badge>
+        <Badge variant="outline" className="bg-muted text-foreground">{prospects.length} prospects</Badge>
       </div>
 
       {prospects.length === 0 ? (
@@ -68,11 +68,11 @@ const ContactedProspectsList = ({ prospects, loading, onViewProspect }: Contacte
             return (
               <div 
                 key={prospect.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-card-hover border border-border/30 hover:border-primary/30 transition-colors"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border hover:border-primary/30 transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">{prospect.prospect_name}</span>
+                    <span className="font-medium truncate text-foreground">{prospect.prospect_name}</span>
                     <Badge variant="outline" className={status.color}>
                       {status.label}
                     </Badge>
@@ -89,12 +89,12 @@ const ContactedProspectsList = ({ prospects, loading, onViewProspect }: Contacte
                   {/* Status indicators */}
                   <div className="flex gap-1">
                     {prospect.has_replied && (
-                      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
+                      <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 text-xs">
                         Répondu
                       </Badge>
                     )}
                     {prospect.has_call && (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                      <Badge className="bg-green-100 text-green-700 border-green-300 text-xs">
                         R1
                       </Badge>
                     )}

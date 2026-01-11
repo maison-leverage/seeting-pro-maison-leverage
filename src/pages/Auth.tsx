@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Linkedin, Lock, Mail } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import maisonLeverageLogo from "@/assets/maison-leverage-logo.png";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -85,28 +86,32 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
-      {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-secondary/10" />
-      <div className="absolute inset-0" style={{ backgroundImage: 'var(--gradient-glow)' }} />
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-muted/50 via-background to-muted/30" />
 
       <div className="relative z-10 w-full max-w-md p-8 mx-4">
-        <div className="glass rounded-2xl p-8 shadow-2xl border border-border/50 animate-fade-in">
+        <div className="bg-card rounded-2xl p-8 shadow-lg border border-border animate-fade-in">
           {/* Logo & Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-4 glow-primary">
-              <Linkedin className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              CRM LinkedIn
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Setting Pro LinkedIn
             </h1>
-            <p className="text-muted-foreground mt-2">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <span className="text-sm text-muted-foreground">by</span>
+              <img 
+                src={maisonLeverageLogo} 
+                alt="Maison Leverage" 
+                className="h-6 object-contain"
+              />
+            </div>
+            <p className="text-muted-foreground">
               Connecte-toi pour gérer tes prospects
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/90">
+              <label className="text-sm font-medium text-foreground">
                 Email
               </label>
               <div className="relative">
@@ -116,14 +121,14 @@ const Auth = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="ton@email.com"
-                  className="pl-10 bg-input border-border/50 focus:border-primary transition-all"
+                  className="pl-10 bg-background border-border focus:border-primary transition-all"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/90">
+              <label className="text-sm font-medium text-foreground">
                 Mot de passe
               </label>
               <div className="relative">
@@ -133,7 +138,7 @@ const Auth = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="pl-10 bg-input border-border/50 focus:border-primary transition-all"
+                  className="pl-10 bg-background border-border focus:border-primary transition-all"
                   required
                 />
               </div>
@@ -141,7 +146,7 @@ const Auth = () => {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all shadow-lg hover:shadow-xl glow-primary"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
               disabled={loading}
             >
               {loading ? (isSignUp ? "Création..." : "Connexion...") : (isSignUp ? "Créer un compte" : "Se connecter")}
@@ -152,14 +157,14 @@ const Auth = () => {
           <div className="mt-6 text-center space-y-2">
             <button
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors block w-full"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors block w-full"
             >
               {isSignUp ? "Déjà un compte ? Se connecter" : "Pas encore de compte ? S'inscrire"}
             </button>
             {!isSignUp && (
               <button
                 onClick={handleResetPassword}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 disabled={loading}
               >
                 Mot de passe oublié ?

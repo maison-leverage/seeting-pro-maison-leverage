@@ -60,27 +60,27 @@ const typeConfig: Record<ActivityLog['type'], { label: string; icon: React.Compo
   first_dm: { 
     label: '1er DM (quota)', 
     icon: Send, 
-    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' 
+    color: 'bg-blue-100 text-blue-700 border-blue-300' 
   },
   follow_up_dm: { 
     label: 'Relance (hors quota)', 
     icon: RotateCcw, 
-    color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' 
+    color: 'bg-cyan-100 text-cyan-700 border-cyan-300' 
   },
   reply_received: { 
     label: 'Réponse Reçue', 
     icon: MessageCircle, 
-    color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' 
+    color: 'bg-yellow-100 text-yellow-700 border-yellow-300' 
   },
   call_booked: { 
     label: 'Call Booké', 
     icon: Phone, 
-    color: 'bg-green-500/20 text-green-400 border-green-500/30' 
+    color: 'bg-green-100 text-green-700 border-green-300' 
   },
   deal_closed: { 
     label: 'Deal Closé', 
     icon: CheckCircle, 
-    color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' 
+    color: 'bg-purple-100 text-purple-700 border-purple-300' 
   },
 };
 

@@ -91,29 +91,29 @@ const PerformanceChart = ({ activities }: PerformanceChartProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload as MonthlyData;
       return (
-        <div className="bg-popover border border-border rounded-lg p-4 shadow-lg">
+        <div className="bg-card border border-border rounded-lg p-4 shadow-lg">
           <p className="font-semibold text-foreground mb-2 capitalize">{data.monthFull}</p>
           <div className="space-y-1 text-sm">
             <p className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-blue-500"></span>
               <span className="text-muted-foreground">1ers DM:</span>
-              <span className="font-medium text-blue-400">{data.firstDMs}</span>
+              <span className="font-medium text-blue-600">{data.firstDMs}</span>
             </p>
             <p className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
               <span className="text-muted-foreground">Réponses:</span>
-              <span className="font-medium text-yellow-400">{data.replies}</span>
+              <span className="font-medium text-yellow-600">{data.replies}</span>
               <span className="text-xs text-muted-foreground">({data.replyRate}%)</span>
             </p>
             <p className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-green-500"></span>
               <span className="text-muted-foreground">R1 bookés:</span>
-              <span className="font-medium text-green-400">{data.calls}</span>
+              <span className="font-medium text-green-600">{data.calls}</span>
             </p>
             <p className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-purple-500"></span>
               <span className="text-muted-foreground">Deals:</span>
-              <span className="font-medium text-purple-400">{data.deals}</span>
+              <span className="font-medium text-purple-600">{data.deals}</span>
             </p>
           </div>
         </div>
@@ -123,8 +123,8 @@ const PerformanceChart = ({ activities }: PerformanceChartProps) => {
   };
 
   return (
-    <Card className="p-6 border-border/50 bg-card/50">
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+    <Card className="p-6 border-border bg-card shadow-sm">
+      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
         <TrendingUp className="w-5 h-5 text-primary" />
         Évolution des Performances (6 derniers mois)
       </h3>

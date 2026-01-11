@@ -31,20 +31,20 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
   // Status badge
   const getStatusBadge = () => {
     if (firstDMsToday >= dailyTarget) {
-      return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">✅ Quota atteint !</Badge>;
+      return <Badge className="bg-green-100 text-green-700 border-green-300">✅ Quota atteint !</Badge>;
     }
     const now = new Date();
     const hour = now.getHours();
     if (hour < 12) {
-      return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">🌅 Matin</Badge>;
+      return <Badge className="bg-blue-100 text-blue-700 border-blue-300">🌅 Matin</Badge>;
     }
     if (hour < 17) {
-      return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">⏳ En cours</Badge>;
+      return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">⏳ En cours</Badge>;
     }
     if (firstDMsToday < dailyTarget * 0.5) {
-      return <Badge className="bg-destructive/20 text-destructive border-destructive/30">⚠️ En retard</Badge>;
+      return <Badge className="bg-red-100 text-red-700 border-red-300">⚠️ En retard</Badge>;
     }
-    return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">📊 Presque</Badge>;
+    return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">📊 Presque</Badge>;
   };
 
   // Get DM activities sorted by time (most recent first)
@@ -55,7 +55,7 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
 
   if (loading) {
     return (
-      <Card className="p-6 border-border/50">
+      <Card className="p-6 border-border bg-card">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-muted rounded w-1/3"></div>
           <div className="h-4 bg-muted rounded w-full"></div>
@@ -66,10 +66,10 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
   }
 
   return (
-    <Card className="p-6 border-border/50 bg-gradient-to-br from-primary/5 to-secondary/5">
+    <Card className="p-6 border-border bg-card shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <Clock className="w-5 h-5 text-primary" />
+        <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
+          <Clock className="w-5 h-5 text-foreground" />
           Activité du Jour
         </h2>
         {getStatusBadge()}
@@ -80,7 +80,7 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
         <div className="flex justify-between text-sm mb-2">
           <span className="text-muted-foreground">Progression quotidienne</span>
           <span className="font-bold">
-            <span className={firstDMsToday >= dailyTarget ? "text-green-400" : "text-primary"}>
+            <span className={firstDMsToday >= dailyTarget ? "text-green-600" : "text-foreground"}>
               {firstDMsToday}
             </span>
             <span className="text-muted-foreground">/{dailyTarget} DM</span>
@@ -94,25 +94,25 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
 
       {/* Mini stats */}
       <div className="grid grid-cols-4 gap-2 mb-4">
-        <div className="text-center p-2 rounded-lg bg-blue-500/10">
-          <Send className="w-4 h-4 mx-auto mb-1 text-blue-400" />
-          <div className="text-lg font-bold text-blue-400">{firstDMsToday}</div>
-          <div className="text-xs text-muted-foreground">1ers DM</div>
+        <div className="text-center p-2 rounded-lg bg-blue-50 border border-blue-200">
+          <Send className="w-4 h-4 mx-auto mb-1 text-blue-600" />
+          <div className="text-lg font-bold text-blue-700">{firstDMsToday}</div>
+          <div className="text-xs text-blue-600">1ers DM</div>
         </div>
-        <div className="text-center p-2 rounded-lg bg-cyan-500/10">
-          <RotateCcw className="w-4 h-4 mx-auto mb-1 text-cyan-400" />
-          <div className="text-lg font-bold text-cyan-400">{followUpsToday}</div>
-          <div className="text-xs text-muted-foreground">Relances</div>
+        <div className="text-center p-2 rounded-lg bg-cyan-50 border border-cyan-200">
+          <RotateCcw className="w-4 h-4 mx-auto mb-1 text-cyan-600" />
+          <div className="text-lg font-bold text-cyan-700">{followUpsToday}</div>
+          <div className="text-xs text-cyan-600">Relances</div>
         </div>
-        <div className="text-center p-2 rounded-lg bg-yellow-500/10">
-          <MessageCircle className="w-4 h-4 mx-auto mb-1 text-yellow-400" />
-          <div className="text-lg font-bold text-yellow-400">{repliesToday}</div>
-          <div className="text-xs text-muted-foreground">Réponses</div>
+        <div className="text-center p-2 rounded-lg bg-yellow-50 border border-yellow-200">
+          <MessageCircle className="w-4 h-4 mx-auto mb-1 text-yellow-600" />
+          <div className="text-lg font-bold text-yellow-700">{repliesToday}</div>
+          <div className="text-xs text-yellow-600">Réponses</div>
         </div>
-        <div className="text-center p-2 rounded-lg bg-green-500/10">
-          <Phone className="w-4 h-4 mx-auto mb-1 text-green-400" />
-          <div className="text-lg font-bold text-green-400">{callsToday}</div>
-          <div className="text-xs text-muted-foreground">Calls</div>
+        <div className="text-center p-2 rounded-lg bg-green-50 border border-green-200">
+          <Phone className="w-4 h-4 mx-auto mb-1 text-green-600" />
+          <div className="text-lg font-bold text-green-700">{callsToday}</div>
+          <div className="text-xs text-green-600">Calls</div>
         </div>
       </div>
 
@@ -130,16 +130,16 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
             {dmActivities.map((activity) => (
               <div 
                 key={activity.id}
-                className="flex items-center justify-between p-2 rounded-lg bg-card-hover border border-border/30"
+                className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border"
               >
                 <div className="flex items-center gap-2">
                   {activity.type === 'follow_up_dm' ? (
-                    <RotateCcw className="w-3 h-3 text-cyan-400" />
+                    <RotateCcw className="w-3 h-3 text-cyan-600" />
                   ) : (
-                    <Send className="w-3 h-3 text-blue-400" />
+                    <Send className="w-3 h-3 text-blue-600" />
                   )}
                   <div>
-                    <span className="text-sm font-medium">{activity.prospect_name}</span>
+                    <span className="text-sm font-medium text-foreground">{activity.prospect_name}</span>
                     {activity.prospect_company && (
                       <span className="text-xs text-muted-foreground ml-1">
                         ({activity.prospect_company})
