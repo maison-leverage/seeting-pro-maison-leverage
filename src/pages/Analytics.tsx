@@ -134,7 +134,7 @@ const Analytics = () => {
       .from('setter_objectives')
       .select('daily_target, work_days')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (data) {
       setDailyTarget(data.daily_target);
