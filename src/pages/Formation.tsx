@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
-import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck } from "lucide-react";
+import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+
+const ADMIN_EMAIL = "oceane@maison-leverage.com";
 
 interface VideoItem {
   id: string;
@@ -61,6 +64,7 @@ const extractYouTubeId = (url: string): string | null => {
 
 const Formation = () => {
   const [data, setData] = useState<FormationData>(defaultData);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [newVideoUrls, setNewVideoUrls] = useState<Record<string, string>>({
     seo: "",
     avatar: "",
@@ -77,6 +81,13 @@ const Formation = () => {
   });
 
   useEffect(() => {
+    // Check if user is admin
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        setIsAdmin(true);
+      }
+    });
+
     const saved = localStorage.getItem("formation-data");
     if (saved) {
       try {
@@ -164,11 +175,23 @@ const Formation = () => {
                 </p>
               </div>
             </div>
-            <Button onClick={saveData} className="gap-2">
-              <Save className="w-4 h-4" />
-              Sauvegarder
-            </Button>
+            {isAdmin && (
+              <Button onClick={saveData} className="gap-2">
+                <Save className="w-4 h-4" />
+                Sauvegarder
+              </Button>
+            )}
           </div>
+
+          {/* Admin notice for non-admins */}
+          {!isAdmin && (
+            <div className="mb-6 p-4 rounded-lg bg-muted/50 border border-border flex items-center gap-3">
+              <Lock className="w-5 h-5 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Seul l'administrateur peut modifier le contenu de cette page.
+              </p>
+            </div>
+          )}
 
           {/* Sections */}
           <Accordion type="multiple" className="space-y-4" defaultValue={["seo"]}>
@@ -197,12 +220,18 @@ const Formation = () => {
                         <label className="text-sm font-medium text-muted-foreground mb-2 block">
                           Contenu
                         </label>
-                        <Textarea
-                          value={sectionData.text}
-                          onChange={(e) => updateText(section.key, e.target.value)}
-                          placeholder="Écrivez votre contenu ici..."
-                          className="min-h-[150px] resize-y"
-                        />
+                        {isAdmin ? (
+                          <Textarea
+                            value={sectionData.text}
+                            onChange={(e) => updateText(section.key, e.target.value)}
+                            placeholder="Écrivez votre contenu ici..."
+                            className="min-h-[150px] resize-y"
+                          />
+                        ) : (
+                          <div className="min-h-[100px] p-3 rounded-md bg-muted/30 border border-border whitespace-pre-wrap">
+                            {sectionData.text || <span className="text-muted-foreground italic">Aucun contenu</span>}
+                          </div>
+                        )}
                       </div>
 
                       {/* Videos list */}
@@ -231,14 +260,16 @@ const Formation = () => {
                                         <Play className="w-5 h-5 text-primary" />
                                         <span className="font-medium">{video.title}</span>
                                       </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => removeVideo(section.key, video.id)}
-                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
+                                      {isAdmin && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => removeVideo(section.key, video.id)}
+                                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      )}
                                     </div>
                                   </div>
                                 </Card>
@@ -248,44 +279,46 @@ const Formation = () => {
                         </div>
                       )}
 
-                      {/* Add video form */}
-                      <div className="border-t border-border pt-4">
-                        <label className="text-sm font-medium text-muted-foreground mb-3 block">
-                          Ajouter une vidéo YouTube
-                        </label>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <Input
-                            value={newVideoTitles[section.key]}
-                            onChange={(e) =>
-                              setNewVideoTitles((prev) => ({
-                                ...prev,
-                                [section.key]: e.target.value,
-                              }))
-                            }
-                            placeholder="Titre de la vidéo"
-                            className="sm:w-48"
-                          />
-                          <Input
-                            value={newVideoUrls[section.key]}
-                            onChange={(e) =>
-                              setNewVideoUrls((prev) => ({
-                                ...prev,
-                                [section.key]: e.target.value,
-                              }))
-                            }
-                            placeholder="https://youtube.com/watch?v=..."
-                            className="flex-1"
-                          />
-                          <Button
-                            onClick={() => addVideo(section.key)}
-                            variant="outline"
-                            className="gap-2"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Ajouter
-                          </Button>
+                      {/* Add video form - only for admin */}
+                      {isAdmin && (
+                        <div className="border-t border-border pt-4">
+                          <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                            Ajouter une vidéo YouTube
+                          </label>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <Input
+                              value={newVideoTitles[section.key]}
+                              onChange={(e) =>
+                                setNewVideoTitles((prev) => ({
+                                  ...prev,
+                                  [section.key]: e.target.value,
+                                }))
+                              }
+                              placeholder="Titre de la vidéo"
+                              className="sm:w-48"
+                            />
+                            <Input
+                              value={newVideoUrls[section.key]}
+                              onChange={(e) =>
+                                setNewVideoUrls((prev) => ({
+                                  ...prev,
+                                  [section.key]: e.target.value,
+                                }))
+                              }
+                              placeholder="https://youtube.com/watch?v=..."
+                              className="flex-1"
+                            />
+                            <Button
+                              onClick={() => addVideo(section.key)}
+                              variant="outline"
+                              className="gap-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Ajouter
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
