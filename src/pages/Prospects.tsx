@@ -381,7 +381,7 @@ const Prospects = () => {
               </div>
             </div>
 
-            <DuplicateDetector prospects={prospects} onEdit={handleEdit} />
+            <DuplicateDetector prospects={prospects} onEdit={handleEdit} onDelete={handleDelete} />
 
             <Button
               onClick={handleExportCSV}
