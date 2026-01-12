@@ -2,7 +2,7 @@ import { Prospect } from "@/types/prospect";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Archive, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw } from "lucide-react";
+import { Edit, Archive, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw, Linkedin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -210,9 +210,23 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
         <div className="flex items-center gap-4 justify-between">
           {/* Left: Name and Company */}
           <div className="flex-shrink-0 min-w-0">
-            <h3 className="text-lg font-bold text-foreground truncate">
-              {prospect.fullName}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-foreground truncate">
+                {prospect.fullName}
+              </h3>
+              {prospect.linkedinUrl && (
+                <a
+                  href={prospect.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[#0077b5] hover:text-[#005885] transition-colors"
+                  title="Ouvrir le profil LinkedIn"
+                >
+                  <Linkedin className="w-5 h-5" />
+                </a>
+              )}
+            </div>
             <p className="text-muted-foreground text-sm truncate">
               {prospect.position} {prospect.position && prospect.company && "chez"} {prospect.company}
             </p>
