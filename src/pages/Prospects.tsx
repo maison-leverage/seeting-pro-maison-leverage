@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import ProspectForm from "@/components/prospects/ProspectForm";
 import ProspectCard from "@/components/prospects/ProspectCard";
+import DuplicateDetector from "@/components/prospects/DuplicateDetector";
 import { Prospect } from "@/types/prospect";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -379,6 +380,8 @@ const Prospects = () => {
                 />
               </div>
             </div>
+
+            <DuplicateDetector prospects={prospects} onEdit={handleEdit} />
 
             <Button
               onClick={handleExportCSV}
