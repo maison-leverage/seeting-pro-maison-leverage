@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, AlertTriangle } from "lucide-react";
+import { Copy, ExternalLink, AlertTriangle, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DuplicateGroup {
@@ -21,10 +21,17 @@ interface DuplicateGroup {
 interface DuplicateDetectorProps {
   prospects: Prospect[];
   onEdit: (prospect: Prospect) => void;
+  onDelete: (id: string) => void;
 }
 
-const DuplicateDetector = ({ prospects, onEdit }: DuplicateDetectorProps) => {
+const DuplicateDetector = ({ prospects, onEdit, onDelete }: DuplicateDetectorProps) => {
   const [open, setOpen] = useState(false);
+
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`Supprimer le prospect "${name}" ?`)) {
+      onDelete(id);
+    }
+  };
 
   const findDuplicates = (): DuplicateGroup[] => {
     const duplicates: DuplicateGroup[] = [];
@@ -174,6 +181,14 @@ const DuplicateDetector = ({ prospects, onEdit }: DuplicateDetectorProps) => {
                               <ExternalLink className="w-4 h-4" />
                             </a>
                           )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            onClick={() => handleDelete(prospect.id, prospect.fullName)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
