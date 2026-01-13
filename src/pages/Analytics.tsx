@@ -545,6 +545,13 @@ const Analytics = () => {
             </Card>
           </div>
 
+          {/* Performance Evolution Chart */}
+          <PerformanceChart 
+            activities={activityLogs} 
+            startDate={dateRange.start}
+            endDate={dateRange.end > new Date() ? new Date() : dateRange.end}
+          />
+
           {/* Conversion Rate Card */}
           <Card className="p-6 border-border/50 bg-gradient-to-r from-purple-500/10 via-primary/10 to-green-500/10">
             <div className="flex items-center gap-3 mb-4">
@@ -611,14 +618,6 @@ const Analytics = () => {
               </div>
             </div>
           </Card>
-
-          {/* Performance Evolution Chart */}
-          <PerformanceChart 
-            activities={activityLogs} 
-            startDate={dateRange.start}
-            endDate={dateRange.end > new Date() ? new Date() : dateRange.end}
-          />
-
 
           {/* Daily Breakdown Table */}
           <DailyBreakdownTable 
