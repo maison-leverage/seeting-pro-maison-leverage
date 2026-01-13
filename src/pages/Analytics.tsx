@@ -545,6 +545,73 @@ const Analytics = () => {
             </Card>
           </div>
 
+          {/* Conversion Rate Card */}
+          <Card className="p-6 border-border/50 bg-gradient-to-r from-purple-500/10 via-primary/10 to-green-500/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-green-500/20">
+                <TrendingUp className="h-5 w-5 text-purple-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Taux de conversion global</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Main conversion metric */}
+              <div className="text-center p-4 rounded-lg bg-background/50 border border-border/50">
+                <div className="text-4xl font-bold text-purple-400">
+                  {dealsClosed > 0 ? Math.round(firstDMs / dealsClosed) : "∞"}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">messages pour 1 deal</div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  {firstDMs > 0 ? ((dealsClosed / firstDMs) * 100).toFixed(2) : "0"}% de conversion
+                </div>
+              </div>
+
+              {/* Step by step conversion */}
+              <div className="p-4 rounded-lg bg-background/50 border border-border/50">
+                <div className="text-sm font-medium text-muted-foreground mb-3">Conversions par étape</div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-400">DM → Réponse</span>
+                    <span className="font-bold text-yellow-400">{replyRate}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-yellow-400">Réponse → Call</span>
+                    <span className="font-bold text-green-400">{bookingRate}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-green-400">Call → Deal</span>
+                    <span className="font-bold text-purple-400">{closeRate}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Prediction */}
+              <div className="p-4 rounded-lg bg-background/50 border border-border/50">
+                <div className="text-sm font-medium text-muted-foreground mb-3">Projection</div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span>Pour 100 DM →</span>
+                    <span className="font-bold text-purple-400">
+                      {firstDMs > 0 ? ((dealsClosed / firstDMs) * 100).toFixed(1) : "0"} deals
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Pour 500 DM →</span>
+                    <span className="font-bold text-purple-400">
+                      {firstDMs > 0 ? ((dealsClosed / firstDMs) * 500).toFixed(1) : "0"} deals
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Pour 1000 DM →</span>
+                    <span className="font-bold text-purple-400">
+                      {firstDMs > 0 ? ((dealsClosed / firstDMs) * 1000).toFixed(1) : "0"} deals
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           {/* Performance Evolution Chart */}
           <PerformanceChart 
             activities={activityLogs} 
