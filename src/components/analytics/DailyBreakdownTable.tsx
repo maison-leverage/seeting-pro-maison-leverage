@@ -60,8 +60,8 @@ const DailyBreakdownTable = ({
     };
   });
 
-  // Only show days with activity
-  const daysWithActivity = dailyStats.filter(day => day.hasActivity);
+  // Only show days with activity, reversed (most recent first)
+  const daysWithActivity = dailyStats.filter(day => day.hasActivity).reverse();
 
   // Calculate totals
   const totals = daysWithActivity.reduce((acc, day) => ({

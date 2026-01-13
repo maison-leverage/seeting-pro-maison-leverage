@@ -34,7 +34,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import DailyBreakdownTable from "@/components/analytics/DailyBreakdownTable";
-import ContactedProspectsList from "@/components/analytics/ContactedProspectsList";
 import PerformanceChart from "@/components/analytics/PerformanceChart";
 
 type DateFilter = "thisMonth" | "lastMonth" | "thisWeek" | "lastWeek" | "all" | "custom";
@@ -628,67 +627,6 @@ const Analytics = () => {
             workDays={workDays}
           />
 
-          {/* Contacted Prospects List */}
-          <ContactedProspectsList 
-            prospects={contactedProspects.filter(p => {
-              const dmDate = parseISO(p.first_dm_date);
-              return isWithinInterval(dmDate, { start: dateRange.start, end: dateRange.end });
-            })}
-            loading={loading}
-          />
-
-
-          {/* Activity log table */}
-          <Card className="p-6 border-border/50 bg-card/50">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Historique des activités
-            </h2>
-            
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Chargement...
-              </div>
-            ) : filteredLogs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Aucune activité enregistrée pour cette période.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Prospect</TableHead>
-                    <TableHead>Entreprise</TableHead>
-                    <TableHead>Par</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLogs.slice(0, 50).map((log) => {
-                    const config = typeConfig[log.type];
-                    const IconComponent = config.icon;
-                    return (
-                      <TableRow key={log.id}>
-                        <TableCell>
-                          <Badge variant="outline" className={config.color}>
-                            <IconComponent className="w-3 h-3 mr-1" />
-                            {config.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{log.prospect_name}</TableCell>
-                        <TableCell className="text-muted-foreground">{log.prospect_company}</TableCell>
-                        <TableCell>{log.user_name}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(parseISO(log.created_at), "dd MMM yyyy HH:mm", { locale: fr })}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
         </main>
       </div>
     </div>
