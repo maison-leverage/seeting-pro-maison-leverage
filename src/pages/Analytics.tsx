@@ -538,7 +538,11 @@ const Analytics = () => {
           </div>
 
           {/* Performance Evolution Chart */}
-          <PerformanceChart activities={activityLogs} />
+          <PerformanceChart 
+            activities={activityLogs} 
+            startDate={dateRange.start}
+            endDate={dateRange.end > new Date() ? new Date() : dateRange.end}
+          />
 
 
           {/* Daily Breakdown Table */}
