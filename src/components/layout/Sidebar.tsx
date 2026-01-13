@@ -22,19 +22,16 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   {
     name: "Prospects",
-    href: "/prospects",
     icon: Users,
-    badge: 0,
     subItems: [
       { name: "À relancer", href: "/prospects?view=today", icon: Pin },
       { name: "Prospects chauds", href: "/prospects?view=hot", icon: Flame },
-      { name: "Tous les prospects", href: "/prospects", icon: Users },
+      { name: "Tous les prospects", href: "/prospects?view=all", icon: Users },
     ],
   },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   {
     name: "Templates",
-    href: "/templates",
     icon: FileText,
     subItems: [
       { name: "Bibliothèque de templates", href: "/templates", icon: BookOpen },
@@ -91,26 +88,33 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
       <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
         {navigation.map((item) => (
           <div key={item.name}>
-            <NavLink
-              to={item.href}
-              end={item.href === "/"}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group relative",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                )
-              }
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium text-sm">{item.name}</span>
-              {item.name === "Prospects" && todayCount > 0 && (
-                <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
-                  {todayCount}
-                </span>
-              )}
-            </NavLink>
+            {item.href ? (
+              <NavLink
+                to={item.href}
+                end={item.href === "/"}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group relative",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  )
+                }
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium text-sm">{item.name}</span>
+              </NavLink>
+            ) : (
+              <div className="flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground">
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium text-sm">{item.name}</span>
+                {item.name === "Prospects" && todayCount > 0 && (
+                  <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                    {todayCount}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Sub-items */}
             {item.subItems && (
