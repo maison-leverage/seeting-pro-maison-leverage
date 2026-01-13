@@ -285,10 +285,18 @@ const Analytics = () => {
           label: format(lastMonth, "MMMM yyyy", { locale: fr })
         };
       case "all":
+        // Find the earliest activity date to avoid generating thousands of empty days
+        const earliestActivity = activityLogs.length > 0 
+          ? activityLogs.reduce((earliest, log) => {
+              const logDate = parseISO(log.created_at);
+              return logDate < earliest ? logDate : earliest;
+            }, parseISO(activityLogs[0].created_at))
+          : subMonths(now, 3); // Default to 3 months ago if no activities
+        
         return {
-          start: new Date(0),
-          end: new Date(),
-          label: "Toutes les données"
+          start: startOfDay(earliestActivity),
+          end: endOfDay(now),
+          label: `Depuis ${format(earliestActivity, "dd MMM yyyy", { locale: fr })}`
         };
       case "custom":
         if (customStartDate && customEndDate) {
