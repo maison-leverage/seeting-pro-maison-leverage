@@ -105,11 +105,12 @@ const Prospects = () => {
 
     setProspects(loadedProspects);
 
-    // Calculate today count
+    // Calculate today count - exclure les prospects avec R1 programmé
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const count = loadedProspects.filter((p: Prospect) => {
       if (!p.reminderDate) return false;
+      if (p.status === "r1_programme") return false; // Exclure R1 programmé
       const reminder = new Date(p.reminderDate);
       reminder.setHours(0, 0, 0, 0);
       return reminder <= today;
