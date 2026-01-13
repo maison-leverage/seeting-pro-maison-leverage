@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -8,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarDays, CheckCircle, XCircle, Eye, EyeOff } from "lucide-react";
 import { format, eachDayOfInterval, parseISO, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -33,6 +35,8 @@ const DailyBreakdownTable = ({
   dailyTarget,
   workDays 
 }: DailyBreakdownTableProps) => {
+  const [showEmptyDays, setShowEmptyDays] = useState(false);
+  
   const days = eachDayOfInterval({ start: startDate, end: endDate });
   
   // Map day names to numbers (0 = Sunday, 1 = Monday, etc.)
@@ -59,6 +63,7 @@ const DailyBreakdownTable = ({
     const isWorkDay = workDayNumbers.includes(day.getDay());
     const isToday = isSameDay(day, new Date());
     const isFuture = day > new Date();
+    const hasActivity = firstDMs > 0 || followUps > 0 || replies > 0 || calls > 0 || deals > 0;
     const quotaReached = firstDMs >= dailyTarget;
 
     return {
@@ -71,57 +76,100 @@ const DailyBreakdownTable = ({
       isWorkDay,
       isToday,
       isFuture,
+      hasActivity,
       quotaReached
     };
   });
 
-  // Calculate totals
+  // Filter to only show days with activity (unless showEmptyDays is true)
+  const displayedStats = showEmptyDays 
+    ? dailyStats 
+    : dailyStats.filter(day => day.hasActivity || day.isToday);
+
+  // Count days with activity for accurate metrics
+  const daysWithActivity = dailyStats.filter(day => day.hasActivity);
+  const workDaysWithActivity = daysWithActivity.filter(day => day.isWorkDay);
+
+  // Calculate totals based on days with activity only
   const totals = dailyStats.reduce((acc, day) => ({
     firstDMs: acc.firstDMs + day.firstDMs,
     followUps: acc.followUps + day.followUps,
     replies: acc.replies + day.replies,
     calls: acc.calls + day.calls,
     deals: acc.deals + day.deals,
-    workDays: acc.workDays + (day.isWorkDay && !day.isFuture ? 1 : 0),
-    quotasMet: acc.quotasMet + (day.isWorkDay && !day.isFuture && day.quotaReached ? 1 : 0)
-  }), { firstDMs: 0, followUps: 0, replies: 0, calls: 0, deals: 0, workDays: 0, quotasMet: 0 });
+  }), { firstDMs: 0, followUps: 0, replies: 0, calls: 0, deals: 0 });
 
-  const expectedDMs = totals.workDays * dailyTarget;
-  const difference = totals.firstDMs - expectedDMs;
+  // Count quotas met only for days with activity
+  const quotasMet = workDaysWithActivity.filter(day => day.quotaReached).length;
+  const totalActiveDays = workDaysWithActivity.length;
 
   return (
     <Card className="p-6 border-border bg-card shadow-sm">
-      <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-foreground">
-        <CalendarDays className="h-5 w-5 text-foreground" />
-        Détail par jour
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground">
+          <CalendarDays className="h-5 w-5 text-foreground" />
+          Détail par jour
+        </h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowEmptyDays(!showEmptyDays)}
+          className="text-xs"
+        >
+          {showEmptyDays ? (
+            <>
+              <EyeOff className="h-3 w-3 mr-1" />
+              Masquer jours vides
+            </>
+          ) : (
+            <>
+              <Eye className="h-3 w-3 mr-1" />
+              Afficher tous les jours
+            </>
+          )}
+        </Button>
+      </div>
 
-      {/* Summary */}
+      {/* Summary - simplified and accurate */}
       <div className="mb-4 p-4 rounded-lg bg-muted/50 border border-border">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
           <div>
             <div className="text-2xl font-bold text-blue-600">{totals.firstDMs}</div>
-            <div className="text-xs text-muted-foreground">1ers DM envoyés</div>
+            <div className="text-xs text-muted-foreground">1ers DM</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-muted-foreground">/{expectedDMs}</div>
-            <div className="text-xs text-muted-foreground">Objectif ({totals.workDays}j × {dailyTarget})</div>
+            <div className="text-2xl font-bold text-cyan-600">{totals.followUps}</div>
+            <div className="text-xs text-muted-foreground">Relances</div>
           </div>
           <div>
-            <div className={`text-2xl font-bold ${difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {difference >= 0 ? '+' : ''}{difference}
-            </div>
-            <div className="text-xs text-muted-foreground">Différence</div>
+            <div className="text-2xl font-bold text-yellow-600">{totals.replies}</div>
+            <div className="text-xs text-muted-foreground">Réponses</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-foreground">{totals.quotasMet}/{totals.workDays}</div>
-            <div className="text-xs text-muted-foreground">Quotas atteints</div>
+            <div className="text-2xl font-bold text-green-600">{totals.calls}</div>
+            <div className="text-xs text-muted-foreground">R1 bookés</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-purple-600">{totals.deals}</div>
+            <div className="text-xs text-muted-foreground">Deals closés</div>
           </div>
         </div>
+        
+        {/* Quota info - only if there are active days */}
+        {totalActiveDays > 0 && (
+          <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-center gap-4 text-sm">
+            <span className="text-muted-foreground">
+              Quota ({dailyTarget}/jour) atteint : 
+            </span>
+            <span className={`font-bold ${quotasMet === totalActiveDays ? 'text-green-600' : quotasMet > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+              {quotasMet}/{totalActiveDays} jours travaillés
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-96">
         <Table>
           <TableHeader>
             <TableRow>
@@ -130,49 +178,78 @@ const DailyBreakdownTable = ({
               <TableHead className="text-center">Relances</TableHead>
               <TableHead className="text-center">Réponses</TableHead>
               <TableHead className="text-center">R1</TableHead>
+              <TableHead className="text-center">Deals</TableHead>
               <TableHead className="text-center">Quota</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {dailyStats.map((day) => (
-              <TableRow 
-                key={day.date.toISOString()}
-                className={`
-                  ${!day.isWorkDay ? 'opacity-50 bg-muted/20' : ''}
-                  ${day.isToday ? 'bg-primary/5 border-primary/30' : ''}
-                `}
-              >
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <span className={day.isToday ? 'text-foreground font-bold' : 'text-foreground'}>
-                      {format(day.date, "EEE dd MMM", { locale: fr })}
-                    </span>
-                    {day.isToday && (
-                      <Badge variant="outline" className="text-xs">Aujourd'hui</Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <span className={`font-bold ${day.firstDMs >= dailyTarget ? 'text-green-600' : 'text-blue-600'}`}>
-                    {day.firstDMs}
-                  </span>
-                </TableCell>
-                <TableCell className="text-center text-cyan-600 font-medium">{day.followUps}</TableCell>
-                <TableCell className="text-center text-yellow-600 font-medium">{day.replies}</TableCell>
-                <TableCell className="text-center text-green-600 font-medium">{day.calls}</TableCell>
-                <TableCell className="text-center">
-                  {day.isFuture ? (
-                    <span className="text-muted-foreground">-</span>
-                  ) : !day.isWorkDay ? (
-                    <span className="text-muted-foreground text-xs">Repos</span>
-                  ) : day.quotaReached ? (
-                    <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                  ) : (
-                    <XCircle className="w-5 h-5 text-red-500 mx-auto" />
-                  )}
+            {displayedStats.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  Aucune activité sur cette période
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              displayedStats.map((day) => (
+                <TableRow 
+                  key={day.date.toISOString()}
+                  className={`
+                    ${!day.isWorkDay ? 'opacity-50 bg-muted/20' : ''}
+                    ${day.isToday ? 'bg-primary/5 border-primary/30' : ''}
+                    ${!day.hasActivity && !day.isToday ? 'opacity-40' : ''}
+                  `}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className={day.isToday ? 'text-foreground font-bold' : 'text-foreground'}>
+                        {format(day.date, "EEE dd MMM", { locale: fr })}
+                      </span>
+                      {day.isToday && (
+                        <Badge variant="outline" className="text-xs">Aujourd'hui</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className={`font-bold ${day.firstDMs >= dailyTarget ? 'text-green-600' : day.firstDMs > 0 ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                      {day.firstDMs || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className={day.followUps > 0 ? 'text-cyan-600 font-medium' : 'text-muted-foreground'}>
+                      {day.followUps || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className={day.replies > 0 ? 'text-yellow-600 font-medium' : 'text-muted-foreground'}>
+                      {day.replies || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className={day.calls > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                      {day.calls || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className={day.deals > 0 ? 'text-purple-600 font-bold' : 'text-muted-foreground'}>
+                      {day.deals || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {day.isFuture ? (
+                      <span className="text-muted-foreground">-</span>
+                    ) : !day.isWorkDay ? (
+                      <span className="text-muted-foreground text-xs">Repos</span>
+                    ) : !day.hasActivity ? (
+                      <span className="text-muted-foreground text-xs">-</span>
+                    ) : day.quotaReached ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-500 mx-auto" />
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
@@ -194,6 +271,9 @@ const DailyBreakdownTable = ({
           </span>
           <span className="text-muted-foreground">→</span>
           <span className="font-bold text-purple-600">{totals.deals} deals</span>
+          <span className="text-xs text-muted-foreground">
+            ({totals.calls > 0 ? ((totals.deals / totals.calls) * 100).toFixed(1) : 0}%)
+          </span>
         </div>
       </div>
     </Card>
