@@ -55,6 +55,33 @@ export type Database = {
           },
         ]
       }
+      formation_content: {
+        Row: {
+          created_at: string
+          id: string
+          section_key: string
+          text_content: string | null
+          updated_at: string
+          videos: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          section_key: string
+          text_content?: string | null
+          updated_at?: string
+          videos?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          section_key?: string
+          text_content?: string | null
+          updated_at?: string
+          videos?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
