@@ -18,7 +18,7 @@ const Auth = () => {
     // Check if already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/prospects");
+        navigate("/");
       }
     });
 
@@ -26,7 +26,7 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && event === 'SIGNED_IN') {
         toast.success(`Bienvenue ! 👋`);
-        navigate("/prospects");
+        navigate("/");
       }
     });
 
