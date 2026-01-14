@@ -14,7 +14,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const ADMIN_EMAIL = "oceane@maison-leverage.com";
+// Liste des emails admin qui peuvent modifier le contenu
+const ADMIN_EMAILS = [
+  "maxime@maison-leverage.com",
+  "oceane@maison-leverage.com",
+];
 
 interface VideoItem {
   id: string;
@@ -83,7 +87,7 @@ const Formation = () => {
   useEffect(() => {
     // Check if user is admin
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      if (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
         setIsAdmin(true);
       }
     });
