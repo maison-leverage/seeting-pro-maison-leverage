@@ -306,6 +306,20 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
 
   const handleDealClosed = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Vérifier si ce prospect a déjà été closé (anti-doublon)
+    const { data: existingDeal } = await supabase
+      .from('activity_logs')
+      .select('id')
+      .eq('lead_id', prospect.id)
+      .eq('type', 'deal_closed')
+      .maybeSingle();
+    
+    if (existingDeal) {
+      toast.error("Ce prospect a déjà été closé. Un prospect ne peut être closé qu'une seule fois.");
+      return;
+    }
+    
     const activityData = await logActivity('deal_closed');
     
     if (activityData && currentUserId) {
