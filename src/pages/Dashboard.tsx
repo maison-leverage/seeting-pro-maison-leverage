@@ -4,10 +4,10 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Users, TrendingUp, Clock, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Prospect } from "@/types/prospect";
 import { supabase } from "@/integrations/supabase/client";
 import TodayActivityCard from "@/components/dashboard/TodayActivityCard";
 import { startOfDay, endOfDay } from "date-fns";
+import { useProspects } from "@/hooks/useProspects";
 
 interface TodayActivity {
   id: string;
@@ -16,13 +16,14 @@ interface TodayActivity {
   prospect_name: string;
   prospect_company: string;
 }
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [todayCount, setTodayCount] = useState(0);
+  const { prospects, todayCount } = useProspects();
   const [todayActivities, setTodayActivities] = useState<TodayActivity[]>([]);
   const [dailyTarget, setDailyTarget] = useState(25);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
+
   useEffect(() => {
     // Check auth and load data
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -30,18 +31,9 @@ const Dashboard = () => {
         navigate("/auth");
         return;
       }
-      loadProspects();
       loadTodayActivities();
       loadObjectives();
     });
-
-    // Realtime subscription for prospects
-    const prospectsChannel = supabase
-      .channel('dashboard-prospects')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, () => {
-        loadProspects();
-      })
-      .subscribe();
 
     // Realtime subscription for activity logs
     const activityChannel = supabase
@@ -52,7 +44,6 @@ const Dashboard = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(prospectsChannel);
       supabase.removeChannel(activityChannel);
     };
   }, [navigate]);
@@ -80,7 +71,7 @@ const Dashboard = () => {
 
     const { data: logsData, error } = await supabase
       .from('activity_logs')
-      .select('id, type, created_at, lead_id')
+      .select('id, type, created_at, lead_id, prospect_name, prospect_company')
       .gte('created_at', start)
       .lte('created_at', end)
       .order('created_at', { ascending: false });
@@ -92,22 +83,12 @@ const Dashboard = () => {
     }
 
     if (logsData && logsData.length > 0) {
-      const leadIds = [...new Set(logsData.map(l => l.lead_id))];
-      const { data: prospectsData } = await supabase
-        .from('prospects')
-        .select('id, full_name, company')
-        .in('id', leadIds);
-
-      const prospectMap = new Map(
-        prospectsData?.map(p => [p.id, { name: p.full_name, company: p.company }]) || []
-      );
-
       const enrichedActivities: TodayActivity[] = logsData.map(log => ({
         id: log.id,
         type: log.type as TodayActivity['type'],
         created_at: log.created_at,
-        prospect_name: prospectMap.get(log.lead_id)?.name || 'Prospect supprimé',
-        prospect_company: prospectMap.get(log.lead_id)?.company || '',
+        prospect_name: log.prospect_name || 'Prospect supprimé',
+        prospect_company: log.prospect_company || '',
       }));
 
       setTodayActivities(enrichedActivities);
@@ -118,54 +99,11 @@ const Dashboard = () => {
     setActivitiesLoading(false);
   };
 
-  const loadProspects = async () => {
-    const { data, error } = await supabase
-      .from('prospects')
-      .select('*');
-
-    if (error) {
-      console.error('Error loading prospects:', error);
-      return;
-    }
-
-    const loadedProspects: Prospect[] = data.map((p: any) => ({
-      id: p.id,
-      fullName: p.full_name,
-      company: p.company,
-      position: p.position || "",
-      linkedinUrl: p.linkedin_url || "",
-      status: p.status,
-      priority: p.priority,
-      qualification: p.qualification,
-      hype: p.hype,
-      tags: p.tags || [],
-      notes: [],
-      history: [],
-      reminderDate: p.reminder_date,
-      firstMessageDate: p.first_message_date,
-      assignedTo: p.assigned_to || "",
-      createdAt: p.created_at,
-      updatedAt: p.updated_at,
-      lastContact: p.last_contact,
-      followUpCount: p.follow_up_count || 0,
-    }));
-
-    setProspects(loadedProspects);
-
-    // Calculate today count
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const count = loadedProspects.filter((p: Prospect) => {
-      if (!p.reminderDate) return false;
-      const reminder = new Date(p.reminderDate);
-      reminder.setHours(0, 0, 0, 0);
-      return reminder <= today;
-    }).length;
-    setTodayCount(count);
-  };
+  // Filtrer les prospects non archivés pour les stats
+  const activeProspects = prospects.filter(p => !p.no_follow_up);
   const stats = [{
     label: "Total prospects",
-    value: prospects.length,
+    value: activeProspects.length,
     icon: Users,
     color: "from-primary to-secondary",
     glow: "glow-primary"
@@ -177,30 +115,32 @@ const Dashboard = () => {
     glow: "glow-secondary"
   }, {
     label: "En discussion",
-    value: prospects.filter(p => p.status === "discussion" || p.status === "r1_programme").length,
+    value: activeProspects.filter(p => p.status === "discussion" || p.status === "r1_programme").length,
     icon: TrendingUp,
     color: "from-warning to-success"
   }, {
     label: "Taux de conversion",
-    value: prospects.length > 0 ? `${Math.round(prospects.filter(p => p.status === "r1_programme").length / prospects.length * 100)}%` : "0%",
+    value: activeProspects.length > 0 ? `${Math.round(activeProspects.filter(p => p.status === "r1_programme").length / activeProspects.length * 100)}%` : "0%",
     icon: Target,
     color: "from-secondary to-primary"
   }];
-  const topProspects = [...prospects].sort((a, b) => {
-    // Sort by reminder date (soonest first)
-    if (a.reminderDate && b.reminderDate) {
-      const dateA = new Date(a.reminderDate).getTime();
-      const dateB = new Date(b.reminderDate).getTime();
-      if (dateA !== dateB) return dateA - dateB;
-    } else if (a.reminderDate) {
-      return -1;
-    } else if (b.reminderDate) {
-      return 1;
-    }
+  const topProspects = [...activeProspects]
+    .filter(p => p.status !== 'r1_programme') // Exclure les R1 déjà programmés
+    .sort((a, b) => {
+      // Sort by reminder date (soonest first)
+      if (a.reminderDate && b.reminderDate) {
+        const dateA = new Date(a.reminderDate).getTime();
+        const dateB = new Date(b.reminderDate).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+      } else if (a.reminderDate) {
+        return -1;
+      } else if (b.reminderDate) {
+        return 1;
+      }
 
-    // Then by priority (higher number = higher priority)
-    return parseInt(b.priority) - parseInt(a.priority);
-  }).slice(0, 5);
+      // Then by priority (higher number = higher priority)
+      return parseInt(b.priority) - parseInt(a.priority);
+    }).slice(0, 5);
   return <div className="min-h-screen flex w-full bg-background">
       <Sidebar todayCount={todayCount} />
       <div className="flex-1 ml-64">

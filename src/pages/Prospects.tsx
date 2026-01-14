@@ -10,48 +10,29 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Download } from "lucide-react";
+import { Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useProspects, mapProspectToDb } from "@/hooks/useProspects";
+
+const PROSPECTS_PER_PAGE = 25;
 
 const Prospects = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const view = searchParams.get("view") || "all";
 
-  const [prospects, setProspects] = useState<Prospect[]>([]);
+  const { prospects, todayCount, refresh } = useProspects();
   const [filteredProspects, setFilteredProspects] = useState<Prospect[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [todayCount, setTodayCount] = useState(0);
-
-  useEffect(() => {
-    // Check auth
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-      loadProspects();
-    });
-
-    // Realtime subscription
-    const channel = supabase
-      .channel('prospects-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, () => {
-        loadProspects();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [navigate]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     applyFilters();
+    setCurrentPage(1); // Reset page when filters change
   }, [prospects, view, searchQuery, statusFilter, priorityFilter]);
 
   useEffect(() => {
@@ -64,59 +45,6 @@ const Prospects = () => {
       navigate("/prospects?view=" + view, { replace: true });
     }
   }, [searchParams, navigate, view]);
-
-  const loadProspects = async () => {
-    const { data, error } = await supabase
-      .from('prospects')
-      .select('*')
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading prospects:', error);
-      return;
-    }
-
-    const loadedProspects: Prospect[] = data.map((p: any) => ({
-      id: p.id,
-      fullName: p.full_name,
-      company: p.company,
-      position: p.position || "",
-      linkedinUrl: p.linkedin_url || "",
-      status: p.status,
-      priority: p.priority,
-      qualification: p.qualification,
-      hype: p.hype,
-      tags: p.tags || [],
-      notes: [],
-      history: [],
-      reminderDate: p.reminder_date,
-      firstMessageDate: p.first_message_date,
-      assignedTo: p.assigned_to || "",
-      createdAt: p.created_at,
-      updatedAt: p.updated_at,
-      lastContact: p.last_contact,
-      followUpCount: p.follow_up_count || 0,
-      no_show: p.no_show || false,
-      proposal_sent: p.proposal_sent || false,
-      r2_scheduled: p.r2_scheduled || false,
-      no_follow_up: p.no_follow_up || false,
-    }));
-
-    setProspects(loadedProspects);
-
-    // Calculate today count - exclure les prospects avec R1 programmé
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const count = loadedProspects.filter((p: Prospect) => {
-      if (!p.reminderDate) return false;
-      if (p.status === "r1_programme") return false; // Exclure R1 programmé
-      const reminder = new Date(p.reminderDate);
-      reminder.setHours(0, 0, 0, 0);
-      return reminder <= today;
-    }).length;
-    setTodayCount(count);
-  };
 
   const applyFilters = () => {
     let filtered = [...prospects];
@@ -164,7 +92,7 @@ const Prospects = () => {
       }
     }
 
-    // Status filter (only when no search query)
+    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((p) => p.status === statusFilter);
     }
@@ -194,29 +122,23 @@ const Prospects = () => {
     setFilteredProspects(filtered);
   };
 
+  // Pagination
+  const totalPages = Math.ceil(filteredProspects.length / PROSPECTS_PER_PAGE);
+  const paginatedProspects = filteredProspects.slice(
+    (currentPage - 1) * PROSPECTS_PER_PAGE,
+    currentPage * PROSPECTS_PER_PAGE
+  );
+
   const handleSubmit = async (prospectData: Partial<Prospect>) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     if (editingProspect) {
       // Update existing
+      const dbData = mapProspectToDb(prospectData);
       const { error } = await supabase
         .from('prospects')
-        .update({
-          full_name: prospectData.fullName,
-          company: prospectData.company,
-          position: prospectData.position,
-          linkedin_url: prospectData.linkedinUrl,
-          status: prospectData.status,
-          priority: prospectData.priority,
-          qualification: prospectData.qualification,
-          hype: prospectData.hype,
-          tags: prospectData.tags,
-          reminder_date: prospectData.reminderDate,
-          first_message_date: prospectData.firstMessageDate,
-          last_contact: prospectData.lastContact,
-          follow_up_count: prospectData.followUpCount,
-        })
+        .update(dbData)
         .eq('id', editingProspect.id);
 
       if (error) {
@@ -236,7 +158,7 @@ const Prospects = () => {
           position: prospectData.position,
           linkedin_url: prospectData.linkedinUrl,
           status: prospectData.status || "rien",
-          priority: prospectData.priority || "rien",
+          priority: "rien", // Toujours "rien" au départ, calculé automatiquement
           qualification: prospectData.qualification || "rien",
           hype: prospectData.hype || "rien",
           tags: prospectData.tags || [],
@@ -254,7 +176,7 @@ const Prospects = () => {
     }
 
     setEditingProspect(undefined);
-    loadProspects();
+    refresh();
   };
 
   const handleEdit = (prospect: Prospect) => {
@@ -280,7 +202,7 @@ const Prospects = () => {
     }
 
     toast.success("Prospect archivé");
-    loadProspects();
+    refresh();
   };
 
   const handleExportCSV = () => {
@@ -455,17 +377,76 @@ const Prospects = () => {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {filteredProspects.map((prospect) => (
-                <ProspectCard
-                  key={prospect.id}
-                  prospect={prospect}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onActivityLogged={loadProspects}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4">
+                {paginatedProspects.map((prospect) => (
+                  <ProspectCard
+                    key={prospect.id}
+                    prospect={prospect}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onActivityLogged={refresh}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 py-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="gap-1"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Précédent
+                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-10"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="gap-1"
+                  >
+                    Suivant
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  
+                  <span className="text-sm text-muted-foreground ml-4">
+                    Page {currentPage} sur {totalPages} ({filteredProspects.length} prospects)
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>
