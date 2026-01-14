@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import DailyBreakdownTable from "@/components/analytics/DailyBreakdownTable";
 import PerformanceChart from "@/components/analytics/PerformanceChart";
+import ActivityDetailModal from "@/components/analytics/ActivityDetailModal";
 
 type DateFilter = "thisMonth" | "lastMonth" | "thisWeek" | "lastWeek" | "all" | "custom";
 
@@ -93,6 +94,8 @@ const Analytics = () => {
   const [dailyTarget, setDailyTarget] = useState(25);
   const [workDays, setWorkDays] = useState<string[]>(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
   const [contactedProspects, setContactedProspects] = useState<any[]>([]);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailModalCategory, setDetailModalCategory] = useState<'dms' | 'replies' | 'calls' | 'deals'>('dms');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -334,6 +337,11 @@ const Analytics = () => {
   const bookingRate = repliesReceived > 0 ? ((callsBooked / repliesReceived) * 100).toFixed(1) : "0";
   const closeRate = callsBooked > 0 ? ((dealsClosed / callsBooked) * 100).toFixed(1) : "0";
 
+  const openDetailModal = (category: 'dms' | 'replies' | 'calls' | 'deals') => {
+    setDetailModalCategory(category);
+    setDetailModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen flex w-full bg-background">
       <Sidebar />
@@ -472,11 +480,14 @@ const Analytics = () => {
             </div>
           </Card>
 
-          {/* Main metrics */}
+          {/* Main metrics - clickable cards */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Card className="p-6 border-border/50 bg-card/50">
+            <Card 
+              className="p-6 border-border/50 bg-card/50 cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
+              onClick={() => openDetailModal('dms')}
+            >
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-blue-500/10">
+                <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
                   <Send className="h-5 w-5 text-blue-500" />
                 </div>
                 <div className="text-sm text-muted-foreground">1ers DM (quota)</div>
@@ -485,11 +496,17 @@ const Analytics = () => {
               <div className="text-xs text-muted-foreground mt-1">
                 + {followUps} relances (hors quota)
               </div>
+              <div className="text-xs text-blue-400/70 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                Cliquer pour voir les détails →
+              </div>
             </Card>
 
-            <Card className="p-6 border-border/50 bg-card/50">
+            <Card 
+              className="p-6 border-border/50 bg-card/50 cursor-pointer hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all group"
+              onClick={() => openDetailModal('replies')}
+            >
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-yellow-500/10">
+                <div className="p-2 rounded-lg bg-yellow-500/10 group-hover:bg-yellow-500/20 transition-colors">
                   <MessageCircle className="h-5 w-5 text-yellow-500" />
                 </div>
                 <div className="text-sm text-muted-foreground">Réponses Reçues</div>
@@ -498,24 +515,36 @@ const Analytics = () => {
               <div className="text-xs text-muted-foreground mt-1">
                 Taux de réponse : {replyRate}%
               </div>
+              <div className="text-xs text-yellow-400/70 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                Cliquer pour voir les détails →
+              </div>
             </Card>
 
-            <Card className="p-6 border-border/50 bg-card/50">
+            <Card 
+              className="p-6 border-border/50 bg-card/50 cursor-pointer hover:border-green-500/50 hover:bg-green-500/5 transition-all group"
+              onClick={() => openDetailModal('calls')}
+            >
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-green-500/10">
+                <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
                   <Phone className="h-5 w-5 text-green-500" />
                 </div>
-                <div className="text-sm text-muted-foreground">Calls Bookés</div>
+                <div className="text-sm text-muted-foreground">R1 Programmés</div>
               </div>
               <div className="text-4xl font-bold text-green-400">{callsBooked}</div>
               <div className="text-xs text-muted-foreground mt-1">
                 Taux de booking : {bookingRate}%
               </div>
+              <div className="text-xs text-green-400/70 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                Cliquer pour voir les détails →
+              </div>
             </Card>
 
-            <Card className="p-6 border-border/50 bg-card/50">
+            <Card 
+              className="p-6 border-border/50 bg-card/50 cursor-pointer hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group"
+              onClick={() => openDetailModal('deals')}
+            >
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-purple-500/10">
+                <div className="p-2 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
                   <CheckCircle className="h-5 w-5 text-purple-500" />
                 </div>
                 <div className="text-sm text-muted-foreground">Deals Closés</div>
@@ -523,6 +552,9 @@ const Analytics = () => {
               <div className="text-4xl font-bold text-purple-400">{dealsClosed}</div>
               <div className="text-xs text-muted-foreground mt-1">
                 Taux de closing : {closeRate}%
+              </div>
+              <div className="text-xs text-purple-400/70 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                Cliquer pour voir les détails →
               </div>
             </Card>
 
@@ -543,6 +575,15 @@ const Analytics = () => {
               </div>
             </Card>
           </div>
+
+          {/* Activity Detail Modal */}
+          <ActivityDetailModal
+            open={detailModalOpen}
+            onOpenChange={setDetailModalOpen}
+            category={detailModalCategory}
+            activities={filteredLogs}
+            periodLabel={dateRange.label}
+          />
 
           {/* Performance Evolution Chart */}
           <PerformanceChart 
