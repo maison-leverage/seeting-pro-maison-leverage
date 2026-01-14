@@ -25,14 +25,16 @@ const getStatusLabel = (status: string, followUpCount: number) => {
   return followUpCount > 0 ? `${label} (${followUpCount} relance${followUpCount > 1 ? 's' : ''})` : label;
 };
 
-const statusConfig = {
+const defaultConfig = { label: "⚪ Inconnu", color: "bg-gray-100 text-gray-700 border-gray-300" };
+
+const statusConfig: Record<string, { color: string }> = {
   rien: { color: "bg-gray-100 text-gray-700 border-gray-300" },
   premier_message: { color: "bg-blue-100 text-blue-700 border-blue-300" },
   discussion: { color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
   r1_programme: { color: "bg-green-100 text-green-700 border-green-300" },
 };
 
-const priorityConfig = {
+const priorityConfig: Record<string, { label: string; color: string }> = {
   "rien": { label: "⚪ Rien", color: "bg-gray-100 text-gray-700 border-gray-300" },
   "2": { label: "2e relance", color: "bg-blue-100 text-blue-700 border-blue-300" },
   "3": { label: "3e relance", color: "bg-cyan-100 text-cyan-700 border-cyan-300" },
@@ -45,7 +47,7 @@ const priorityConfig = {
   "10": { label: "10e relance", color: "bg-purple-100 text-purple-700 border-purple-300" },
 };
 
-const qualificationConfig = {
+const qualificationConfig: Record<string, { label: string; color: string }> = {
   rien: { label: "⚪ Rien", color: "bg-gray-100 text-gray-700 border-gray-300" },
   loom: { label: "🎥 Loom", color: "bg-purple-100 text-purple-700 border-purple-300" },
   video_youtube: { label: "▶️ Vidéo Youtube", color: "bg-red-100 text-red-700 border-red-300" },
@@ -53,12 +55,17 @@ const qualificationConfig = {
   magnus_opus: { label: "💎 Magnus Opus", color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
 };
 
-const hypeConfig = {
+const hypeConfig: Record<string, { label: string; color: string }> = {
   rien: { label: "⚪ Rien", color: "bg-gray-100 text-gray-700 border-gray-300" },
   froid: { label: "❄️ Froid", color: "bg-cyan-100 text-cyan-700 border-cyan-300" },
   tiede: { label: "🌤️ Tiède", color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
   chaud: { label: "🔥 Chaud", color: "bg-red-100 text-red-700 border-red-300" },
 };
+
+const getStatusConfig = (key: string) => statusConfig[key] || { color: defaultConfig.color };
+const getPriorityConfig = (key: string) => priorityConfig[key] || defaultConfig;
+const getQualificationConfig = (key: string) => qualificationConfig[key] || defaultConfig;
+const getHypeConfig = (key: string) => hypeConfig[key] || defaultConfig;
 
 type ActivityType = 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed' | 'first_dm' | 'follow_up_dm';
 
@@ -234,17 +241,17 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
 
           {/* Center: Badges */}
           <div className="flex gap-2 flex-shrink-0">
-            <Badge variant="outline" className={statusConfig[prospect.status].color}>
+            <Badge variant="outline" className={getStatusConfig(prospect.status).color}>
               {getStatusLabel(prospect.status, prospect.followUpCount)}
             </Badge>
-            <Badge variant="outline" className={priorityConfig[prospect.priority].color}>
-              {priorityConfig[prospect.priority].label}
+            <Badge variant="outline" className={getPriorityConfig(prospect.priority).color}>
+              {getPriorityConfig(prospect.priority).label}
             </Badge>
-            <Badge variant="outline" className={qualificationConfig[prospect.qualification].color}>
-              {qualificationConfig[prospect.qualification].label}
+            <Badge variant="outline" className={getQualificationConfig(prospect.qualification).color}>
+              {getQualificationConfig(prospect.qualification).label}
             </Badge>
-            <Badge variant="outline" className={hypeConfig[prospect.hype].color}>
-              {hypeConfig[prospect.hype].label}
+            <Badge variant="outline" className={getHypeConfig(prospect.hype).color}>
+              {getHypeConfig(prospect.hype).label}
             </Badge>
           </div>
 
