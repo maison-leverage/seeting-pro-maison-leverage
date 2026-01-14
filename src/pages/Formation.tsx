@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock } from "lucide-react";
+import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2 } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,8 @@ const extractYouTubeId = (url: string): string | null => {
 const Formation = () => {
   const [data, setData] = useState<FormationData>(defaultData);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [newVideoUrls, setNewVideoUrls] = useState<Record<string, string>>({
     seo: "",
     avatar: "",
@@ -85,28 +87,72 @@ const Formation = () => {
   });
 
   useEffect(() => {
-    // Check if user is admin
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const loadData = async () => {
+      // Check if user is admin
+      const { data: { user } } = await supabase.auth.getUser();
       if (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
         setIsAdmin(true);
       }
-    });
 
-    const saved = localStorage.getItem("formation-data");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Merge with defaultData to handle new sections
-        setData({ ...defaultData, ...parsed });
-      } catch (e) {
-        console.error("Error loading formation data:", e);
+      // Load formation content from database
+      const { data: dbData, error } = await supabase
+        .from('formation_content')
+        .select('section_key, text_content, videos');
+
+      if (error) {
+        console.error('Error loading formation content:', error);
+        toast.error("Erreur lors du chargement");
+        setLoading(false);
+        return;
       }
-    }
+
+      if (dbData && dbData.length > 0) {
+        const newData: FormationData = { ...defaultData };
+        dbData.forEach((row) => {
+          const key = row.section_key as keyof FormationData;
+          if (key in newData) {
+            newData[key] = {
+              text: row.text_content || "",
+              videos: (row.videos as VideoItem[]) || [],
+            };
+          }
+        });
+        setData(newData);
+      }
+
+      setLoading(false);
+    };
+
+    loadData();
   }, []);
 
-  const saveData = () => {
-    localStorage.setItem("formation-data", JSON.stringify(data));
-    toast.success("Formation sauvegardée");
+  const saveData = async () => {
+    setSaving(true);
+    
+    try {
+      // Update each section in the database
+      for (const section of sections) {
+        const sectionData = data[section.key];
+        const { error } = await supabase
+          .from('formation_content')
+          .update({
+            text_content: sectionData.text,
+            videos: sectionData.videos,
+          })
+          .eq('section_key', section.key);
+
+        if (error) {
+          console.error(`Error saving section ${section.key}:`, error);
+          throw error;
+        }
+      }
+
+      toast.success("Formation sauvegardée");
+    } catch (error) {
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateText = (key: keyof FormationData, text: string) => {
@@ -147,7 +193,7 @@ const Formation = () => {
 
     setNewVideoUrls((prev) => ({ ...prev, [key]: "" }));
     setNewVideoTitles((prev) => ({ ...prev, [key]: "" }));
-    toast.success("Vidéo ajoutée");
+    toast.success("Vidéo ajoutée - N'oubliez pas de sauvegarder");
   };
 
   const removeVideo = (key: keyof FormationData, videoId: string) => {
@@ -158,8 +204,19 @@ const Formation = () => {
         videos: prev[key].videos.filter((v) => v.id !== videoId),
       },
     }));
-    toast.success("Vidéo supprimée");
+    toast.success("Vidéo supprimée - N'oubliez pas de sauvegarder");
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 ml-64 p-8 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -180,8 +237,12 @@ const Formation = () => {
               </div>
             </div>
             {isAdmin && (
-              <Button onClick={saveData} className="gap-2">
-                <Save className="w-4 h-4" />
+              <Button onClick={saveData} className="gap-2" disabled={saving}>
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
                 Sauvegarder
               </Button>
             )}
