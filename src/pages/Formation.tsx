@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2 } from "lucide-react";
+import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2, MonitorSmartphone } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ interface SectionContent {
 }
 
 interface FormationData {
+  crm: SectionContent;
   seo: SectionContent;
   avatar: SectionContent;
   leads: SectionContent;
@@ -40,6 +41,7 @@ interface FormationData {
 }
 
 const defaultData: FormationData = {
+  crm: { text: "", videos: [] },
   seo: { text: "", videos: [] },
   avatar: { text: "", videos: [] },
   leads: { text: "", videos: [] },
@@ -48,6 +50,7 @@ const defaultData: FormationData = {
 };
 
 const sections = [
+  { key: "crm", title: "Comment fonctionne le CRM ?", icon: MonitorSmartphone },
   { key: "seo", title: "Comprendre le SEO", icon: Search },
   { key: "avatar", title: "Qui est notre avatar ?", icon: Target },
   { key: "leads", title: "Trouver des leads qualifiés", icon: Users },
@@ -72,6 +75,7 @@ const Formation = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newVideoUrls, setNewVideoUrls] = useState<Record<string, string>>({
+    crm: "",
     seo: "",
     avatar: "",
     leads: "",
@@ -79,6 +83,7 @@ const Formation = () => {
     booking: "",
   });
   const [newVideoTitles, setNewVideoTitles] = useState<Record<string, string>>({
+    crm: "",
     seo: "",
     avatar: "",
     leads: "",
