@@ -1,10 +1,12 @@
+import { useState, useEffect } from "react";
 import { Prospect } from "@/types/prospect";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Archive, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw, Linkedin } from "lucide-react";
+import { Edit, Archive, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw, Linkedin, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useUndoableActionContext } from "@/contexts/UndoableActionContext";
 
 interface ProspectCardProps {
   prospect: Prospect;
@@ -70,6 +72,40 @@ const getHypeConfig = (key: string) => hypeConfig[key] || defaultConfig;
 type ActivityType = 'message_sent' | 'reply_received' | 'call_booked' | 'deal_closed' | 'first_dm' | 'follow_up_dm';
 
 const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: ProspectCardProps) => {
+  const { addUndoableAction, canUndo, getTimeRemaining, undoAction } = useUndoableActionContext();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [undoTimeRemaining, setUndoTimeRemaining] = useState<number>(0);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
+  }, []);
+
+  // Check for undoable action and update timer
+  useEffect(() => {
+    if (!currentUserId) return;
+    
+    const action = canUndo(prospect.id, currentUserId);
+    if (action) {
+      setUndoTimeRemaining(getTimeRemaining(action));
+      
+      const interval = setInterval(() => {
+        const remaining = getTimeRemaining(action);
+        setUndoTimeRemaining(remaining);
+        if (remaining <= 0) {
+          clearInterval(interval);
+        }
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    } else {
+      setUndoTimeRemaining(0);
+    }
+  }, [currentUserId, canUndo, getTimeRemaining, prospect.id]);
+
+  const undoableAction = currentUserId ? canUndo(prospect.id, currentUserId) : null;
+
   const isReminderToday = () => {
     if (!prospect.reminderDate) return false;
     const today = new Date();
@@ -98,21 +134,25 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
     const userName = profile?.name || session.user.email || 'Utilisateur';
 
     // Create activity log with prospect info for anti-cheat (survives archiving)
-    const { error: logError } = await supabase
+    const activityData = {
+      type,
+      user_name: userName,
+      lead_id: prospect.id,
+      user_id: session.user.id,
+      prospect_name: prospect.fullName,
+      prospect_company: prospect.company
+    };
+    
+    const { data: insertedData, error: logError } = await supabase
       .from('activity_logs')
-      .insert({
-        type,
-        user_name: userName,
-        lead_id: prospect.id,
-        user_id: session.user.id,
-        prospect_name: prospect.fullName,
-        prospect_company: prospect.company
-      });
+      .insert(activityData)
+      .select()
+      .single();
 
     if (logError) {
       console.error('Error logging activity:', logError);
       toast.error("Erreur lors de l'enregistrement");
-      return;
+      return null;
     }
 
     // Update prospect status if needed
@@ -125,7 +165,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
       if (updateError) {
         console.error('Error updating prospect:', updateError);
         toast.error("Erreur lors de la mise à jour du statut");
-        return;
+        return null;
       }
     }
 
@@ -140,6 +180,25 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
 
     toast.success(labels[type]);
     onActivityLogged?.();
+    
+    // Return activity data for undo tracking
+    return insertedData;
+  };
+
+  const handleUndo = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!undoableAction) return;
+    
+    const success = await undoAction(undoableAction);
+    if (success) {
+      onActivityLogged?.();
+    }
+  };
+
+  const formatTimeRemaining = (ms: number): string => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handleDMSent = async (e: React.MouseEvent) => {
@@ -152,8 +211,12 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
       return;
     }
     
+    const previousStatus = prospect.status;
+    const previousFirstMessageDate = prospect.firstMessageDate;
+    
     // Enregistrer le premier DM
-    await logActivity('first_dm', 'premier_message');
+    const activityData = await logActivity('first_dm', 'premier_message');
+    if (!activityData) return;
     
     // Mettre à jour first_message_date sur le prospect
     const { error } = await supabase
@@ -164,13 +227,28 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
     if (error) {
       console.error('Error updating first_message_date:', error);
     }
+
+    // Track for undo
+    if (currentUserId) {
+      addUndoableAction({
+        activityId: activityData.id,
+        prospectId: prospect.id,
+        type: 'first_dm',
+        previousStatus,
+        previousFirstMessageDate: previousFirstMessageDate || null,
+        userId: currentUserId,
+      });
+    }
   };
 
   const handleFollowUpSent = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
+    const previousFollowUpCount = prospect.followUpCount;
+    
     // Les relances ne comptent pas dans les quotas
-    await logActivity('follow_up_dm');
+    const activityData = await logActivity('follow_up_dm');
+    if (!activityData) return;
     
     // Incrémenter le compteur de relances
     const { error } = await supabase
@@ -181,21 +259,63 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
     if (error) {
       console.error('Error updating follow_up_count:', error);
     }
+
+    // Track for undo
+    if (currentUserId) {
+      addUndoableAction({
+        activityId: activityData.id,
+        prospectId: prospect.id,
+        type: 'follow_up_dm',
+        previousFollowUpCount,
+        userId: currentUserId,
+      });
+    }
   };
 
-  const handleReplyReceived = (e: React.MouseEvent) => {
+  const handleReplyReceived = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    logActivity('reply_received', 'discussion');
+    const previousStatus = prospect.status;
+    const activityData = await logActivity('reply_received', 'discussion');
+    
+    if (activityData && currentUserId) {
+      addUndoableAction({
+        activityId: activityData.id,
+        prospectId: prospect.id,
+        type: 'reply_received',
+        previousStatus,
+        userId: currentUserId,
+      });
+    }
   };
 
-  const handleCallBooked = (e: React.MouseEvent) => {
+  const handleCallBooked = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    logActivity('call_booked', 'r1_programme');
+    const previousStatus = prospect.status;
+    const activityData = await logActivity('call_booked', 'r1_programme');
+    
+    if (activityData && currentUserId) {
+      addUndoableAction({
+        activityId: activityData.id,
+        prospectId: prospect.id,
+        type: 'call_booked',
+        previousStatus,
+        userId: currentUserId,
+      });
+    }
   };
 
-  const handleDealClosed = (e: React.MouseEvent) => {
+  const handleDealClosed = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    logActivity('deal_closed');
+    const activityData = await logActivity('deal_closed');
+    
+    if (activityData && currentUserId) {
+      addUndoableAction({
+        activityId: activityData.id,
+        prospectId: prospect.id,
+        type: 'deal_closed',
+        userId: currentUserId,
+      });
+    }
   };
 
   return (
@@ -353,6 +473,20 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             <CheckCircle className="w-4 h-4 mr-2" />
             Deal
           </Button>
+          
+          {/* Bouton d'annulation - visible pendant 5 minutes après une action */}
+          {undoableAction && undoTimeRemaining > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleUndo}
+              className="flex-1 border-orange-400 text-orange-600 hover:bg-orange-50 hover:border-orange-500 animate-pulse"
+              title={`Annuler la dernière action (${formatTimeRemaining(undoTimeRemaining)} restantes)`}
+            >
+              <Undo2 className="w-4 h-4 mr-2" />
+              Annuler ({formatTimeRemaining(undoTimeRemaining)})
+            </Button>
+          )}
         </div>
       </div>
     </Card>

@@ -18,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import maisonLeverageLogo from "@/assets/maison-leverage-logo.png";
 
+import { Calendar } from "lucide-react";
+
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   {
@@ -26,6 +28,7 @@ const navigation = [
     subItems: [
       { name: "À relancer", href: "/prospects?view=today", icon: Pin },
       { name: "Prospects chauds", href: "/prospects?view=hot", icon: Flame },
+      { name: "R1 Programmés", href: "/prospects?view=r1", icon: Calendar },
       { name: "Tous les prospects", href: "/prospects", icon: Users },
     ],
   },

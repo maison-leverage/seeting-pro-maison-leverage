@@ -121,32 +121,7 @@ const Prospects = () => {
   const applyFilters = () => {
     let filtered = [...prospects];
 
-    // Exclure tous les prospects avec R1 programmé de la page Prospects
-    filtered = filtered.filter((p) => p.status !== "r1_programme");
-
-    // View filters
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-    switch (view) {
-      case "today":
-        filtered = filtered.filter((p) => {
-          if (!p.reminderDate) return false;
-          const reminder = new Date(p.reminderDate);
-          reminder.setHours(0, 0, 0, 0);
-          return reminder <= todayDate;
-        });
-        break;
-      case "hot":
-        filtered = filtered.filter((p) => p.hype === "chaud");
-        break;
-      case "refused":
-        filtered = filtered.filter((p) => parseInt(p.priority) >= 8);
-        break;
-      default:
-        break;
-    }
-
-    // Search filter
+    // Si une recherche est active, chercher dans TOUS les prospects (recherche globale)
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -155,9 +130,41 @@ const Prospects = () => {
           p.company.toLowerCase().includes(query) ||
           p.position.toLowerCase().includes(query)
       );
+    } else {
+      // Sans recherche, appliquer les filtres de vue normaux
+      
+      // Vue R1 Programmés - afficher uniquement les R1
+      if (view === "r1") {
+        filtered = filtered.filter((p) => p.status === "r1_programme");
+      } else {
+        // Autres vues - exclure les R1 programmés
+        filtered = filtered.filter((p) => p.status !== "r1_programme");
+      }
+
+      // View filters
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      switch (view) {
+        case "today":
+          filtered = filtered.filter((p) => {
+            if (!p.reminderDate) return false;
+            const reminder = new Date(p.reminderDate);
+            reminder.setHours(0, 0, 0, 0);
+            return reminder <= todayDate;
+          });
+          break;
+        case "hot":
+          filtered = filtered.filter((p) => p.hype === "chaud");
+          break;
+        case "refused":
+          filtered = filtered.filter((p) => parseInt(p.priority) >= 8);
+          break;
+        default:
+          break;
+      }
     }
 
-    // Status filter
+    // Status filter (only when no search query)
     if (statusFilter !== "all") {
       filtered = filtered.filter((p) => p.status === statusFilter);
     }
@@ -331,11 +338,16 @@ const Prospects = () => {
   };
 
   const getViewTitle = () => {
+    if (searchQuery) {
+      return `🔍 Recherche : "${searchQuery}"`;
+    }
     switch (view) {
       case "today":
         return "📌 À relancer aujourd'hui";
       case "hot":
         return "🔥 Prospects chauds";
+      case "r1":
+        return "🎯 R1 Programmés";
       case "waiting":
         return "⏰ En attente de réponse";
       case "refused":
