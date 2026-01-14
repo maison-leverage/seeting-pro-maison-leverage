@@ -141,7 +141,7 @@ const ProspectForm = ({
           </div>
 
           {/* Statuts */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Statut</Label>
               <Select value={formData.status} onValueChange={(value: ProspectStatus) => setFormData({
@@ -156,30 +156,6 @@ const ProspectForm = ({
                   <SelectItem value="premier_message">📩 1ᵉʳ message envoyé</SelectItem>
                   <SelectItem value="discussion">🗣️ En discussion</SelectItem>
                   <SelectItem value="r1_programme">🎯 R1 programmé</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Nombre de relances</Label>
-              <Select value={formData.priority} onValueChange={(value: ProspectPriority) => setFormData({
-              ...formData,
-              priority: value
-            })}>
-                <SelectTrigger className="bg-input border-border/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border/50">
-                  <SelectItem value="rien">⚪ Rien</SelectItem>
-                  <SelectItem value="2">2e relance</SelectItem>
-                  <SelectItem value="3">3e relance</SelectItem>
-                  <SelectItem value="4">4e relance</SelectItem>
-                  <SelectItem value="5">5e relance</SelectItem>
-                  <SelectItem value="6">6e relance</SelectItem>
-                  <SelectItem value="7">7e relance</SelectItem>
-                  <SelectItem value="8">8e relance</SelectItem>
-                  <SelectItem value="9">9e relance</SelectItem>
-                  <SelectItem value="10">10e relance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -221,6 +197,15 @@ const ProspectForm = ({
               </Select>
             </div>
           </div>
+
+          {/* Affichage info relances (lecture seule) */}
+          {initialData && initialData.followUpCount > 0 && (
+            <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+              <p className="text-sm text-muted-foreground">
+                📊 <span className="font-medium">{initialData.followUpCount}</span> relance{initialData.followUpCount > 1 ? 's' : ''} effectuée{initialData.followUpCount > 1 ? 's' : ''}
+              </p>
+            </div>
+          )}
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
