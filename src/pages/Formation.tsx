@@ -298,8 +298,96 @@ const Formation = () => {
                             className="min-h-[150px] resize-y"
                           />
                         ) : (
-                          <div className="min-h-[100px] p-3 rounded-md bg-muted/30 border border-border whitespace-pre-wrap">
-                            {sectionData.text || <span className="text-muted-foreground italic">Aucun contenu</span>}
+                          <div className="min-h-[100px] p-4 rounded-md bg-muted/30 border border-border">
+                            {sectionData.text ? (
+                              <div className="prose prose-sm max-w-none dark:prose-invert">
+                                {sectionData.text.split('\n').map((line, i) => {
+                                  // Séparateurs
+                                  if (line.includes('━━━')) {
+                                    return <hr key={i} className="my-4 border-border" />;
+                                  }
+                                  // Titres avec emoji
+                                  if (line.startsWith('📋') || line.startsWith('🔹')) {
+                                    const formatted = line
+                                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    return (
+                                      <h3 
+                                        key={i} 
+                                        className="text-base font-semibold mt-3 mb-2 text-foreground"
+                                        dangerouslySetInnerHTML={{ __html: formatted }}
+                                      />
+                                    );
+                                  }
+                                  // Lignes avec puces
+                                  if (line.trim().startsWith('•') || line.trim().startsWith('→')) {
+                                    const formatted = line
+                                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    return (
+                                      <p 
+                                        key={i} 
+                                        className="ml-4 my-1 text-muted-foreground"
+                                        dangerouslySetInnerHTML={{ __html: formatted }}
+                                      />
+                                    );
+                                  }
+                                  // Lignes numérotées
+                                  if (/^\d+\./.test(line.trim())) {
+                                    const formatted = line
+                                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    return (
+                                      <p 
+                                        key={i} 
+                                        className="ml-4 my-1 text-muted-foreground"
+                                        dangerouslySetInnerHTML={{ __html: formatted }}
+                                      />
+                                    );
+                                  }
+                                  // Avertissements et notes
+                                  if (line.trim().startsWith('⚠️') || line.trim().startsWith('💡')) {
+                                    const formatted = line
+                                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    return (
+                                      <p 
+                                        key={i} 
+                                        className="ml-4 my-2 p-2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm"
+                                        dangerouslySetInnerHTML={{ __html: formatted }}
+                                      />
+                                    );
+                                  }
+                                  // Tableaux simples
+                                  if (line.includes('|') && !line.includes('---')) {
+                                    const cells = line.split('|').filter(c => c.trim());
+                                    if (cells.length >= 2) {
+                                      return (
+                                        <div key={i} className="flex gap-4 ml-4 my-1 text-sm">
+                                          {cells.map((cell, j) => (
+                                            <span key={j} className={j === 0 ? "font-medium min-w-[80px]" : "text-muted-foreground"}>
+                                              {cell.trim()}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      );
+                                    }
+                                  }
+                                  // Lignes vides
+                                  if (!line.trim()) {
+                                    return <div key={i} className="h-2" />;
+                                  }
+                                  // Texte normal
+                                  const formatted = line
+                                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                  return (
+                                    <p 
+                                      key={i} 
+                                      className="my-1 text-muted-foreground"
+                                      dangerouslySetInnerHTML={{ __html: formatted }}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground italic">Aucun contenu</span>
+                            )}
                           </div>
                         )}
                       </div>
