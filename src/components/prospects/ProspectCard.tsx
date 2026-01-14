@@ -322,13 +322,30 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
     
     const activityData = await logActivity('deal_closed');
     
-    if (activityData && currentUserId) {
-      addUndoableAction({
-        activityId: activityData.id,
-        prospectId: prospect.id,
-        type: 'deal_closed',
-        userId: currentUserId,
-      });
+    if (activityData) {
+      // Archiver le prospect automatiquement après un deal closé
+      const { error: archiveError } = await supabase
+        .from('prospects')
+        .update({ 
+          is_deleted: true, 
+          deleted_at: new Date().toISOString() 
+        })
+        .eq('id', prospect.id);
+      
+      if (archiveError) {
+        console.error('Error archiving prospect:', archiveError);
+      } else {
+        toast.success("Prospect archivé automatiquement");
+      }
+      
+      if (currentUserId) {
+        addUndoableAction({
+          activityId: activityData.id,
+          prospectId: prospect.id,
+          type: 'deal_closed',
+          userId: currentUserId,
+        });
+      }
     }
   };
 
