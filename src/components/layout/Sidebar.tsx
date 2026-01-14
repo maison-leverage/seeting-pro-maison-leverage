@@ -26,7 +26,7 @@ const navigation = [
     subItems: [
       { name: "À relancer", href: "/prospects?view=today", icon: Pin },
       { name: "Prospects chauds", href: "/prospects?view=hot", icon: Flame },
-      { name: "Tous les prospects", href: "/prospects?view=all", icon: Users },
+      { name: "Tous les prospects", href: "/prospects", icon: Users },
     ],
   },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
