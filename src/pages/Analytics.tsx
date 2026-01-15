@@ -578,6 +578,7 @@ const Analytics = () => {
 
           {/* Activity Detail Modal */}
           <ActivityDetailModal
+            onActivityDeleted={loadData}
             open={detailModalOpen}
             onOpenChange={setDetailModalOpen}
             category={detailModalCategory}
