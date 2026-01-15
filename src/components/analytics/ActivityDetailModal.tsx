@@ -1,9 +1,23 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, MessageCircle, Phone, CheckCircle, RotateCcw, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Send, MessageCircle, Phone, CheckCircle, RotateCcw, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ActivityLog {
   id: string;
@@ -23,6 +37,7 @@ interface ActivityDetailModalProps {
   category: ActivityCategory;
   activities: ActivityLog[];
   periodLabel: string;
+  onActivityDeleted?: () => void;
 }
 
 const categoryConfig: Record<ActivityCategory, { 
@@ -62,9 +77,32 @@ const categoryConfig: Record<ActivityCategory, {
   }
 };
 
-const ActivityDetailModal = ({ open, onOpenChange, category, activities, periodLabel }: ActivityDetailModalProps) => {
+// Map activity type to previous status
+const getPreviousStatus = (type: ActivityLog['type']): string => {
+  switch (type) {
+    case 'reply_received':
+      return 'premier_message';
+    case 'call_booked':
+      return 'discussion';
+    case 'deal_closed':
+      return 'r1_programme';
+    default:
+      return 'rien';
+  }
+};
+
+const ActivityDetailModal = ({ 
+  open, 
+  onOpenChange, 
+  category, 
+  activities, 
+  periodLabel,
+  onActivityDeleted 
+}: ActivityDetailModalProps) => {
   const config = categoryConfig[category];
   const Icon = config.icon;
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteActivity, setConfirmDeleteActivity] = useState<ActivityLog | null>(null);
   
   // Filter activities by category
   const filteredActivities = activities.filter(a => config.types.includes(a.type));
@@ -75,34 +113,29 @@ const ActivityDetailModal = ({ open, onOpenChange, category, activities, periodL
     prospect_company: string;
     lead_id: string;
     count: number;
-    dates: string[];
-    types: ActivityLog['type'][];
+    activities: ActivityLog[];
   }>();
   
   filteredActivities.forEach(activity => {
     const existing = prospectMap.get(activity.lead_id);
     if (existing) {
       existing.count++;
-      existing.dates.push(activity.created_at);
-      if (!existing.types.includes(activity.type)) {
-        existing.types.push(activity.type);
-      }
+      existing.activities.push(activity);
     } else {
       prospectMap.set(activity.lead_id, {
         prospect_name: activity.prospect_name || 'Prospect archivé',
         prospect_company: activity.prospect_company || '',
         lead_id: activity.lead_id,
         count: 1,
-        dates: [activity.created_at],
-        types: [activity.type]
+        activities: [activity]
       });
     }
   });
   
   const uniqueProspects = Array.from(prospectMap.values()).sort((a, b) => {
     // Sort by most recent date
-    const dateA = new Date(a.dates[a.dates.length - 1]).getTime();
-    const dateB = new Date(b.dates[b.dates.length - 1]).getTime();
+    const dateA = new Date(a.activities[a.activities.length - 1].created_at).getTime();
+    const dateB = new Date(b.activities[b.activities.length - 1].created_at).getTime();
     return dateB - dateA;
   });
 
@@ -136,93 +169,202 @@ const ActivityDetailModal = ({ open, onOpenChange, category, activities, periodL
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${config.bgColor}`}>
-              <Icon className={`h-5 w-5 ${config.color}`} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span>{config.title}</span>
-                <Badge variant="secondary" className="text-lg px-3">
-                  {uniqueProspects.length}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground font-normal mt-1">
-                {periodLabel}
-              </p>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
+  const handleDeleteActivity = async (activity: ActivityLog) => {
+    setDeletingId(activity.id);
+    
+    try {
+      // 1. Delete the activity log
+      const { error: deleteError } = await supabase
+        .from('activity_logs')
+        .delete()
+        .eq('id', activity.id);
+
+      if (deleteError) {
+        console.error('Error deleting activity:', deleteError);
+        toast.error("Erreur lors de la suppression");
+        return;
+      }
+
+      // 2. Restore prospect state based on activity type
+      const updateData: Record<string, any> = {};
+      
+      if (activity.type === 'first_dm' || activity.type === 'message_sent') {
+        // Reset first message date and status
+        updateData.first_message_date = null;
+        updateData.status = 'rien';
+      } else if (activity.type === 'follow_up_dm') {
+        // Decrement follow up count
+        const { data: prospectData } = await supabase
+          .from('prospects')
+          .select('follow_up_count')
+          .eq('id', activity.lead_id)
+          .single();
         
-        <ScrollArea className="h-[500px] pr-4">
-          {uniqueProspects.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Aucune activité pour cette période
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {uniqueProspects.map((prospect, index) => (
-                <div 
-                  key={prospect.lead_id}
-                  className="p-4 rounded-lg border border-border/50 bg-card/50 hover:bg-card/80 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground font-mono">
-                          #{index + 1}
-                        </span>
-                        <h4 className="font-semibold text-foreground truncate">
-                          {prospect.prospect_name}
-                        </h4>
-                      </div>
-                      {prospect.prospect_company && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {prospect.prospect_company}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {prospect.types.map((type, i) => (
-                          <Badge 
-                            key={i} 
-                            variant="outline" 
-                            className={`text-xs ${getTypeBadgeColor(type)}`}
-                          >
-                            {getTypeLabel(type)}
-                            {prospect.types.length === 1 && prospect.count > 1 && ` ×${prospect.count}`}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-sm text-muted-foreground">
-                        {format(parseISO(prospect.dates[prospect.dates.length - 1]), "dd MMM yyyy", { locale: fr })}
-                      </div>
-                      {prospect.dates.length > 1 && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {prospect.dates.length} interactions
+        if (prospectData) {
+          updateData.follow_up_count = Math.max(0, (prospectData.follow_up_count || 1) - 1);
+        }
+      } else if (activity.type === 'reply_received') {
+        updateData.status = 'premier_message';
+      } else if (activity.type === 'call_booked') {
+        updateData.status = 'discussion';
+      } else if (activity.type === 'deal_closed') {
+        // Unarchive and restore status
+        updateData.is_deleted = false;
+        updateData.deleted_at = null;
+        updateData.status = 'r1_programme';
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        const { error: updateError } = await supabase
+          .from('prospects')
+          .update(updateData)
+          .eq('id', activity.lead_id);
+
+        if (updateError) {
+          console.error('Error restoring prospect:', updateError);
+          toast.error("Activité supprimée mais erreur lors de la restauration du prospect");
+          return;
+        }
+      }
+
+      toast.success("Activité supprimée et prospect restauré !");
+      onActivityDeleted?.();
+      
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error("Une erreur est survenue");
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteActivity(null);
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${config.bgColor}`}>
+                <Icon className={`h-5 w-5 ${config.color}`} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span>{config.title}</span>
+                  <Badge variant="secondary" className="text-lg px-3">
+                    {uniqueProspects.length}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground font-normal mt-1">
+                  {periodLabel}
+                </p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[500px] pr-4">
+            {uniqueProspects.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Aucune activité pour cette période
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {uniqueProspects.map((prospect, index) => (
+                  <div 
+                    key={prospect.lead_id}
+                    className="p-4 rounded-lg border border-border/50 bg-card/50 hover:bg-card/80 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground font-mono">
+                            #{index + 1}
+                          </span>
+                          <h4 className="font-semibold text-foreground truncate">
+                            {prospect.prospect_name}
+                          </h4>
                         </div>
-                      )}
+                        {prospect.prospect_company && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {prospect.prospect_company}
+                          </p>
+                        )}
+                        
+                        {/* Individual activities with delete buttons */}
+                        <div className="space-y-2 mt-3">
+                          {prospect.activities.map((activity) => (
+                            <div 
+                              key={activity.id}
+                              className="flex items-center justify-between gap-2 p-2 rounded bg-muted/30"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${getTypeBadgeColor(activity.type)}`}
+                                >
+                                  {getTypeLabel(activity.type)}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(parseISO(activity.created_at), "dd MMM yyyy à HH:mm", { locale: fr })}
+                                </span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setConfirmDeleteActivity(activity)}
+                                disabled={deletingId === activity.id}
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                title="Supprimer cette activité et restaurer le prospect"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+          
+          <div className="pt-4 border-t border-border/50">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Total : {filteredActivities.length} activités</span>
+              <span>{uniqueProspects.length} prospects uniques</span>
             </div>
-          )}
-        </ScrollArea>
-        
-        <div className="pt-4 border-t border-border/50">
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Total : {filteredActivities.length} activités</span>
-            <span>{uniqueProspects.length} prospects uniques</span>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation dialog */}
+      <AlertDialog open={!!confirmDeleteActivity} onOpenChange={() => setConfirmDeleteActivity(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette activité ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action va supprimer l'activité <strong>{confirmDeleteActivity && getTypeLabel(confirmDeleteActivity.type)}</strong> pour{" "}
+              <strong>{confirmDeleteActivity?.prospect_name}</strong> et restaurer le prospect à son état précédent.
+              {confirmDeleteActivity?.type === 'deal_closed' && (
+                <span className="block mt-2 text-orange-600 font-medium">
+                  ⚠️ Le prospect sera également désarchivé.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmDeleteActivity && handleDeleteActivity(confirmDeleteActivity)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer et restaurer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
