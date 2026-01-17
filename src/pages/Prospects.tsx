@@ -149,7 +149,7 @@ const Prospects = () => {
       toast.success("Prospect modifié !");
     } else {
       // Create new
-      const { error } = await supabase
+      const { data: newProspect, error } = await supabase
         .from('prospects')
         .insert({
           user_id: user.id,
@@ -165,13 +165,38 @@ const Prospects = () => {
           reminder_date: prospectData.reminderDate,
           first_message_date: prospectData.firstMessageDate,
           follow_up_count: 0,
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error creating prospect:', error);
         toast.error("Erreur lors de la création");
         return;
       }
+
+      // Si le prospect a une date de premier message, enregistrer l'activité "first_dm"
+      if (prospectData.firstMessageDate && newProspect) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        const userName = profile?.name || user.email || 'Utilisateur';
+
+        await supabase
+          .from('activity_logs')
+          .insert({
+            type: 'first_dm',
+            user_name: userName,
+            lead_id: newProspect.id,
+            user_id: user.id,
+            prospect_name: prospectData.fullName,
+            prospect_company: prospectData.company
+          });
+      }
+
       toast.success("Prospect ajouté !");
     }
 
