@@ -58,14 +58,21 @@ const sections = [
   { key: "booking", title: "Comment booker un RDV ?", icon: CalendarCheck },
 ] as const;
 
-const extractYouTubeId = (url: string): string | null => {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
+const extractVideoInfo = (url: string): { type: 'youtube' | 'loom'; id: string } | null => {
+  // YouTube
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+  if (ytMatch) return { type: 'youtube', id: ytMatch[1] };
+  // Loom
+  const loomMatch = url.match(/loom\.com\/(?:share|embed)\/([a-f0-9]+)/);
+  if (loomMatch) return { type: 'loom', id: loomMatch[1] };
+  return null;
+};
+
+const getEmbedUrl = (url: string): string | null => {
+  const info = extractVideoInfo(url);
+  if (!info) return null;
+  if (info.type === 'youtube') return `https://www.youtube.com/embed/${info.id}`;
+  if (info.type === 'loom') return `https://www.loom.com/embed/${info.id}`;
   return null;
 };
 
@@ -162,10 +169,10 @@ const Formation = () => {
   const addVideo = async (key: keyof FormationData) => {
     const url = newVideoUrls[key];
     const title = newVideoTitles[key];
-    const videoId = extractYouTubeId(url);
+    const videoInfo = extractVideoInfo(url);
 
-    if (!videoId) {
-      toast.error("URL YouTube invalide");
+    if (!videoInfo) {
+      toast.error("URL invalide (YouTube ou Loom supportés)");
       return;
     }
 
@@ -309,18 +316,20 @@ const Formation = () => {
                           </label>
                           <div className="grid gap-4">
                             {sectionData.videos.map((video) => {
-                              const videoId = extractYouTubeId(video.url);
+                              const embedUrl = getEmbedUrl(video.url);
                               return (
                                 <Card key={video.id} className="overflow-hidden">
                                   <div className="flex flex-col sm:flex-row">
                                     <div className="relative aspect-video sm:w-80 flex-shrink-0">
-                                      <iframe
-                                        src={`https://www.youtube.com/embed/${videoId}`}
-                                        title={video.title}
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                        className="absolute inset-0 w-full h-full"
-                                      />
+                                      {embedUrl && (
+                                        <iframe
+                                          src={embedUrl}
+                                          title={video.title}
+                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                          allowFullScreen
+                                          className="absolute inset-0 w-full h-full"
+                                        />
+                                      )}
                                     </div>
                                     <div className="flex-1 p-4 flex items-center justify-between">
                                       <div className="flex items-center gap-3">
