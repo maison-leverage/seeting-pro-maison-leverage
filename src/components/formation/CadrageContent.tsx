@@ -1,4 +1,4 @@
-import { ShieldAlert, MessageSquare, ListChecked, Clock, Ban, Trophy } from "lucide-react";
+import { ShieldAlert, MessageSquare, ListCheck, Clock, Ban, Trophy } from "lucide-react";
 
 const SectionTitle = ({ children, emoji }: { children: React.ReactNode; emoji: string }) => (
   <div className="flex items-center gap-2 mb-3">
