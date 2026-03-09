@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2, MonitorSmartphone } from "lucide-react";
+import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2, MonitorSmartphone, ShieldCheck } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
