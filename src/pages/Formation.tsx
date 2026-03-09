@@ -41,6 +41,7 @@ interface FormationData {
 }
 
 const defaultData: FormationData = {
+  cadrage: { text: "", videos: [] },
   crm: { text: "", videos: [] },
   seo: { text: "", videos: [] },
   avatar: { text: "", videos: [] },
