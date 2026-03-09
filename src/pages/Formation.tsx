@@ -402,6 +402,8 @@ const Formation = () => {
                       {/* Text content */}
                       {section.key === "cadrage" ? (
                         <CadrageContent />
+                      ) : section.key === "daily" ? (
+                        <DailyRoutineContent />
                       ) : (
                         <div>
                           <label className="text-sm font-medium text-foreground mb-2 block">
