@@ -411,7 +411,17 @@ const Formation = () => {
                           />
                         ) : (
                           <div className="p-4 rounded-lg bg-muted/30 border border-border whitespace-pre-wrap text-sm leading-relaxed">
-                            {sectionData.text || <span className="text-muted-foreground italic">Aucun contenu</span>}
+                            {sectionData.text ? (
+                              sectionData.text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+                                part.startsWith('**') && part.endsWith('**') ? (
+                                  <strong key={i} className="font-bold text-foreground">{part.slice(2, -2)}</strong>
+                                ) : (
+                                  <span key={i}>{part}</span>
+                                )
+                              )
+                            ) : (
+                              <span className="text-muted-foreground italic">Aucun contenu</span>
+                            )}
                           </div>
                         )}
                       </div>
