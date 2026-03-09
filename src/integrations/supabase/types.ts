@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           id: string
           lead_id: string
+          message_type: string | null
           prospect_company: string | null
           prospect_name: string | null
           type: string
@@ -29,6 +30,7 @@ export type Database = {
           created_at?: string
           id?: string
           lead_id: string
+          message_type?: string | null
           prospect_company?: string | null
           prospect_name?: string | null
           type: string
@@ -39,6 +41,7 @@ export type Database = {
           created_at?: string
           id?: string
           lead_id?: string
+          message_type?: string | null
           prospect_company?: string | null
           prospect_name?: string | null
           type?: string

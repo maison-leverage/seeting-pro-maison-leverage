@@ -1,9 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Phone, CheckCircle, RotateCcw, Clock } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Send, MessageCircle, Phone, RotateCcw, Clock, Mail, Copy, Check } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TodayActivity {
   id: string;
@@ -20,38 +24,63 @@ interface TodayActivityCardProps {
 }
 
 const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCardProps) => {
-  // Count only first DMs for quota (not follow-ups)
+  const [inmailsThisMonth, setInmailsThisMonth] = useState(0);
+  const [copied, setCopied] = useState(false);
+
   const firstDMsToday = activities.filter(a => a.type === 'first_dm' || a.type === 'message_sent').length;
   const followUpsToday = activities.filter(a => a.type === 'follow_up_dm').length;
   const repliesToday = activities.filter(a => a.type === 'reply_received').length;
   const callsToday = activities.filter(a => a.type === 'call_booked').length;
+  const totalMessages = firstDMsToday + followUpsToday;
 
   const progressPercent = Math.min((firstDMsToday / dailyTarget) * 100, 100);
-  
-  // Status badge
+
+  // Load InMails count for the month
+  useEffect(() => {
+    const loadInmails = async () => {
+      const now = new Date();
+      const monthStart = startOfMonth(now).toISOString();
+      const monthEnd = endOfMonth(now).toISOString();
+
+      const { count } = await (supabase
+        .from('activity_logs')
+        .select('*', { count: 'exact', head: true }) as any)
+        .eq('message_type', 'inmail')
+        .gte('created_at', monthStart)
+        .lte('created_at', monthEnd);
+
+      setInmailsThisMonth(count || 0);
+    };
+    loadInmails();
+  }, [activities]);
+
   const getStatusBadge = () => {
     if (firstDMsToday >= dailyTarget) {
       return <Badge className="bg-green-100 text-green-700 border-green-300">✅ Quota atteint !</Badge>;
     }
-    const now = new Date();
-    const hour = now.getHours();
-    if (hour < 12) {
-      return <Badge className="bg-blue-100 text-blue-700 border-blue-300">🌅 Matin</Badge>;
-    }
-    if (hour < 17) {
-      return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">⏳ En cours</Badge>;
-    }
-    if (firstDMsToday < dailyTarget * 0.5) {
-      return <Badge className="bg-red-100 text-red-700 border-red-300">⚠️ En retard</Badge>;
-    }
+    const hour = new Date().getHours();
+    if (hour < 12) return <Badge className="bg-blue-100 text-blue-700 border-blue-300">🌅 Matin</Badge>;
+    if (hour < 17) return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">⏳ En cours</Badge>;
+    if (firstDMsToday < dailyTarget * 0.5) return <Badge className="bg-red-100 text-red-700 border-red-300">⚠️ En retard</Badge>;
     return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">📊 Presque</Badge>;
   };
 
-  // Get DM activities sorted by time (most recent first)
   const dmActivities = activities
     .filter(a => a.type === 'first_dm' || a.type === 'message_sent' || a.type === 'follow_up_dm')
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 8);
+
+  // WhatsApp summary generator
+  const copyWhatsAppSummary = () => {
+    const today = format(new Date(), "dd/MM/yyyy", { locale: fr });
+    const summary = `📊 Résumé du ${today} :\n- ${firstDMsToday} messages d'ouverture\n- ${followUpsToday} relances\n- ${inmailsThisMonth} InMails utilisés ce mois (sur 15)\n- ${repliesToday} réponses reçues\n- ${callsToday} RDV bookés via iClose\n- Total messages : ${totalMessages}`;
+    
+    navigator.clipboard.writeText(summary).then(() => {
+      setCopied(true);
+      toast.success("Résumé copié ! Colle-le dans WhatsApp 📱");
+      setTimeout(() => setCopied(false), 3000);
+    });
+  };
 
   if (loading) {
     return (
@@ -72,7 +101,18 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
           <Clock className="w-5 h-5 text-foreground" />
           Activité du Jour
         </h2>
-        {getStatusBadge()}
+        <div className="flex items-center gap-2">
+          {getStatusBadge()}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={copyWhatsAppSummary}
+            className="border-green-300 text-green-600 hover:bg-green-50 hover:border-green-400"
+          >
+            {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+            {copied ? "Copié !" : "Résumé WhatsApp"}
+          </Button>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -83,21 +123,18 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
             <span className={firstDMsToday >= dailyTarget ? "text-green-600" : "text-foreground"}>
               {firstDMsToday}
             </span>
-            <span className="text-muted-foreground">/{dailyTarget} DM</span>
+            <span className="text-muted-foreground">/{dailyTarget} ouvertures</span>
           </span>
         </div>
-        <Progress 
-          value={progressPercent} 
-          className="h-3"
-        />
+        <Progress value={progressPercent} className="h-3" />
       </div>
 
       {/* Mini stats */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-5 gap-2 mb-4">
         <div className="text-center p-2 rounded-lg bg-blue-50 border border-blue-200">
           <Send className="w-4 h-4 mx-auto mb-1 text-blue-600" />
           <div className="text-lg font-bold text-blue-700">{firstDMsToday}</div>
-          <div className="text-xs text-blue-600">1ers DM</div>
+          <div className="text-xs text-blue-600">Ouvertures</div>
         </div>
         <div className="text-center p-2 rounded-lg bg-cyan-50 border border-cyan-200">
           <RotateCcw className="w-4 h-4 mx-auto mb-1 text-cyan-600" />
@@ -114,16 +151,22 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
           <div className="text-lg font-bold text-green-700">{callsToday}</div>
           <div className="text-xs text-green-600">Calls</div>
         </div>
+        <div className="text-center p-2 rounded-lg bg-amber-50 border border-amber-200">
+          <Mail className="w-4 h-4 mx-auto mb-1 text-amber-600" />
+          <div className="text-lg font-bold text-amber-700">{inmailsThisMonth}</div>
+          <div className="text-xs text-amber-600">InMails/mois</div>
+          <div className="text-[10px] text-amber-500">(max 15)</div>
+        </div>
       </div>
 
       {/* DM list */}
       <div>
         <h3 className="text-sm font-medium text-muted-foreground mb-2">
-          Prospects DM aujourd'hui
+          Messages envoyés aujourd'hui
         </h3>
         {dmActivities.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Aucun DM envoyé aujourd'hui. C'est le moment de commencer ! 🚀
+            Aucun message envoyé aujourd'hui. C'est le moment de commencer ! 🚀
           </p>
         ) : (
           <div className="space-y-2 max-h-48 overflow-y-auto">

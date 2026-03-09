@@ -6,6 +6,7 @@ import { Users, TrendingUp, Clock, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import TodayActivityCard from "@/components/dashboard/TodayActivityCard";
+import FollowUpsTodayCard from "@/components/dashboard/FollowUpsTodayCard";
 import { startOfDay, endOfDay } from "date-fns";
 import { useProspects } from "@/hooks/useProspects";
 
@@ -152,8 +153,12 @@ const Dashboard = () => {
             activities={todayActivities}
             dailyTarget={dailyTarget}
             loading={activitiesLoading}
-          />
+           />
 
+          {/* Follow-ups due today */}
+          <FollowUpsTodayCard 
+            prospects={activeProspects}
+          />
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stats.map((stat, index) => <Card 
