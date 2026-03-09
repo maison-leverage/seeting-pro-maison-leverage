@@ -32,6 +32,7 @@ interface SectionContent {
 }
 
 interface FormationData {
+  cadrage: SectionContent;
   crm: SectionContent;
   seo: SectionContent;
   avatar: SectionContent;
