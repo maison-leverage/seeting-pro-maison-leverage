@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2, MonitorSmartphone } from "lucide-react";
+import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2, MonitorSmartphone, ShieldCheck } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ interface SectionContent {
 }
 
 interface FormationData {
+  cadrage: SectionContent;
   crm: SectionContent;
   seo: SectionContent;
   avatar: SectionContent;
@@ -41,6 +42,7 @@ interface FormationData {
 }
 
 const defaultData: FormationData = {
+  cadrage: { text: "", videos: [] },
   crm: { text: "", videos: [] },
   seo: { text: "", videos: [] },
   avatar: { text: "", videos: [] },
@@ -50,6 +52,7 @@ const defaultData: FormationData = {
 };
 
 const sections = [
+  { key: "cadrage", title: "Cadrage — Ce qu'il faut savoir avant de commencer", icon: ShieldCheck },
   { key: "crm", title: "Comment fonctionne le CRM ?", icon: MonitorSmartphone },
   { key: "seo", title: "Comprendre le SEO", icon: Search },
   { key: "avatar", title: "Qui est notre avatar ?", icon: Target },
@@ -82,6 +85,7 @@ const Formation = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newVideoUrls, setNewVideoUrls] = useState<Record<string, string>>({
+    cadrage: "",
     crm: "",
     seo: "",
     avatar: "",
@@ -90,6 +94,7 @@ const Formation = () => {
     booking: "",
   });
   const [newVideoTitles, setNewVideoTitles] = useState<Record<string, string>>({
+    cadrage: "",
     crm: "",
     seo: "",
     avatar: "",
@@ -282,7 +287,7 @@ const Formation = () => {
           )}
 
           {/* Sections */}
-          <Accordion type="multiple" className="space-y-4" defaultValue={["seo"]}>
+          <Accordion type="multiple" className="space-y-4" defaultValue={["cadrage"]}>
             {sections.map((section) => {
               const Icon = section.icon;
               const sectionData = data[section.key];
@@ -406,7 +411,17 @@ const Formation = () => {
                           />
                         ) : (
                           <div className="p-4 rounded-lg bg-muted/30 border border-border whitespace-pre-wrap text-sm leading-relaxed">
-                            {sectionData.text || <span className="text-muted-foreground italic">Aucun contenu</span>}
+                            {sectionData.text ? (
+                              sectionData.text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+                                part.startsWith('**') && part.endsWith('**') ? (
+                                  <strong key={i} className="font-bold text-foreground">{part.slice(2, -2)}</strong>
+                                ) : (
+                                  <span key={i}>{part}</span>
+                                )
+                              )
+                            ) : (
+                              <span className="text-muted-foreground italic">Aucun contenu</span>
+                            )}
                           </div>
                         )}
                       </div>
