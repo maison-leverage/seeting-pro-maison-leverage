@@ -51,6 +51,7 @@ const defaultData: FormationData = {
 };
 
 const sections = [
+  { key: "cadrage", title: "Cadrage — Ce qu'il faut savoir avant de commencer", icon: ShieldCheck },
   { key: "crm", title: "Comment fonctionne le CRM ?", icon: MonitorSmartphone },
   { key: "seo", title: "Comprendre le SEO", icon: Search },
   { key: "avatar", title: "Qui est notre avatar ?", icon: Target },
