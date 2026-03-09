@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2, MonitorSmartphone, ShieldCheck } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
+import CadrageContent from "@/components/formation/CadrageContent";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -398,33 +399,37 @@ const Formation = () => {
                       )}
 
                       {/* Text content */}
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-2 block">
-                          📝 Contenu
-                        </label>
-                        {isAdmin ? (
-                          <Textarea
-                            value={sectionData.text}
-                            onChange={(e) => updateText(section.key, e.target.value)}
-                            placeholder="Écrivez votre contenu ici..."
-                            className="min-h-[150px] resize-y"
-                          />
-                        ) : (
-                          <div className="p-4 rounded-lg bg-muted/30 border border-border whitespace-pre-wrap text-sm leading-relaxed">
-                            {sectionData.text ? (
-                              sectionData.text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
-                                part.startsWith('**') && part.endsWith('**') ? (
-                                  <strong key={i} className="font-bold text-foreground">{part.slice(2, -2)}</strong>
-                                ) : (
-                                  <span key={i}>{part}</span>
+                      {section.key === "cadrage" ? (
+                        <CadrageContent />
+                      ) : (
+                        <div>
+                          <label className="text-sm font-medium text-foreground mb-2 block">
+                            📝 Contenu
+                          </label>
+                          {isAdmin ? (
+                            <Textarea
+                              value={sectionData.text}
+                              onChange={(e) => updateText(section.key, e.target.value)}
+                              placeholder="Écrivez votre contenu ici..."
+                              className="min-h-[150px] resize-y"
+                            />
+                          ) : (
+                            <div className="p-4 rounded-lg bg-muted/30 border border-border whitespace-pre-wrap text-sm leading-relaxed">
+                              {sectionData.text ? (
+                                sectionData.text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+                                  part.startsWith('**') && part.endsWith('**') ? (
+                                    <strong key={i} className="font-bold text-foreground">{part.slice(2, -2)}</strong>
+                                  ) : (
+                                    <span key={i}>{part}</span>
+                                  )
                                 )
-                              )
-                            ) : (
-                              <span className="text-muted-foreground italic">Aucun contenu</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                              ) : (
+                                <span className="text-muted-foreground italic">Aucun contenu</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
