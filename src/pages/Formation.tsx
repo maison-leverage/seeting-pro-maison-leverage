@@ -287,7 +287,7 @@ const Formation = () => {
           )}
 
           {/* Sections */}
-          <Accordion type="multiple" className="space-y-4" defaultValue={["seo"]}>
+          <Accordion type="multiple" className="space-y-4" defaultValue={["cadrage"]}>
             {sections.map((section) => {
               const Icon = section.icon;
               const sectionData = data[section.key];
