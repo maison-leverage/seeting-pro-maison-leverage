@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { GraduationCap, Search, Target, Users, Calendar, Save, Plus, Trash2, Play, CalendarCheck, Lock, Loader2, MonitorSmartphone, ShieldCheck } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
+import CadrageContent from "@/components/formation/CadrageContent";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
