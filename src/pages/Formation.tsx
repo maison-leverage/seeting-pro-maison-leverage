@@ -84,6 +84,7 @@ const Formation = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newVideoUrls, setNewVideoUrls] = useState<Record<string, string>>({
+    cadrage: "",
     crm: "",
     seo: "",
     avatar: "",
@@ -92,6 +93,7 @@ const Formation = () => {
     booking: "",
   });
   const [newVideoTitles, setNewVideoTitles] = useState<Record<string, string>>({
+    cadrage: "",
     crm: "",
     seo: "",
     avatar: "",
