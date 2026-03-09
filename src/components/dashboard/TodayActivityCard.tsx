@@ -42,10 +42,10 @@ const TodayActivityCard = ({ activities, dailyTarget, loading }: TodayActivityCa
       const monthStart = startOfMonth(now).toISOString();
       const monthEnd = endOfMonth(now).toISOString();
 
-      const { count } = await supabase
+      const { count } = await (supabase
         .from('activity_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('message_type' as any, 'inmail')
+        .select('*', { count: 'exact', head: true }) as any)
+        .eq('message_type', 'inmail')
         .gte('created_at', monthStart)
         .lte('created_at', monthEnd);
 
