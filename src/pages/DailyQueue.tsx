@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock } from "lucide-react";
+import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProspects } from "@/hooks/useProspects";
@@ -17,8 +17,33 @@ import { isPast, isToday, addDays, differenceInDays, startOfDay, endOfDay } from
 const FOLLOW_UP_DAYS = [4, 10, 15];
 const ADVANCED_STATUSES = ["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"];
 
+// Types for A/B testing
+interface MessageVariant {
+  id: string;
+  name: string;
+  category: string;
+  content: string;
+  is_control: boolean;
+}
+
+// Fill template placeholders with prospect data
+const fillTemplate = (template: string, prospect: Prospect): string => {
+  const prenom = prospect.fullName.split(" ")[0];
+  return template
+    .replace(/{prenom}/g, prenom)
+    .replace(/{position}/g, prospect.position)
+    .replace(/{company}/g, prospect.company);
+};
+
+// Pick a random variant from matching category
+const pickVariant = (variants: MessageVariant[], category: string): MessageVariant | null => {
+  const matching = variants.filter(v => v.category === category);
+  if (matching.length === 0) return null;
+  return matching[Math.floor(Math.random() * matching.length)];
+};
+
 // Message templates
-const getFirstMessage = (prospect: Prospect): string => {
+const getFirstMessageFallback = (prospect: Prospect): string => {
   const prenom = prospect.fullName.split(" ")[0];
   const templates: Record<ProspectSource, string> = {
     inbound: `Salut ${prenom} 👋\n\nMerci pour l'ajout ! J'ai vu que tu étais ${prospect.position} chez ${prospect.company}.\n\nOn accompagne des entreprises comme la tienne en SEO & GEO pour générer du trafic qualifié.\n\nEst-ce que c'est un sujet qui t'intéresse ?`,
@@ -29,7 +54,7 @@ const getFirstMessage = (prospect: Prospect): string => {
   return templates[prospect.source] || templates.outbound;
 };
 
-const getFollowUpMessage = (prospect: Prospect, followUpNumber: number): string => {
+const getFollowUpFallback = (prospect: Prospect, followUpNumber: number): string => {
   const prenom = prospect.fullName.split(" ")[0];
   const messages: Record<number, string> = {
     1: `Salut ${prenom}, je me permets de revenir vers toi 😊\n\nAs-tu eu l'occasion de réfléchir à ce que je t'avais partagé sur le SEO & GEO ?\n\nJe serais ravie d'en discuter si ça t'intéresse !`,
@@ -45,15 +70,20 @@ interface QueueItem {
   message: string;
   followUpNumber?: number;
   daysLate?: number;
+  variantId?: string;
+  variantName?: string;
+  isABTest?: boolean;
 }
 
 const DailyQueue = () => {
   const navigate = useNavigate();
   const { prospects, todayCount, refresh } = useProspects();
   const [todayActivityCount, setTodayActivityCount] = useState(0);
+  const [variants, setVariants] = useState<MessageVariant[]>([]);
 
   useEffect(() => {
     loadTodayCount();
+    loadVariants();
   }, []);
 
   const loadTodayCount = async () => {
@@ -64,6 +94,62 @@ const DailyQueue = () => {
       .gte('created_at', startOfDay(today).toISOString())
       .lte('created_at', endOfDay(today).toISOString());
     setTodayActivityCount(count || 0);
+  };
+
+  const loadVariants = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('message_variants')
+        .select('*');
+      if (error) throw error;
+      setVariants((data as MessageVariant[]) || []);
+    } catch (error) {
+      console.error('Failed to load message variants:', error);
+      setVariants([]);
+    }
+  };
+
+  const trackSend = async (prospectId: string, variantId?: string) => {
+    try {
+      await supabase.from('message_sends').insert({
+        prospect_id: prospectId,
+        variant_id: variantId || null,
+        created_at: new Date().toISOString(),
+        got_reply: false,
+      } as any);
+    } catch (error) {
+      console.error('Failed to track message send:', error);
+    }
+  };
+
+  // Helper function to get first message with A/B testing
+  const getFirstMessage = (prospect: Prospect): { message: string; variantId?: string; variantName?: string; isABTest?: boolean } => {
+    const category = `first_dm_${prospect.source}`;
+    const variant = pickVariant(variants, category);
+    if (variant) {
+      return {
+        message: fillTemplate(variant.content, prospect),
+        variantId: variant.id,
+        variantName: variant.name,
+        isABTest: variants.filter(v => v.category === category).length > 1,
+      };
+    }
+    return { message: getFirstMessageFallback(prospect) };
+  };
+
+  // Helper function to get follow-up message with A/B testing
+  const getFollowUpMessage = (prospect: Prospect, followUpNumber: number): { message: string; variantId?: string; variantName?: string; isABTest?: boolean } => {
+    const category = `followup_${followUpNumber}`;
+    const variant = pickVariant(variants, category);
+    if (variant) {
+      return {
+        message: fillTemplate(variant.content, prospect),
+        variantId: variant.id,
+        variantName: variant.name,
+        isABTest: variants.filter(v => v.category === category).length > 1,
+      };
+    }
+    return { message: getFollowUpFallback(prospect, followUpNumber) };
   };
 
   const activeProspects = prospects.filter(p => !p.no_follow_up && !ADVANCED_STATUSES.includes(p.status));
@@ -84,12 +170,16 @@ const DailyQueue = () => {
     reminder.setHours(0, 0, 0, 0);
     const daysLate = differenceInDays(todayDate, reminder);
     const followUpNumber = p.followUpCount + 1;
+    const { message, variantId, variantName, isABTest } = getFollowUpMessage(p, followUpNumber);
     queueItems.push({
       prospect: p,
       section: 'overdue',
-      message: getFollowUpMessage(p, followUpNumber),
+      message,
       followUpNumber,
       daysLate,
+      variantId,
+      variantName,
+      isABTest,
     });
   });
 
@@ -101,11 +191,15 @@ const DailyQueue = () => {
     return reminder.getTime() === todayDate.getTime() && p.followUpCount < 3;
   }).forEach(p => {
     const followUpNumber = p.followUpCount + 1;
+    const { message, variantId, variantName, isABTest } = getFollowUpMessage(p, followUpNumber);
     queueItems.push({
       prospect: p,
       section: 'today',
-      message: getFollowUpMessage(p, followUpNumber),
+      message,
       followUpNumber,
+      variantId,
+      variantName,
+      isABTest,
     });
   });
 
@@ -116,7 +210,8 @@ const DailyQueue = () => {
 
   // 4. New prospects
   activeProspects.filter(p => p.status === 'nouveau').forEach(p => {
-    queueItems.push({ prospect: p, section: 'new', message: getFirstMessage(p) });
+    const { message, variantId, variantName, isABTest } = getFirstMessage(p);
+    queueItems.push({ prospect: p, section: 'new', message, variantId, variantName, isABTest });
   });
 
   // 5. Pending dispos
@@ -147,37 +242,41 @@ const DailyQueue = () => {
     toast.success("Message copié ! 📋");
   };
 
-  const handleMarkDone = async (prospect: Prospect, section: string) => {
+  const handleMarkDone = async (item: QueueItem) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
     const { data: profile } = await supabase.from('profiles').select('name').eq('id', session.user.id).maybeSingle();
     const userName = profile?.name || session.user.email || 'Utilisateur';
 
-    if (section === 'new') {
+    if (item.section === 'new') {
+      await trackSend(item.prospect.id, item.variantId);
       await supabase.from('activity_logs').insert({
-        type: 'first_dm', user_name: userName, lead_id: prospect.id,
-        user_id: session.user.id, prospect_name: prospect.fullName, prospect_company: prospect.company,
-      });
+        type: 'first_dm', user_name: userName, lead_id: item.prospect.id,
+        user_id: session.user.id, prospect_name: item.prospect.fullName, prospect_company: item.prospect.company,
+        variant_id: item.variantId || null,
+      } as any);
       const now = new Date();
       await supabase.from('prospects').update({
         status: 'premier_dm', first_message_date: now.toISOString(),
         reminder_date: addDays(now, FOLLOW_UP_DAYS[0]).toISOString(),
-      }).eq('id', prospect.id);
+      }).eq('id', item.prospect.id);
       toast.success("1er DM enregistré !");
-    } else if (section === 'overdue' || section === 'today') {
-      const newCount = prospect.followUpCount + 1;
+    } else if (item.section === 'overdue' || item.section === 'today') {
+      const newCount = item.prospect.followUpCount + 1;
+      await trackSend(item.prospect.id, item.variantId);
       await supabase.from('activity_logs').insert({
-        type: 'follow_up_dm', user_name: userName, lead_id: prospect.id,
-        user_id: session.user.id, prospect_name: prospect.fullName, prospect_company: prospect.company,
-      });
+        type: 'follow_up_dm', user_name: userName, lead_id: item.prospect.id,
+        user_id: session.user.id, prospect_name: item.prospect.fullName, prospect_company: item.prospect.company,
+        variant_id: item.variantId || null,
+      } as any);
       const updateData: Record<string, any> = { follow_up_count: newCount };
-      if (newCount < 3 && prospect.firstMessageDate) {
-        updateData.reminder_date = addDays(new Date(prospect.firstMessageDate), FOLLOW_UP_DAYS[newCount]).toISOString();
+      if (newCount < 3 && item.prospect.firstMessageDate) {
+        updateData.reminder_date = addDays(new Date(item.prospect.firstMessageDate), FOLLOW_UP_DAYS[newCount]).toISOString();
       } else {
         updateData.reminder_date = null;
       }
-      await supabase.from('prospects').update(updateData).eq('id', prospect.id);
+      await supabase.from('prospects').update(updateData).eq('id', item.prospect.id);
       toast.success(`Relance ${newCount} enregistrée !`);
     }
 
@@ -195,6 +294,27 @@ const DailyQueue = () => {
       type: 'reply_received', user_name: userName, lead_id: prospect.id,
       user_id: session.user.id, prospect_name: prospect.fullName, prospect_company: prospect.company,
     });
+
+    // Mark the last message_send as got_reply=true
+    try {
+      const { data: lastSend } = await supabase
+        .from('message_sends')
+        .select('id')
+        .eq('prospect_id', prospect.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lastSend) {
+        await supabase
+          .from('message_sends')
+          .update({ got_reply: true })
+          .eq('id', lastSend.id);
+      }
+    } catch (error) {
+      console.error('Failed to update message_send reply status:', error);
+    }
+
     await supabase.from('prospects').update({ status: 'reponse' }).eq('id', prospect.id);
     toast.success("Réponse enregistrée !");
     refresh();
@@ -217,21 +337,21 @@ const DailyQueue = () => {
             </div>
             <Progress value={progressPercent} className="h-3 mb-4" />
             <div className="grid grid-cols-4 gap-3">
-              <div className="text-center p-3 rounded-lg bg-red-50 border border-red-200">
-                <div className="text-2xl font-bold text-red-700">{sections[0].items.length}</div>
-                <div className="text-xs text-red-600">En retard</div>
+              <div className="text-center p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                <div className="text-2xl font-bold text-destructive">{sections[0].items.length}</div>
+                <div className="text-xs text-destructive/70">En retard</div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-orange-50 border border-orange-200">
-                <div className="text-2xl font-bold text-orange-700">{sections[0].items.length + sections[1].items.length}</div>
-                <div className="text-xs text-orange-600">Relances</div>
+              <div className="text-center p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                <div className="text-2xl font-bold text-orange-600">{sections[0].items.length + sections[1].items.length}</div>
+                <div className="text-xs text-orange-600/70">Relances</div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
-                <div className="text-2xl font-bold text-blue-700">{sections[3].items.length}</div>
-                <div className="text-xs text-blue-600">1ers DM</div>
+              <div className="text-center p-3 rounded-lg bg-primary/10 border border-primary/30">
+                <div className="text-2xl font-bold text-primary">{sections[3].items.length}</div>
+                <div className="text-xs text-primary/70">1ers DM</div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                <div className="text-2xl font-bold text-yellow-700">{sections[2].items.length}</div>
-                <div className="text-xs text-yellow-600">Réponses</div>
+              <div className="text-center p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <div className="text-2xl font-bold text-yellow-600">{sections[2].items.length}</div>
+                <div className="text-xs text-yellow-600/70">Réponses</div>
               </div>
             </div>
           </Card>
@@ -274,6 +394,12 @@ const DailyQueue = () => {
                               {item.daysLate}j en retard
                             </Badge>
                           )}
+                          {item.isABTest && (
+                            <Badge className="bg-purple-600 text-white text-xs">
+                              <FlaskConical className="w-3 h-3 mr-1" />
+                              A/B Test
+                            </Badge>
+                          )}
                         </div>
                       </div>
 
@@ -304,7 +430,7 @@ const DailyQueue = () => {
                             <Button size="sm" variant="outline" onClick={() => handleReplyReceived(item.prospect)} className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">
                               <MessageCircle className="w-4 h-4 mr-1" /> Réponse reçue
                             </Button>
-                            <Button size="sm" onClick={() => handleMarkDone(item.prospect, section.key)} className="bg-green-600 hover:bg-green-700 text-white">
+                            <Button size="sm" onClick={() => handleMarkDone(item)} className="bg-green-600 hover:bg-green-700 text-white">
                               <Check className="w-4 h-4 mr-1" /> Fait ✓
                             </Button>
                           </>

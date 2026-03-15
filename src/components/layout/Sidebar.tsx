@@ -13,6 +13,7 @@ import {
   GraduationCap,
   ListChecks,
   Calendar,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ const navigation = [
     ],
   },
   { name: "Formation", href: "/formation", icon: GraduationCap },
+  { name: "Admin & A/B Tests", href: "/admin", icon: Shield },
 ];
 
 interface SidebarProps {

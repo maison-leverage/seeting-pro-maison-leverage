@@ -12,6 +12,7 @@ import Templates from "./pages/Templates";
 import TemplateAnalytics from "./pages/TemplateAnalytics";
 import Formation from "./pages/Formation";
 import DailyQueue from "./pages/DailyQueue";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/templates" element={<Templates />} />
             <Route path="/templates/analytics" element={<TemplateAnalytics />} />
             <Route path="/formation" element={<Formation />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
