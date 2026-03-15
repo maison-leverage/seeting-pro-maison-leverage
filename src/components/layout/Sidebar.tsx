@@ -11,6 +11,8 @@ import {
   LineChart,
   BookOpen,
   GraduationCap,
+  ListChecks,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -18,9 +20,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import maisonLeverageLogo from "@/assets/maison-leverage-logo.png";
 
-import { Calendar } from "lucide-react";
-
 const navigation = [
+  { name: "Ma file du jour", href: "/daily", icon: ListChecks },
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   {
     name: "Prospects",
@@ -70,24 +71,16 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
 
   return (
     <div className="w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0">
-      {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex flex-col gap-2">
-          <h1 className="font-bold text-lg text-foreground">
-            Setting Pro LinkedIn
-          </h1>
+          <h1 className="font-bold text-lg text-foreground">Setting Pro LinkedIn</h1>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">by</span>
-            <img 
-              src={maisonLeverageLogo} 
-              alt="Maison Leverage" 
-              className="h-5 object-contain"
-            />
+            <img src={maisonLeverageLogo} alt="Maison Leverage" className="h-5 object-contain" />
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
         {navigation.map((item) => (
           <div key={item.name}>
@@ -106,6 +99,11 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
               >
                 <item.icon className="w-5 h-5" />
                 <span className="font-medium text-sm">{item.name}</span>
+                {item.name === "Ma file du jour" && todayCount > 0 && (
+                  <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                    {todayCount}
+                  </span>
+                )}
               </NavLink>
             ) : (
               <div className="flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground">
@@ -119,7 +117,6 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
               </div>
             )}
 
-            {/* Sub-items */}
             {item.subItems && (
               <div className="ml-8 mt-1 space-y-1">
                 {item.subItems.map((subItem) => (
@@ -150,7 +147,6 @@ const Sidebar = ({ todayCount = 0 }: SidebarProps) => {
         ))}
       </nav>
 
-      {/* User profile & logout */}
       <div className="p-4 border-t border-sidebar-border space-y-3">
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">

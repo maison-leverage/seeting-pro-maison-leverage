@@ -11,6 +11,7 @@ interface FollowUpsTodayCardProps {
 }
 
 const FOLLOW_UP_DAYS = [4, 10, 15];
+const ADVANCED_STATUSES = ["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"];
 
 interface FollowUpItem {
   prospect: Prospect;
@@ -21,29 +22,19 @@ interface FollowUpItem {
 }
 
 const FollowUpsTodayCard = ({ prospects, loading }: FollowUpsTodayCardProps) => {
-  // Calculate which prospects need follow-ups today
   const followUps: FollowUpItem[] = prospects
-    .filter(p => p.firstMessageDate && p.followUpCount < 3 && !p.no_follow_up && p.status !== 'r1_programme' && p.status !== 'discussion')
+    .filter(p => p.firstMessageDate && p.followUpCount < 3 && !p.no_follow_up && !ADVANCED_STATUSES.includes(p.status) && p.status !== 'discussion')
     .map(p => {
       const firstDate = new Date(p.firstMessageDate!);
       const nextDay = FOLLOW_UP_DAYS[p.followUpCount];
       const dueDate = addDays(firstDate, nextDay);
       const isDue = isPast(dueDate) || isToday(dueDate);
       const isLate = isPast(dueDate) && !isToday(dueDate);
-      
       if (!isDue) return null;
-      
-      return {
-        prospect: p,
-        followUpNumber: p.followUpCount + 1,
-        dayLabel: `J+${nextDay}`,
-        dueDate,
-        isLate,
-      };
+      return { prospect: p, followUpNumber: p.followUpCount + 1, dayLabel: `J+${nextDay}`, dueDate, isLate };
     })
     .filter(Boolean) as FollowUpItem[];
 
-  // Sort: late first, then by due date
   followUps.sort((a, b) => {
     if (a.isLate && !b.isLate) return -1;
     if (!a.isLate && b.isLate) return 1;
@@ -82,31 +73,16 @@ const FollowUpsTodayCard = ({ prospects, loading }: FollowUpsTodayCardProps) => 
       ) : (
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {followUps.map((item) => (
-            <div
-              key={item.prospect.id}
-              className={`flex items-center justify-between p-3 rounded-lg border ${
-                item.isLate 
-                  ? 'bg-red-50 border-red-200' 
-                  : 'bg-muted/50 border-border'
-              }`}
-            >
+            <div key={item.prospect.id} className={`flex items-center justify-between p-3 rounded-lg border ${item.isLate ? 'bg-red-50 border-red-200' : 'bg-muted/50 border-border'}`}>
               <div className="flex items-center gap-3">
-                {item.isLate ? (
-                  <AlertTriangle className="w-4 h-4 text-red-500" />
-                ) : (
-                  <Clock className="w-4 h-4 text-amber-500" />
-                )}
+                {item.isLate ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <Clock className="w-4 h-4 text-amber-500" />}
                 <div>
                   <span className="text-sm font-medium text-foreground">{item.prospect.fullName}</span>
                   <span className="text-xs text-muted-foreground ml-1">({item.prospect.company})</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className={
-                  item.isLate 
-                    ? "bg-red-100 text-red-700 border-red-300" 
-                    : "bg-cyan-100 text-cyan-700 border-cyan-300"
-                }>
+                <Badge variant="outline" className={item.isLate ? "bg-red-100 text-red-700 border-red-300" : "bg-cyan-100 text-cyan-700 border-cyan-300"}>
                   Relance {item.followUpNumber} ({item.dayLabel})
                 </Badge>
                 {item.isLate && (

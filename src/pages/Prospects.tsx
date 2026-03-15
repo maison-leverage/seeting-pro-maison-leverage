@@ -27,21 +27,19 @@ const Prospects = () => {
   const [editingProspect, setEditingProspect] = useState<Prospect | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     applyFilters();
-    setCurrentPage(1); // Reset page when filters change
-  }, [prospects, view, searchQuery, statusFilter, priorityFilter]);
+    setCurrentPage(1);
+  }, [prospects, view, searchQuery, statusFilter, sourceFilter]);
 
   useEffect(() => {
-    // Check if we should open the form (from "Nouveau prospect" button)
     const shouldOpenForm = searchParams.get("new");
     if (shouldOpenForm === "true") {
       setEditingProspect(undefined);
       setFormOpen(true);
-      // Clear the query param
       navigate("/prospects?view=" + view, { replace: true });
     }
   }, [searchParams, navigate, view]);
@@ -49,7 +47,6 @@ const Prospects = () => {
   const applyFilters = () => {
     let filtered = [...prospects];
 
-    // Si une recherche est active, chercher dans TOUS les prospects (recherche globale)
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -59,17 +56,14 @@ const Prospects = () => {
           p.position.toLowerCase().includes(query)
       );
     } else {
-      // Sans recherche, appliquer les filtres de vue normaux
-      
-      // Vue R1 Programmés - afficher uniquement les R1
+      // Vue R1 — filtrer sur r1_booke, r1_fait, r2_booke
       if (view === "r1") {
-        filtered = filtered.filter((p) => p.status === "r1_programme");
+        filtered = filtered.filter((p) => ["r1_booke", "r1_fait", "r2_booke"].includes(p.status));
       } else {
-        // Autres vues - exclure les R1 programmés
-        filtered = filtered.filter((p) => p.status !== "r1_programme");
+        // Autres vues — exclure les statuts avancés
+        filtered = filtered.filter((p) => !["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"].includes(p.status));
       }
 
-      // View filters
       const todayDate = new Date();
       todayDate.setHours(0, 0, 0, 0);
       switch (view) {
@@ -84,45 +78,34 @@ const Prospects = () => {
         case "hot":
           filtered = filtered.filter((p) => p.hype === "chaud");
           break;
-        case "refused":
-          filtered = filtered.filter((p) => parseInt(p.priority) >= 8);
-          break;
         default:
           break;
       }
     }
 
-    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((p) => p.status === statusFilter);
     }
 
-    // Priority filter
-    if (priorityFilter !== "all") {
-      filtered = filtered.filter((p) => p.priority === priorityFilter);
+    if (sourceFilter !== "all") {
+      filtered = filtered.filter((p) => p.source === sourceFilter);
     }
 
-    // Sort by reminder date (soonest first), then by priority (highest first)
+    // Sort by reminder date then by hype
+    const hypeOrder: Record<string, number> = { chaud: 3, tiede: 2, froid: 1, rien: 0 };
     filtered.sort((a, b) => {
-      // First sort by reminder date
       if (a.reminderDate && b.reminderDate) {
         const dateA = new Date(a.reminderDate).getTime();
         const dateB = new Date(b.reminderDate).getTime();
         if (dateA !== dateB) return dateA - dateB;
-      } else if (a.reminderDate) {
-        return -1;
-      } else if (b.reminderDate) {
-        return 1;
-      }
-      
-      // Then by priority (higher number = higher priority)
-      return parseInt(b.priority) - parseInt(a.priority);
+      } else if (a.reminderDate) return -1;
+      else if (b.reminderDate) return 1;
+      return (hypeOrder[b.hype] || 0) - (hypeOrder[a.hype] || 0);
     });
 
     setFilteredProspects(filtered);
   };
 
-  // Pagination
   const totalPages = Math.ceil(filteredProspects.length / PROSPECTS_PER_PAGE);
   const paginatedProspects = filteredProspects.slice(
     (currentPage - 1) * PROSPECTS_PER_PAGE,
@@ -134,13 +117,8 @@ const Prospects = () => {
     if (!user) return;
 
     if (editingProspect) {
-      // Update existing
       const dbData = mapProspectToDb(prospectData);
-      const { error } = await supabase
-        .from('prospects')
-        .update(dbData)
-        .eq('id', editingProspect.id);
-
+      const { error } = await supabase.from('prospects').update(dbData).eq('id', editingProspect.id);
       if (error) {
         console.error('Error updating prospect:', error);
         toast.error("Erreur lors de la modification");
@@ -148,7 +126,6 @@ const Prospects = () => {
       }
       toast.success("Prospect modifié !");
     } else {
-      // Create new
       const { data: newProspect, error } = await supabase
         .from('prospects')
         .insert({
@@ -157,8 +134,9 @@ const Prospects = () => {
           company: prospectData.company!,
           position: prospectData.position,
           linkedin_url: prospectData.linkedinUrl,
-          status: prospectData.status || "rien",
-          priority: "rien", // Toujours "rien" au départ, calculé automatiquement
+          email: prospectData.email,
+          status: prospectData.status || "nouveau",
+          source: prospectData.source || "outbound",
           qualification: prospectData.qualification || "rien",
           hype: prospectData.hype || "rien",
           tags: prospectData.tags || [],
@@ -175,26 +153,17 @@ const Prospects = () => {
         return;
       }
 
-      // Si le prospect a une date de premier message, enregistrer l'activité "first_dm"
       if (prospectData.firstMessageDate && newProspect) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', user.id)
-          .maybeSingle();
-
+        const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).maybeSingle();
         const userName = profile?.name || user.email || 'Utilisateur';
-
-        await supabase
-          .from('activity_logs')
-          .insert({
-            type: 'first_dm',
-            user_name: userName,
-            lead_id: newProspect.id,
-            user_id: user.id,
-            prospect_name: prospectData.fullName,
-            prospect_company: prospectData.company
-          });
+        await supabase.from('activity_logs').insert({
+          type: 'first_dm',
+          user_name: userName,
+          lead_id: newProspect.id,
+          user_id: user.id,
+          prospect_name: prospectData.fullName,
+          prospect_company: prospectData.company
+        });
       }
 
       toast.success("Prospect ajouté !");
@@ -211,21 +180,12 @@ const Prospects = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Archiver ce prospect ? Il ne sera plus visible mais restera dans les statistiques.")) return;
-
-    const { error } = await supabase
-      .from('prospects')
-      .update({ 
-        is_deleted: true, 
-        deleted_at: new Date().toISOString() 
-      })
-      .eq('id', id);
-
+    const { error } = await supabase.from('prospects').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', id);
     if (error) {
       console.error('Error archiving prospect:', error);
       toast.error("Erreur lors de l'archivage");
       return;
     }
-
     toast.success("Prospect archivé");
     refresh();
   };
@@ -237,31 +197,17 @@ const Prospects = () => {
     }
 
     const headers = [
-      "Nom complet",
-      "Entreprise",
-      "Poste",
-      "LinkedIn",
-      "Statut",
-      "Relances",
-      "Value Bomb/Qualification",
-      "Hype",
-      "Date de relance",
-      "Date premier message",
-      "Nombre de follow-up"
+      "Nom complet", "Entreprise", "Poste", "LinkedIn", "Email",
+      "Statut", "Source", "Value Bomb/Qualification", "Hype",
+      "Date de relance", "Date premier message", "Nombre de follow-up"
     ];
 
     const csvRows = [headers.join(",")];
-
     filteredProspects.forEach((prospect) => {
       const row = [
-        `"${prospect.fullName}"`,
-        `"${prospect.company}"`,
-        `"${prospect.position}"`,
-        `"${prospect.linkedinUrl}"`,
-        `"${prospect.status}"`,
-        `"${prospect.priority}"`,
-        `"${prospect.qualification}"`,
-        `"${prospect.hype}"`,
+        `"${prospect.fullName}"`, `"${prospect.company}"`, `"${prospect.position}"`,
+        `"${prospect.linkedinUrl}"`, `"${prospect.email || ""}"`, `"${prospect.status}"`,
+        `"${prospect.source}"`, `"${prospect.qualification}"`, `"${prospect.hype}"`,
         prospect.reminderDate ? new Date(prospect.reminderDate).toLocaleDateString("fr-FR") : "",
         prospect.firstMessageDate ? new Date(prospect.firstMessageDate).toLocaleDateString("fr-FR") : "",
         prospect.followUpCount || 0
@@ -273,34 +219,23 @@ const Prospects = () => {
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    
     link.setAttribute("href", url);
     link.setAttribute("download", `prospects_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
     toast.success(`${filteredProspects.length} prospects exportés !`);
   };
 
   const getViewTitle = () => {
-    if (searchQuery) {
-      return `🔍 Recherche : "${searchQuery}"`;
-    }
+    if (searchQuery) return `🔍 Recherche : "${searchQuery}"`;
     switch (view) {
-      case "today":
-        return "📌 À relancer aujourd'hui";
-      case "hot":
-        return "🔥 Prospects chauds";
-      case "r1":
-        return "🎯 R1 Programmés";
-      case "waiting":
-        return "⏰ En attente de réponse";
-      case "refused":
-        return "❌ Refus";
-      default:
-        return "📊 Tous les prospects";
+      case "today": return "📌 À relancer aujourd'hui";
+      case "hot": return "🔥 Prospects chauds";
+      case "r1": return "🎯 R1 / R2 en cours";
+      case "waiting": return "⏰ En attente de réponse";
+      default: return "📊 Tous les prospects";
     }
   };
 
@@ -308,47 +243,26 @@ const Prospects = () => {
     <div className="min-h-screen flex w-full bg-background">
       <Sidebar todayCount={todayCount} />
       <div className="flex-1 ml-64">
-        <Header
-          onNewProspect={() => {
-            setEditingProspect(undefined);
-            setFormOpen(true);
-          }}
-          notificationCount={todayCount}
-        />
-
+        <Header onNewProspect={() => { setEditingProspect(undefined); setFormOpen(true); }} notificationCount={todayCount} />
         <main className="p-6 space-y-6 animate-fade-in">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">{getViewTitle()}</h1>
-              <p className="text-muted-foreground">
-                {filteredProspects.length} prospect{filteredProspects.length > 1 ? "s" : ""}
-              </p>
+              <p className="text-muted-foreground">{filteredProspects.length} prospect{filteredProspects.length > 1 ? "s" : ""}</p>
             </div>
           </div>
 
-          {/* Filters */}
           <div className="flex gap-4 items-center flex-wrap">
             <div className="flex-1 min-w-[300px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher un prospect..."
-                  className="pl-10 bg-input border-border/50"
-                />
+                <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher un prospect..." className="pl-10 bg-input border-border/50" />
               </div>
             </div>
 
             <DuplicateDetector prospects={prospects} onEdit={handleEdit} onDelete={handleDelete} />
 
-            <Button
-              onClick={handleExportCSV}
-              variant="outline"
-              className="gap-2"
-              disabled={filteredProspects.length === 0}
-            >
+            <Button onClick={handleExportCSV} variant="outline" className="gap-2" disabled={filteredProspects.length === 0}>
               <Download className="w-4 h-4" />
               Exporter CSV
             </Button>
@@ -360,44 +274,39 @@ const Prospects = () => {
               </SelectTrigger>
               <SelectContent className="bg-popover border-border/50">
                 <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="rien">⚪ Rien</SelectItem>
-                <SelectItem value="premier_message">📩 1ᵉʳ message envoyé</SelectItem>
+                <SelectItem value="nouveau">🆕 Nouveau</SelectItem>
+                <SelectItem value="premier_dm">📩 1er DM envoyé</SelectItem>
+                <SelectItem value="relance">🔄 En relance</SelectItem>
+                <SelectItem value="reponse">💬 Réponse reçue</SelectItem>
                 <SelectItem value="discussion">🗣️ En discussion</SelectItem>
-                <SelectItem value="r1_programme">🎯 R1 programmé</SelectItem>
+                <SelectItem value="demande_dispos">📅 Dispos demandées</SelectItem>
+                <SelectItem value="r1_booke">🎯 R1 booké</SelectItem>
+                <SelectItem value="r1_fait">✅ R1 fait</SelectItem>
+                <SelectItem value="r2_booke">📆 R2 booké</SelectItem>
+                <SelectItem value="signe">🏆 Signé</SelectItem>
+                <SelectItem value="perdu">❌ Perdu</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
               <SelectTrigger className="w-[200px] bg-input border-border/50">
                 <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Relances" />
+                <SelectValue placeholder="Source" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border/50">
-                <SelectItem value="all">Toutes relances</SelectItem>
-                <SelectItem value="rien">⚪ Rien</SelectItem>
-                <SelectItem value="2">2e relance</SelectItem>
-                <SelectItem value="3">3e relance</SelectItem>
-                <SelectItem value="4">4e relance</SelectItem>
-                <SelectItem value="5">5e relance</SelectItem>
-                <SelectItem value="6">6e relance</SelectItem>
-                <SelectItem value="7">7e relance</SelectItem>
-                <SelectItem value="8">8e relance</SelectItem>
-                <SelectItem value="9">9e relance</SelectItem>
-                <SelectItem value="10">10e relance</SelectItem>
+                <SelectItem value="all">Toutes les sources</SelectItem>
+                <SelectItem value="inbound">📥 Inbound</SelectItem>
+                <SelectItem value="visiteur_profil">👁️ Visiteur profil</SelectItem>
+                <SelectItem value="relation_dormante">💤 Relation dormante</SelectItem>
+                <SelectItem value="outbound">📤 Outbound</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Prospects list */}
           {filteredProspects.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-muted-foreground text-lg mb-4">
-                Aucun prospect trouvé
-              </p>
-              <Button
-                onClick={() => setFormOpen(true)}
-                className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 glow-primary"
-              >
+              <p className="text-muted-foreground text-lg mb-4">Aucun prospect trouvé</p>
+              <Button onClick={() => setFormOpen(true)} className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 glow-primary">
                 Ajouter ton premier prospect
               </Button>
             </div>
@@ -405,67 +314,32 @@ const Prospects = () => {
             <>
               <div className="grid gap-4">
                 {paginatedProspects.map((prospect) => (
-                  <ProspectCard
-                    key={prospect.id}
-                    prospect={prospect}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onActivityLogged={refresh}
-                  />
+                  <ProspectCard key={prospect.id} prospect={prospect} onEdit={handleEdit} onDelete={handleDelete} onActivityLogged={refresh} />
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-4 py-6">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="gap-1"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Précédent
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="gap-1">
+                    <ChevronLeft className="w-4 h-4" /> Précédent
                   </Button>
-                  
                   <div className="flex items-center gap-2">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
+                      if (totalPages <= 5) pageNum = i + 1;
+                      else if (currentPage <= 3) pageNum = i + 1;
+                      else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                      else pageNum = currentPage - 2 + i;
                       return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="w-10"
-                        >
+                        <Button key={pageNum} variant={currentPage === pageNum ? "default" : "outline"} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-10">
                           {pageNum}
                         </Button>
                       );
                     })}
                   </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="gap-1"
-                  >
-                    Suivant
-                    <ChevronRight className="w-4 h-4" />
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="gap-1">
+                    Suivant <ChevronRight className="w-4 h-4" />
                   </Button>
-                  
                   <span className="text-sm text-muted-foreground ml-4">
                     Page {currentPage} sur {totalPages} ({filteredProspects.length} prospects)
                   </span>
@@ -476,12 +350,7 @@ const Prospects = () => {
         </main>
       </div>
 
-      <ProspectForm
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        onSubmit={handleSubmit}
-        initialData={editingProspect}
-      />
+      <ProspectForm open={formOpen} onOpenChange={setFormOpen} onSubmit={handleSubmit} initialData={editingProspect} />
     </div>
   );
 };
