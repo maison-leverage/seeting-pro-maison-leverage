@@ -126,10 +126,11 @@ Analyse en profondeur et réponds en JSON :
       status: 200,
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in analyze-response:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errMsg }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
