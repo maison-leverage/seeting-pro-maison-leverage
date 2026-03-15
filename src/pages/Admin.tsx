@@ -258,7 +258,7 @@ const Admin = () => {
     const results: ABTestResult[] = [];
 
     for (const [category, categoryVariants] of Object.entries(grouped)) {
-      const variantResults = categoryVariants.map((variant) => {
+      let variantResults = categoryVariants.map((variant) => {
         const variantSends = sends.filter((s) => s.variant_id === variant.id);
         const replyCount = variantSends.filter((s) => s.has_reply).length;
         const sendCount = variantSends.length;
@@ -279,15 +279,15 @@ const Admin = () => {
         const minSends = 30;
         const diffThreshold = 5;
 
-        variantResults.forEach((variant) => {
-          variant.isWinner = variant.replyRate === maxRate;
-          // Statistically significant if >30 sends and >5% difference
-          variant.isStatSignificant =
+        variantResults = variantResults.map((variant) => ({
+          ...variant,
+          isWinner: variant.replyRate === maxRate,
+          isStatSignificant:
             variant.sendCount >= minSends &&
             Math.max(...variantResults.map((v) => v.replyRate)) -
               Math.min(...variantResults.map((v) => v.replyRate)) >=
-              diffThreshold;
-        });
+              diffThreshold,
+        }));
       }
 
       results.push({
