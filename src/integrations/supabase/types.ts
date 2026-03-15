@@ -290,6 +290,44 @@ export type Database = {
           },
         ]
       }
+      prospect_responses: {
+        Row: {
+          analysis_data: Json | null
+          created_at: string | null
+          created_by: string
+          id: string
+          prospect_id: string
+          response_sentiment: string | null
+          response_text: string
+        }
+        Insert: {
+          analysis_data?: Json | null
+          created_at?: string | null
+          created_by: string
+          id?: string
+          prospect_id: string
+          response_sentiment?: string | null
+          response_text: string
+        }
+        Update: {
+          analysis_data?: Json | null
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          prospect_id?: string
+          response_sentiment?: string | null
+          response_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_responses_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospects: {
         Row: {
           assigned_to: string | null
