@@ -59,3 +59,38 @@ INSERT INTO message_variants (name, category, content, is_control, is_active) VA
   false,
   true
 );
+
+-- 5. Delete old Relance 1 and insert validated Variante A (Mini-audit PDF)
+DELETE FROM message_variants WHERE category = 'followup_1';
+
+INSERT INTO message_variants (name, category, content, is_control, is_active) VALUES
+(
+  'Relance 1A — Mini-audit PDF',
+  'followup_1',
+  'Re {prenom},
+
+Je me suis dit que le mieux serait de vous montrer directement le potentiel SEO & IA de {company}, j''en ai fait un mini-audit.
+
+C''est pas une analyse complète, juste un aperçu rapide de ce que j''ai trouvé.
+
+Si ça vous parle, je suis dispo pour en discuter !
+
+Océane
+
+[PDF en pièce jointe]',
+  true,
+  true
+),
+(
+  'Relance 1B — Rappel doux',
+  'followup_1',
+  'Hello {prenom},
+
+Est-ce que vous avez vu mon message ?
+
+Je me doute que vous êtes énormément sollicité,
+
+Bonne journée à vous.',
+  false,
+  true
+);

@@ -24,7 +24,10 @@ import {
   Clock,
   AlertCircle,
   CheckCircle2,
-  Plus
+  Plus,
+  BookOpen,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { startOfDay, endOfDay, differenceInDays, parseISO } from "date-fns";
 import { toast } from "sonner";
@@ -128,6 +131,7 @@ const Admin = () => {
     pipelineVelocity: 0,
   });
   const [abTestResults, setAbTestResults] = useState<ABTestResult[]>([]);
+  const [allVariants, setAllVariants] = useState<MessageVariant[]>([]);
   const [pipelineFunnel, setPipelineFunnel] = useState<PipelineFunnelItem[]>([]);
   const [stalledProspects, setStalledProspects] = useState<StalledProspect[]>([]);
 
@@ -245,8 +249,10 @@ const Admin = () => {
 
     if (!variants || variants.length === 0) {
       setAbTestResults([]);
+      setAllVariants([]);
       return;
     }
+    setAllVariants(variants as MessageVariant[]);
 
     // Get all message sends
     const { data: sends } = await supabase
@@ -580,6 +586,67 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Message Library */}
+          <Card className="p-6 border-border/50">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-primary" />
+              Bibliothèque de messages
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Tous les messages actifs, classés par catégorie. C'est ici que tu retrouves tout.
+            </p>
+
+            {allVariants.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                Aucun message pour le moment
+              </p>
+            ) : (
+              <div className="space-y-6">
+                {MESSAGE_CATEGORIES.map((cat) => {
+                  const catVariants = allVariants.filter((v) => v.category === cat);
+                  if (catVariants.length === 0) return null;
+                  return (
+                    <div key={cat} className="border border-border/50 rounded-lg overflow-hidden">
+                      <div className="bg-primary/5 border-b border-border/50 px-4 py-3">
+                        <h3 className="font-semibold text-foreground">
+                          {CATEGORY_LABELS[cat] || cat}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {catVariants.length} variante{catVariants.length > 1 ? "s" : ""} active{catVariants.length > 1 ? "s" : ""}
+                          {catVariants.length > 1 && " — A/B test en cours (50/50)"}
+                        </p>
+                      </div>
+                      <div className="divide-y divide-border/50">
+                        {catVariants.map((variant) => (
+                          <div key={variant.id} className="p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  (variant as any).is_control
+                                    ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
+                                    : "bg-purple-500/10 text-purple-500 border-purple-500/30"
+                                }
+                              >
+                                {(variant as any).is_control ? "A — Control" : "B — Challenger"}
+                              </Badge>
+                              <span className="text-sm font-medium text-foreground">
+                                {variant.name}
+                              </span>
+                            </div>
+                            <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-background/50 rounded-lg p-3 border border-border/30 font-sans">
+                              {variant.content}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </Card>
