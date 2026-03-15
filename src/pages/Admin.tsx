@@ -279,15 +279,15 @@ const Admin = () => {
         const minSends = 30;
         const diffThreshold = 5;
 
-        variantResults.forEach((variant) => {
-          variant.isWinner = variant.replyRate === maxRate;
-          // Statistically significant if >30 sends and >5% difference
-          variant.isStatSignificant =
+        variantResults = variantResults.map((variant) => ({
+          ...variant,
+          isWinner: variant.replyRate === maxRate,
+          isStatSignificant:
             variant.sendCount >= minSends &&
             Math.max(...variantResults.map((v) => v.replyRate)) -
               Math.min(...variantResults.map((v) => v.replyRate)) >=
-              diffThreshold;
-        });
+              diffThreshold,
+        }));
       }
 
       results.push({
