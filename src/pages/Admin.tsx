@@ -97,12 +97,24 @@ const PROSPCT_STATUS = [
 ];
 
 const MESSAGE_CATEGORIES = [
-  "first_dm_inbound",
   "first_dm_outbound",
+  "first_dm_visiteur_profil",
+  "first_dm_relation_dormante",
+  "first_dm_inbound",
   "followup_1",
   "followup_2",
   "followup_3",
 ];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  first_dm_outbound: "1er DM — Outbound (on l'a ajouté)",
+  first_dm_visiteur_profil: "1er DM — Visiteur profil (il a vu notre profil)",
+  first_dm_relation_dormante: "1er DM — Relation dormante (connecté, jamais parlé)",
+  first_dm_inbound: "1er DM — Inbound (il nous a contacté)",
+  followup_1: "Relance 1",
+  followup_2: "Relance 2",
+  followup_3: "Relance 3 (dernière)",
+};
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -260,7 +272,7 @@ const Admin = () => {
     for (const [category, categoryVariants] of Object.entries(grouped)) {
       let variantResults = categoryVariants.map((variant) => {
         const variantSends = sends.filter((s) => s.variant_id === variant.id);
-        const replyCount = variantSends.filter((s) => s.has_reply).length;
+        const replyCount = variantSends.filter((s) => (s as any).got_reply || (s as any).has_reply).length;
         const sendCount = variantSends.length;
         const replyRate = sendCount > 0 ? (replyCount / sendCount) * 100 : 0;
 
@@ -504,7 +516,7 @@ const Admin = () => {
                 {abTestResults.map((result) => (
                   <div key={result.categoryName} className="border border-border/50 rounded-lg p-4">
                     <h3 className="font-semibold mb-3 text-foreground">
-                      {result.categoryName}
+                      {CATEGORY_LABELS[result.categoryName] || result.categoryName}
                     </h3>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -677,7 +689,7 @@ const Admin = () => {
                     <SelectContent>
                       {MESSAGE_CATEGORIES.map((cat) => (
                         <SelectItem key={cat} value={cat}>
-                          {cat}
+                          {CATEGORY_LABELS[cat] || cat}
                         </SelectItem>
                       ))}
                     </SelectContent>

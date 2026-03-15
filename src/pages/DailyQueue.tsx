@@ -36,11 +36,24 @@ const fillTemplate = (template: string, prospect: Prospect): string => {
     .replace(/{company}/g, prospect.company);
 };
 
-// Pick a random variant from matching category
-const pickVariant = (variants: MessageVariant[], category: string): MessageVariant | null => {
+// Pick variant with strict 50/50 distribution based on actual send counts
+const pickVariant = (
+  variants: MessageVariant[],
+  category: string,
+  sendCounts: Record<string, number>
+): MessageVariant | null => {
   const matching = variants.filter(v => v.category === category);
   if (matching.length === 0) return null;
-  return matching[Math.floor(Math.random() * matching.length)];
+  if (matching.length === 1) return matching[0];
+
+  // Find the variant with the fewest sends — guarantees 50/50
+  const sorted = [...matching].sort((a, b) => {
+    const countA = sendCounts[a.id] || 0;
+    const countB = sendCounts[b.id] || 0;
+    if (countA !== countB) return countA - countB; // least sent first
+    return Math.random() - 0.5; // tie-break randomly
+  });
+  return sorted[0];
 };
 
 // Message templates
@@ -81,11 +94,13 @@ const DailyQueue = () => {
   const { prospects, todayCount, refresh } = useProspects();
   const [todayActivityCount, setTodayActivityCount] = useState(0);
   const [variants, setVariants] = useState<MessageVariant[]>([]);
+  const [sendCounts, setSendCounts] = useState<Record<string, number>>({});
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
 
   useEffect(() => {
     loadTodayCount();
     loadVariants();
+    loadSendCounts();
   }, []);
 
   const loadTodayCount = async () => {
@@ -111,6 +126,25 @@ const DailyQueue = () => {
     }
   };
 
+  const loadSendCounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('message_sends')
+        .select('variant_id');
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((send: any) => {
+        if (send.variant_id) {
+          counts[send.variant_id] = (counts[send.variant_id] || 0) + 1;
+        }
+      });
+      setSendCounts(counts);
+    } catch (error) {
+      console.error('Failed to load send counts:', error);
+      setSendCounts({});
+    }
+  };
+
   const trackSend = async (prospectId: string, variantId?: string) => {
     try {
       await supabase.from('message_sends').insert({
@@ -124,10 +158,10 @@ const DailyQueue = () => {
     }
   };
 
-  // Helper function to get first message with A/B testing
+  // Helper function to get first message with A/B testing (strict 50/50)
   const getFirstMessage = (prospect: Prospect): { message: string; variantId?: string; variantName?: string; isABTest?: boolean } => {
     const category = `first_dm_${prospect.source}`;
-    const variant = pickVariant(variants, category);
+    const variant = pickVariant(variants, category, sendCounts);
     if (variant) {
       return {
         message: fillTemplate(variant.content, prospect),
@@ -139,10 +173,10 @@ const DailyQueue = () => {
     return { message: getFirstMessageFallback(prospect) };
   };
 
-  // Helper function to get follow-up message with A/B testing
+  // Helper function to get follow-up message with A/B testing (strict 50/50)
   const getFollowUpMessage = (prospect: Prospect, followUpNumber: number): { message: string; variantId?: string; variantName?: string; isABTest?: boolean } => {
     const category = `followup_${followUpNumber}`;
-    const variant = pickVariant(variants, category);
+    const variant = pickVariant(variants, category, sendCounts);
     if (variant) {
       return {
         message: fillTemplate(variant.content, prospect),
@@ -233,10 +267,10 @@ const DailyQueue = () => {
   const progressPercent = Math.min((todayActivityCount / 50) * 100, 100);
 
   const sourceLabels: Record<string, string> = {
-    inbound: "📥 Inbound",
-    visiteur_profil: "👁️ Visiteur",
-    relation_dormante: "💤 Dormant",
-    outbound: "📤 Outbound",
+    inbound: "📥 Inbound — Il nous a contacté",
+    visiteur_profil: "👁️ Visiteur — Il a vu notre profil",
+    relation_dormante: "💤 Dormant — Connecté mais jamais parlé",
+    outbound: "📤 Outbound — On l'a ajouté",
   };
 
   const handleCopy = async (text: string) => {
@@ -284,6 +318,7 @@ const DailyQueue = () => {
 
     refresh();
     loadTodayCount();
+    loadSendCounts(); // Refresh counts to maintain 50/50 balance
   };
 
   const handleReplyReceived = async (prospect: Prospect) => {
@@ -396,10 +431,10 @@ const DailyQueue = () => {
                               {item.daysLate}j en retard
                             </Badge>
                           )}
-                          {item.isABTest && (
+                          {item.isABTest && item.variantName && (
                             <Badge className="bg-purple-600 text-white text-xs">
                               <FlaskConical className="w-3 h-3 mr-1" />
-                              A/B Test
+                              {item.variantName}
                             </Badge>
                           )}
                         </div>
