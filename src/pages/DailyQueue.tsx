@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical } from "lucide-react";
+import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProspects } from "@/hooks/useProspects";
 import { Prospect, ProspectSource } from "@/types/prospect";
 import { isPast, isToday, addDays, differenceInDays, startOfDay, endOfDay } from "date-fns";
+import ResponseAnalyzer from "@/components/prospects/ResponseAnalyzer";
 
 const FOLLOW_UP_DAYS = [4, 10, 15];
 const ADVANCED_STATUSES = ["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"];
@@ -80,6 +81,7 @@ const DailyQueue = () => {
   const { prospects, todayCount, refresh } = useProspects();
   const [todayActivityCount, setTodayActivityCount] = useState(0);
   const [variants, setVariants] = useState<MessageVariant[]>([]);
+  const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
 
   useEffect(() => {
     loadTodayCount();
@@ -433,9 +435,47 @@ const DailyQueue = () => {
                             <Button size="sm" onClick={() => handleMarkDone(item)} className="bg-green-600 hover:bg-green-700 text-white">
                               <Check className="w-4 h-4 mr-1" /> Fait ✓
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setAnalyzingProspectId(
+                                analyzingProspectId === item.prospect.id ? null : item.prospect.id
+                              )}
+                              className="border-purple-300 text-purple-600 hover:bg-purple-50"
+                            >
+                              <Brain className="w-4 h-4 mr-1" />
+                              Claude
+                            </Button>
                           </>
                         )}
+                        {section.key === 'responses' && (
+                          <Button
+                            size="sm"
+                            onClick={() => setAnalyzingProspectId(
+                              analyzingProspectId === item.prospect.id ? null : item.prospect.id
+                            )}
+                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            <Brain className="w-4 h-4 mr-1" />
+                            {analyzingProspectId === item.prospect.id ? "Fermer l'analyse" : "Analyser avec Claude"}
+                          </Button>
+                        )}
                       </div>
+
+                      {/* Claude ResponseAnalyzer */}
+                      {analyzingProspectId === item.prospect.id && (
+                        <div className="mt-4">
+                          <ResponseAnalyzer
+                            prospect={item.prospect}
+                            onClose={() => setAnalyzingProspectId(null)}
+                            onReplyChosen={() => {
+                              setAnalyzingProspectId(null);
+                              refresh();
+                              loadTodayCount();
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
