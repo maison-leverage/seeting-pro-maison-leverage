@@ -25,6 +25,7 @@ export type Database = {
           type: string
           user_id: string
           user_name: string
+          variant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -36,6 +37,7 @@ export type Database = {
           type: string
           user_id: string
           user_name: string
+          variant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -47,6 +49,7 @@ export type Database = {
           type?: string
           user_id?: string
           user_name?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -82,6 +85,87 @@ export type Database = {
           text_content?: string | null
           updated_at?: string
           videos?: Json | null
+        }
+        Relationships: []
+      }
+      message_sends: {
+        Row: {
+          category: string
+          got_reply: boolean | null
+          id: string
+          prospect_id: string
+          reply_at: string | null
+          sent_at: string | null
+          user_id: string
+          variant_id: string
+        }
+        Insert: {
+          category: string
+          got_reply?: boolean | null
+          id?: string
+          prospect_id: string
+          reply_at?: string | null
+          sent_at?: string | null
+          user_id: string
+          variant_id: string
+        }
+        Update: {
+          category?: string
+          got_reply?: boolean | null
+          id?: string
+          prospect_id?: string
+          reply_at?: string | null
+          sent_at?: string | null
+          user_id?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_sends_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_sends_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "message_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_variants: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_control: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_control?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_control?: boolean | null
+          name?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
