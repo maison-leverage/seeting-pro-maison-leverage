@@ -258,7 +258,7 @@ const Admin = () => {
     const results: ABTestResult[] = [];
 
     for (const [category, categoryVariants] of Object.entries(grouped)) {
-      const variantResults = categoryVariants.map((variant) => {
+      let variantResults = categoryVariants.map((variant) => {
         const variantSends = sends.filter((s) => s.variant_id === variant.id);
         const replyCount = variantSends.filter((s) => s.has_reply).length;
         const sendCount = variantSends.length;
