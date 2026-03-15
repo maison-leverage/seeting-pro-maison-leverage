@@ -11,7 +11,7 @@ export const mapDbToProspect = (p: any): Prospect => ({
   position: p.position || "",
   linkedinUrl: p.linkedin_url || "",
   status: p.status,
-  priority: p.priority,
+  source: p.source || "outbound",
   qualification: p.qualification,
   hype: p.hype,
   tags: p.tags || [],
@@ -24,6 +24,11 @@ export const mapDbToProspect = (p: any): Prospect => ({
   updatedAt: p.updated_at,
   lastContact: p.last_contact,
   followUpCount: p.follow_up_count || 0,
+  email: p.email || undefined,
+  r1_date: p.r1_date || undefined,
+  r2_date: p.r2_date || undefined,
+  lost_reason: p.lost_reason || undefined,
+  proposed_slots: p.proposed_slots || undefined,
   no_show: p.no_show || false,
   proposal_sent: p.proposal_sent || false,
   r2_scheduled: p.r2_scheduled || false,
@@ -37,7 +42,7 @@ export const mapProspectToDb = (prospect: Partial<Prospect>) => ({
   position: prospect.position,
   linkedin_url: prospect.linkedinUrl,
   status: prospect.status,
-  priority: prospect.priority,
+  source: prospect.source,
   qualification: prospect.qualification,
   hype: prospect.hype,
   tags: prospect.tags,
@@ -45,6 +50,11 @@ export const mapProspectToDb = (prospect: Partial<Prospect>) => ({
   first_message_date: prospect.firstMessageDate,
   last_contact: prospect.lastContact,
   follow_up_count: prospect.followUpCount,
+  email: prospect.email,
+  r1_date: prospect.r1_date,
+  r2_date: prospect.r2_date,
+  lost_reason: prospect.lost_reason,
+  proposed_slots: prospect.proposed_slots,
   no_show: prospect.no_show,
   proposal_sent: prospect.proposal_sent,
   r2_scheduled: prospect.r2_scheduled,
@@ -55,6 +65,8 @@ interface UseProspectsOptions {
   includeDeleted?: boolean;
   enableRealtime?: boolean;
 }
+
+const ADVANCED_STATUSES = ["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"];
 
 export const useProspects = (options: UseProspectsOptions = {}) => {
   const { includeDeleted = false, enableRealtime = true } = options;
@@ -83,12 +95,12 @@ export const useProspects = (options: UseProspectsOptions = {}) => {
     const loadedProspects = data.map(mapDbToProspect);
     setProspects(loadedProspects);
 
-    // Calculate today count - exclure les prospects avec R1 programmé
+    // Calculate today count - exclure les prospects avancés dans le pipeline
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const count = loadedProspects.filter((p) => {
       if (!p.reminderDate) return false;
-      if (p.status === "r1_programme") return false;
+      if (ADVANCED_STATUSES.includes(p.status)) return false;
       const reminder = new Date(p.reminderDate);
       reminder.setHours(0, 0, 0, 0);
       return reminder <= today;
@@ -98,7 +110,6 @@ export const useProspects = (options: UseProspectsOptions = {}) => {
   }, [includeDeleted]);
 
   useEffect(() => {
-    // Check auth
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate("/auth");
@@ -109,7 +120,6 @@ export const useProspects = (options: UseProspectsOptions = {}) => {
 
     if (!enableRealtime) return;
 
-    // Realtime subscription
     const channel = supabase
       .channel('prospects-hook-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, () => {

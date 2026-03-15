@@ -11,6 +11,7 @@ import Analytics from "./pages/Analytics";
 import Templates from "./pages/Templates";
 import TemplateAnalytics from "./pages/TemplateAnalytics";
 import Formation from "./pages/Formation";
+import DailyQueue from "./pages/DailyQueue";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/daily" element={<DailyQueue />} />
             <Route path="/prospects" element={<Prospects />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/templates" element={<Templates />} />

@@ -1,10 +1,22 @@
+/** Pipeline stages for LinkedIn CRM prospects */
 export type ProspectStatus =
-  | "rien"
-  | "premier_message"
+  | "nouveau"
+  | "premier_dm"
+  | "relance"
+  | "reponse"
   | "discussion"
-  | "r1_programme";
+  | "demande_dispos"
+  | "r1_booke"
+  | "r1_fait"
+  | "r2_booke"
+  | "signe"
+  | "perdu";
 
-export type ProspectPriority = "rien" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
+export type ProspectSource =
+  | "inbound"
+  | "visiteur_profil"
+  | "relation_dormante"
+  | "outbound";
 
 export type ProspectQualification =
   | "rien"
@@ -15,26 +27,9 @@ export type ProspectQualification =
 
 export type ProspectHype = "rien" | "froid" | "tiede" | "chaud";
 
-export interface ProspectTag {
-  id: string;
-  label: string;
-  color: string;
-}
-
-export interface ProspectNote {
-  id: string;
-  content: string;
-  createdAt: string;
-  createdBy: string;
-}
-
-export interface ProspectHistory {
-  id: string;
-  action: string;
-  details: string;
-  createdAt: string;
-  createdBy: string;
-}
+export interface ProspectTag { id: string; label: string; color: string; }
+export interface ProspectNote { id: string; content: string; createdAt: string; createdBy: string; }
+export interface ProspectHistory { id: string; action: string; details: string; createdAt: string; createdBy: string; }
 
 export interface Prospect {
   id: string;
@@ -43,21 +38,26 @@ export interface Prospect {
   position: string;
   linkedinUrl: string;
   status: ProspectStatus;
-  priority: ProspectPriority;
+  source: ProspectSource;
   qualification: ProspectQualification;
   hype: ProspectHype;
   tags: ProspectTag[];
   notes: ProspectNote[];
   history: ProspectHistory[];
   reminderDate?: string;
-  firstMessageDate?: string; // Date de prise de contact
-  assignedTo: string; // user id
+  firstMessageDate?: string;
+  assignedTo: string;
   createdAt: string;
   updatedAt: string;
   lastContact?: string;
-  followUpCount: number; // nombre de relances
-  no_show?: boolean; // Si la personne a fait un no show au R1
-  proposal_sent?: boolean; // Si une proposition a été envoyée
-  r2_scheduled?: boolean; // Si un R2 a été programmé
-  no_follow_up?: boolean; // Si le prospect n'a pas de suite
+  followUpCount: number;
+  email?: string;
+  r1_date?: string;
+  r2_date?: string;
+  lost_reason?: string;
+  proposed_slots?: string;
+  no_show?: boolean;
+  proposal_sent?: boolean;
+  r2_scheduled?: boolean;
+  no_follow_up?: boolean;
 }

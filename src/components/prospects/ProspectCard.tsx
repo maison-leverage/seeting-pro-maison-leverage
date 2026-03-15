@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Prospect } from "@/types/prospect";
+import { Prospect, ProspectStatus } from "@/types/prospect";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,20 +20,49 @@ interface ProspectCardProps {
 
 const getStatusLabel = (status: string, followUpCount: number) => {
   const baseLabels: Record<string, string> = {
-    rien: "⚪ Rien",
-    premier_message: "📩 1ᵉʳ message envoyé",
+    // New statuses
+    nouveau: "🆕 Nouveau",
+    premier_dm: "📩 1er DM envoyé",
+    relance: "🔄 En relance",
+    reponse: "💬 Réponse reçue",
     discussion: "🗣️ En discussion",
-    r1_programme: "🎯 R1 programmé",
+    demande_dispos: "📅 Dispos demandées",
+    r1_booke: "🎯 R1 booké",
+    r1_fait: "✅ R1 fait",
+    r2_booke: "📆 R2 booké",
+    signe: "🏆 Signé",
+    perdu: "❌ Perdu",
+    // Legacy compatibility
+    rien: "🆕 Nouveau",
+    premier_message: "📩 1er DM envoyé",
+    r1_programme: "🎯 R1 booké",
   };
-  const label = baseLabels[status] || status;
-  return label;
+  return baseLabels[status] || status;
 };
 
 const statusConfig: Record<string, { color: string }> = {
+  nouveau: { color: "bg-gray-100 text-gray-700 border-gray-300" },
+  premier_dm: { color: "bg-blue-100 text-blue-700 border-blue-300" },
+  relance: { color: "bg-cyan-100 text-cyan-700 border-cyan-300" },
+  reponse: { color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
+  discussion: { color: "bg-orange-100 text-orange-700 border-orange-300" },
+  demande_dispos: { color: "bg-indigo-100 text-indigo-700 border-indigo-300" },
+  r1_booke: { color: "bg-green-100 text-green-700 border-green-300" },
+  r1_fait: { color: "bg-emerald-100 text-emerald-700 border-emerald-300" },
+  r2_booke: { color: "bg-teal-100 text-teal-700 border-teal-300" },
+  signe: { color: "bg-purple-100 text-purple-700 border-purple-300" },
+  perdu: { color: "bg-red-100 text-red-700 border-red-300" },
+  // Legacy
   rien: { color: "bg-gray-100 text-gray-700 border-gray-300" },
   premier_message: { color: "bg-blue-100 text-blue-700 border-blue-300" },
-  discussion: { color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
   r1_programme: { color: "bg-green-100 text-green-700 border-green-300" },
+};
+
+const sourceConfig: Record<string, { label: string; color: string }> = {
+  inbound: { label: "📥 Inbound", color: "bg-green-100 text-green-700 border-green-300" },
+  visiteur_profil: { label: "👁️ Visiteur profil", color: "bg-blue-100 text-blue-700 border-blue-300" },
+  relation_dormante: { label: "💤 Relation dormante", color: "bg-amber-100 text-amber-700 border-amber-300" },
+  outbound: { label: "📤 Outbound", color: "bg-purple-100 text-purple-700 border-purple-300" },
 };
 
 const qualificationConfig: Record<string, { label: string; color: string }> = {
@@ -53,6 +82,7 @@ const hypeConfig: Record<string, { label: string; color: string }> = {
 
 const defaultConfig = { label: "⚪ Inconnu", color: "bg-gray-100 text-gray-700 border-gray-300" };
 const getStatusConfig = (key: string) => statusConfig[key] || { color: defaultConfig.color };
+const getSourceConfig = (key: string) => sourceConfig[key] || defaultConfig;
 const getQualificationConfig = (key: string) => qualificationConfig[key] || defaultConfig;
 const getHypeConfig = (key: string) => hypeConfig[key] || defaultConfig;
 
@@ -199,7 +229,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Open message type selector before sending
   const handleDMClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (prospect.firstMessageDate) {
@@ -232,10 +261,9 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
       const previousStatus = prospect.status;
       const previousFirstMessageDate = prospect.firstMessageDate;
       
-      const activityData = await logActivity('first_dm', messageType, 'premier_message');
+      const activityData = await logActivity('first_dm', messageType, 'premier_dm');
       if (!activityData) return;
       
-      // Set first_message_date and auto-calculate first reminder (J+4)
       const now = new Date();
       const nextReminder = addDays(now, FOLLOW_UP_DAYS[0]);
       
@@ -265,7 +293,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
       
       const newFollowUpCount = prospect.followUpCount + 1;
       
-      // Calculate next reminder date or clear if 3rd follow-up
       const updateData: Record<string, any> = { follow_up_count: newFollowUpCount };
       
       if (newFollowUpCount < 3 && prospect.firstMessageDate) {
@@ -273,7 +300,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
         const nextReminder = addDays(new Date(prospect.firstMessageDate), nextDay);
         updateData.reminder_date = nextReminder.toISOString();
       } else {
-        // 3rd follow-up done, clear reminder
         updateData.reminder_date = null;
       }
       
@@ -299,7 +325,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
   const handleReplyReceived = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const previousStatus = prospect.status;
-    const activityData = await logActivity('reply_received', 'dm', 'discussion');
+    const activityData = await logActivity('reply_received', 'dm', 'reponse');
     if (activityData && currentUserId) {
       addUndoableAction({
         activityId: activityData.id,
@@ -314,7 +340,7 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
   const handleCallBooked = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const previousStatus = prospect.status;
-    const activityData = await logActivity('call_booked', 'dm', 'r1_programme');
+    const activityData = await logActivity('call_booked', 'dm', 'r1_booke');
     if (activityData && currentUserId) {
       addUndoableAction({
         activityId: activityData.id,
@@ -340,14 +366,8 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
       return;
     }
     
-    const activityData = await logActivity('deal_closed');
+    const activityData = await logActivity('deal_closed', 'dm', 'signe');
     if (activityData) {
-      await supabase
-        .from('prospects')
-        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-        .eq('id', prospect.id);
-      toast.success("Prospect archivé automatiquement");
-      
       if (currentUserId) {
         addUndoableAction({
           activityId: activityData.id,
@@ -359,7 +379,6 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
     }
   };
 
-  // Follow-up badge rendering
   const renderFollowUpBadge = () => {
     if (prospect.followUpCount >= 3) {
       return (
@@ -437,6 +456,9 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
             <div className="flex gap-2 flex-shrink-0 flex-wrap">
               <Badge variant="outline" className={getStatusConfig(prospect.status).color}>
                 {getStatusLabel(prospect.status, prospect.followUpCount)}
+              </Badge>
+              <Badge variant="outline" className={getSourceConfig(prospect.source).color}>
+                {getSourceConfig(prospect.source).label}
               </Badge>
               {renderFollowUpBadge()}
               <Badge variant="outline" className={getQualificationConfig(prospect.qualification).color}>
