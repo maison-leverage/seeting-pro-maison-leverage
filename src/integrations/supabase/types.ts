@@ -91,6 +91,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          role: string | null
           updated_at: string
         }
         Insert: {
@@ -98,6 +99,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          role?: string | null
           updated_at?: string
         }
         Update: {
@@ -105,6 +107,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          role?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -209,6 +212,7 @@ export type Database = {
           company: string
           created_at: string
           deleted_at: string | null
+          email: string | null
           first_message_date: string | null
           follow_up_count: number | null
           full_name: string
@@ -217,14 +221,19 @@ export type Database = {
           is_deleted: boolean | null
           last_contact: string | null
           linkedin_url: string | null
+          lost_reason: string | null
           no_follow_up: boolean | null
           no_show: boolean | null
           position: string | null
           priority: string
           proposal_sent: boolean | null
+          proposed_slots: string | null
           qualification: string
+          r1_date: string | null
+          r2_date: string | null
           r2_scheduled: boolean | null
           reminder_date: string | null
+          source: string | null
           status: string
           tags: Json | null
           updated_at: string
@@ -235,6 +244,7 @@ export type Database = {
           company: string
           created_at?: string
           deleted_at?: string | null
+          email?: string | null
           first_message_date?: string | null
           follow_up_count?: number | null
           full_name: string
@@ -243,14 +253,19 @@ export type Database = {
           is_deleted?: boolean | null
           last_contact?: string | null
           linkedin_url?: string | null
+          lost_reason?: string | null
           no_follow_up?: boolean | null
           no_show?: boolean | null
           position?: string | null
           priority?: string
           proposal_sent?: boolean | null
+          proposed_slots?: string | null
           qualification?: string
+          r1_date?: string | null
+          r2_date?: string | null
           r2_scheduled?: boolean | null
           reminder_date?: string | null
+          source?: string | null
           status?: string
           tags?: Json | null
           updated_at?: string
@@ -261,6 +276,7 @@ export type Database = {
           company?: string
           created_at?: string
           deleted_at?: string | null
+          email?: string | null
           first_message_date?: string | null
           follow_up_count?: number | null
           full_name?: string
@@ -269,14 +285,19 @@ export type Database = {
           is_deleted?: boolean | null
           last_contact?: string | null
           linkedin_url?: string | null
+          lost_reason?: string | null
           no_follow_up?: boolean | null
           no_show?: boolean | null
           position?: string | null
           priority?: string
           proposal_sent?: boolean | null
+          proposed_slots?: string | null
           qualification?: string
+          r1_date?: string | null
+          r2_date?: string | null
           r2_scheduled?: boolean | null
           reminder_date?: string | null
+          source?: string | null
           status?: string
           tags?: Json | null
           updated_at?: string

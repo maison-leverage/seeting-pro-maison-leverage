@@ -1,0 +1,11 @@
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'outbound';
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS r1_date TIMESTAMPTZ;
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS r2_date TIMESTAMPTZ;
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS lost_reason TEXT;
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS proposed_slots TEXT;
+
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'setter';
+
+CREATE INDEX IF NOT EXISTS idx_prospects_source ON prospects(source);
+CREATE INDEX IF NOT EXISTS idx_prospects_status ON prospects(status);
