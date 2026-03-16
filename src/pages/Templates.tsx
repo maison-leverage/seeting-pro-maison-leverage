@@ -322,6 +322,13 @@ const Templates = () => {
             </Select>
           </div>
 
+          {/* Message Variants Copy-Paste Section */}
+          <MessageVariantsCopySection />
+
+          <div className="border-t border-border/50 pt-6">
+            <h2 className="text-xl font-bold text-foreground mb-4">📋 Templates personnalisés</h2>
+          </div>
+
           {filteredTemplates.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredTemplates.map((template) => (
