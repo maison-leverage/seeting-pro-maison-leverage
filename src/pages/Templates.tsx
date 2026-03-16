@@ -12,6 +12,7 @@ import TemplateCard from "@/components/templates/TemplateCard";
 import TemplateForm from "@/components/templates/TemplateForm";
 import TemplateCopyModal from "@/components/templates/TemplateCopyModal";
 import TemplateStatsModal from "@/components/templates/TemplateStatsModal";
+import MessageVariantsCopySection from "@/components/templates/MessageVariantsCopySection";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -319,6 +320,13 @@ const Templates = () => {
                 <SelectItem value="archive">❌ Archivé</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Message Variants Copy-Paste Section */}
+          <MessageVariantsCopySection />
+
+          <div className="border-t border-border/50 pt-6">
+            <h2 className="text-xl font-bold text-foreground mb-4">📋 Templates personnalisés</h2>
           </div>
 
           {filteredTemplates.length > 0 ? (
