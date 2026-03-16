@@ -247,10 +247,11 @@ Badge VERT/ORANGE/ROUGE pour chaque element
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Unexpected error:", error);
+    const errMsg = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: "Unexpected error", details: error.message }),
+      JSON.stringify({ error: "Unexpected error", details: errMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
