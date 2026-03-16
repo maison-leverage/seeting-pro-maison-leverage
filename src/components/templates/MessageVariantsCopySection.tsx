@@ -19,13 +19,11 @@ interface MessageVariant {
 }
 
 const CATEGORY_LABELS: Record<string, { label: string; emoji: string }> = {
-  first_dm_outbound: { label: "Premier DM Outbound", emoji: "🚀" },
-  first_dm_inbound: { label: "Premier DM Inbound", emoji: "📥" },
-  first_dm_relation_dormante: { label: "DM Relation Dormante", emoji: "💤" },
-  first_dm_visiteur_profil: { label: "DM Visiteur Profil", emoji: "👀" },
-  followup_1: { label: "Relance 1", emoji: "🔄" },
-  followup_2: { label: "Relance 2", emoji: "🔄" },
-  followup_3: { label: "Relance 3", emoji: "🔄" },
+  first_dm_inbound: { label: "Premier DM — Outbound / Inbound", emoji: "🚀" },
+  first_dm_visiteur_profil: { label: "Premier DM — Visiteur Profil", emoji: "👀" },
+  first_dm_relation_dormante: { label: "Premier DM — Relation Dormante", emoji: "💤" },
+  followup_1: { label: "Relance 1 (J+4)", emoji: "🔄" },
+  followup_2: { label: "Relance 2 (J+10)", emoji: "🔄" },
 };
 
 const replaceVars = (
