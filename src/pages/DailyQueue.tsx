@@ -60,21 +60,23 @@ const pickVariant = (
 // Message templates
 const getFirstMessageFallback = (prospect: Prospect): string => {
   const prenom = prospect.fullName.split(" ")[0];
+  const company = prospect.company;
   const templates: Record<ProspectSource, string> = {
-    inbound: `Salut ${prenom} 👋\n\nMerci pour l'ajout ! J'ai vu que tu étais ${prospect.position} chez ${prospect.company}.\n\nOn accompagne des entreprises comme la tienne en SEO & GEO pour générer du trafic qualifié.\n\nEst-ce que c'est un sujet qui t'intéresse ?`,
-    visiteur_profil: `Salut ${prenom} 👋\n\nJ'ai vu que tu avais visité mon profil — curieux de savoir ce qui t'a attiré !\n\nTu es ${prospect.position} chez ${prospect.company}, c'est bien ça ?\n\nOn aide des entreprises comme la tienne à se positionner sur Google grâce au SEO & GEO.\n\nÇa te parle ?`,
-    relation_dormante: `Salut ${prenom} 👋\n\nOn est connectés depuis un moment mais on n'a jamais échangé !\n\nJe vois que tu es ${prospect.position} chez ${prospect.company} — on accompagne justement des entreprises comme la tienne en SEO & GEO.\n\nEst-ce que c'est un sujet d'actualité pour toi ?`,
-    outbound: `Salut ${prenom} 👋\n\nJe me permets de te contacter car ton profil de ${prospect.position} chez ${prospect.company} a retenu mon attention.\n\nOn accompagne des PME/TPE en SEO & GEO pour générer du trafic qualifié et des leads.\n\nEst-ce que c'est un levier que vous exploitez déjà ?`,
+    inbound: `Bonjour, Merci pour la demande d'ajout ! Par curiosité, qu'est-ce qui vous donne envie de me contacter ? Une envie d'échanger autour du SEO, ou simplement l'idée d'agrandir votre réseau ? Au plaisir d'échanger, Océane`,
+    visiteur_profil: `Salut ${prenom}, J'ai vu que vous aviez jeté un œil à mon profil, ne soyez pas timide ! C'était suite à un post que vous avez vu, ou le SEO et la visibilité sur les IA c'est un sujet pour ${company} ? Dans les deux cas, ravie d'échanger ! Océane`,
+    relation_dormante: `Salut ${prenom}, On est connectés depuis un moment mais on n'a jamais pris le temps de parler ! J'ai regardé ${company} sur Google et ChatGPT, il y a encore énormément de positions à prendre face à vos concurrents. Si c'est un sujet, je suis dispo pour en parler. Sinon, pas de souci ! Océane`,
+    outbound: `Bonjour, Merci pour la demande d'ajout ! Par curiosité, qu'est-ce qui vous donne envie de me contacter ? Une envie d'échanger autour du SEO, ou simplement l'idée d'agrandir votre réseau ? Au plaisir d'échanger, Océane`,
   };
   return templates[prospect.source] || templates.outbound;
 };
 
 const getFollowUpFallback = (prospect: Prospect, followUpNumber: number): string => {
   const prenom = prospect.fullName.split(" ")[0];
+  const company = prospect.company;
   const messages: Record<number, string> = {
-    1: `Salut ${prenom}, je me permets de revenir vers toi 😊\n\nAs-tu eu l'occasion de réfléchir à ce que je t'avais partagé sur le SEO & GEO ?\n\nJe serais ravie d'en discuter si ça t'intéresse !`,
-    2: `${prenom}, petit message rapide 👋\n\nJe ne veux pas être insistante, mais je pense vraiment qu'on pourrait t'apporter de la valeur côté visibilité en ligne.\n\nSi c'est pas le bon moment, dis-le moi, pas de souci !`,
-    3: `Dernier petit message ${prenom} 😊\n\nJe comprends que tu sois occupé(e). Si jamais le SEO & GEO devient un sujet, n'hésite pas à revenir vers moi.\n\nBelle journée ! ☀️`,
+    1: `Re ${prenom},\n\nJe me suis dit que le mieux serait de vous montrer directement le potentiel SEO & IA de ${company}, j'en ai fait un mini-audit.\n\nC'est pas une analyse complète, juste un aperçu rapide de ce que j'ai trouvé.\n\nSi ça vous parle, je suis dispo pour en discuter !\n\nOcéane\n\n[PDF en pièce jointe]`,
+    2: `${prenom},\n\nJe reviens vers vous car j'ai vraiment identifié du potentiel pour ${company} côté référencement Google et visibilité sur les IA.\n\nVos concurrents prennent de l'avance sur ces sujets, et il y a une vraie fenêtre de tir en ce moment.\n\nSi vous avez 15 min cette semaine, je vous montre ce que j'ai trouvé.\n\nOcéane`,
+    3: `${prenom},\n\nDernier message de ma part, je ne veux pas vous importuner.\n\nSi le SEO et la visibilité sur les IA deviennent un sujet pour ${company}, n'hésitez pas à revenir vers moi.\n\nJe vous souhaite une excellente continuation !\n\nOcéane`,
   };
   return messages[followUpNumber] || messages[1];
 };
