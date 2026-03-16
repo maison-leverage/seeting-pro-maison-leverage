@@ -93,6 +93,9 @@ const DailyQueue = () => {
   const navigate = useNavigate();
   const { prospects, todayCount, refresh } = useProspects();
   const [todayActivityCount, setTodayActivityCount] = useState(0);
+  const [todayFirstDMCount, setTodayFirstDMCount] = useState(0);
+  const [todayFollowUpCount, setTodayFollowUpCount] = useState(0);
+  const [todayReplyCount, setTodayReplyCount] = useState(0);
   const [variants, setVariants] = useState<MessageVariant[]>([]);
   const [sendCounts, setSendCounts] = useState<Record<string, number>>({});
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
@@ -105,12 +108,24 @@ const DailyQueue = () => {
 
   const loadTodayCount = async () => {
     const today = new Date();
-    const { count } = await supabase
+    const start = startOfDay(today).toISOString();
+    const end = endOfDay(today).toISOString();
+
+    const { data: todayLogs } = await supabase
       .from('activity_logs')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startOfDay(today).toISOString())
-      .lte('created_at', endOfDay(today).toISOString());
-    setTodayActivityCount(count || 0);
+      .select('type')
+      .gte('created_at', start)
+      .lte('created_at', end);
+
+    const logs = todayLogs || [];
+    const firstDMs = logs.filter(l => l.type === 'first_dm').length;
+    const followUps = logs.filter(l => l.type === 'follow_up_dm').length;
+    const replies = logs.filter(l => l.type === 'reply_received').length;
+
+    setTodayFirstDMCount(firstDMs);
+    setTodayFollowUpCount(followUps);
+    setTodayReplyCount(replies);
+    setTodayActivityCount(firstDMs + followUps);
   };
 
   const loadVariants = async () => {
@@ -264,7 +279,15 @@ const DailyQueue = () => {
   ];
 
   const totalItems = queueItems.length;
-  const progressPercent = Math.min((todayActivityCount / 50) * 100, 100);
+
+  // Daily quotas
+  const QUOTA_FIRST_DM = 30;
+  const QUOTA_FOLLOW_UP = 50;
+  const QUOTA_TOTAL = 80;
+  const pctFirstDM = Math.min((todayFirstDMCount / QUOTA_FIRST_DM) * 100, 100);
+  const pctFollowUp = Math.min((todayFollowUpCount / QUOTA_FOLLOW_UP) * 100, 100);
+  const pctTotal = Math.min((todayActivityCount / QUOTA_TOTAL) * 100, 100);
+  const allQuotasDone = todayFirstDMCount >= QUOTA_FIRST_DM && todayFollowUpCount >= QUOTA_FOLLOW_UP;
 
   const sourceLabels: Record<string, string> = {
     inbound: "📥 Inbound — Il nous a contacté",
@@ -364,31 +387,99 @@ const DailyQueue = () => {
       <div className="flex-1 ml-64">
         <Header notificationCount={todayCount} />
         <main className="p-6 space-y-6 animate-fade-in">
-          {/* Progress bar */}
-          <Card className="p-6 border-border bg-card shadow-sm">
-            <div className="flex items-center justify-between mb-3">
+          {/* Quotas du jour */}
+          <Card className={`p-6 border-border bg-card shadow-sm ${allQuotasDone ? 'border-green-500/50 bg-green-500/5' : ''}`}>
+            <div className="flex items-center justify-between mb-4">
               <h1 className="text-2xl font-bold text-foreground">📋 Ma file du jour</h1>
-              <Badge variant="outline" className="text-lg px-4 py-1">
-                {todayActivityCount}/50 messages
-              </Badge>
+              {allQuotasDone ? (
+                <Badge className="bg-green-600 text-white text-lg px-4 py-1">
+                  ✅ Quotas atteints !
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-lg px-4 py-1">
+                  {todayActivityCount}/{QUOTA_TOTAL} messages
+                </Badge>
+              )}
             </div>
-            <Progress value={progressPercent} className="h-3 mb-4" />
-            <div className="grid grid-cols-4 gap-3">
+
+            {/* 3 Quota bars */}
+            <div className="space-y-4 mb-5">
+              {/* 1ers DM */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-foreground">
+                    🔵 Messages d'ouverture (1ers DM)
+                  </span>
+                  <span className={`text-sm font-bold ${todayFirstDMCount >= QUOTA_FIRST_DM ? 'text-green-600' : 'text-foreground'}`}>
+                    {todayFirstDMCount}/{QUOTA_FIRST_DM}
+                  </span>
+                </div>
+                <div className="h-4 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${todayFirstDMCount >= QUOTA_FIRST_DM ? 'bg-green-500' : 'bg-blue-500'}`}
+                    style={{ width: `${pctFirstDM}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Relances */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-foreground">
+                    🟠 Relances
+                  </span>
+                  <span className={`text-sm font-bold ${todayFollowUpCount >= QUOTA_FOLLOW_UP ? 'text-green-600' : 'text-foreground'}`}>
+                    {todayFollowUpCount}/{QUOTA_FOLLOW_UP}
+                  </span>
+                </div>
+                <div className="h-4 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${todayFollowUpCount >= QUOTA_FOLLOW_UP ? 'bg-green-500' : 'bg-orange-500'}`}
+                    style={{ width: `${pctFollowUp}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Total */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-foreground">
+                    📊 Total messages envoyés
+                  </span>
+                  <span className={`text-sm font-bold ${todayActivityCount >= QUOTA_TOTAL ? 'text-green-600' : 'text-foreground'}`}>
+                    {todayActivityCount}/{QUOTA_TOTAL}
+                  </span>
+                </div>
+                <div className="h-4 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${todayActivityCount >= QUOTA_TOTAL ? 'bg-green-500' : 'bg-gradient-to-r from-blue-500 to-orange-500'}`}
+                    style={{ width: `${pctTotal}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick stats row */}
+            <div className="grid grid-cols-5 gap-3">
               <div className="text-center p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <div className="text-2xl font-bold text-destructive">{sections[0].items.length}</div>
                 <div className="text-xs text-destructive/70">En retard</div>
               </div>
               <div className="text-center p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
-                <div className="text-2xl font-bold text-orange-600">{sections[0].items.length + sections[1].items.length}</div>
-                <div className="text-xs text-orange-600/70">Relances</div>
+                <div className="text-2xl font-bold text-orange-600">{sections[1].items.length}</div>
+                <div className="text-xs text-orange-600/70">Relances jour</div>
               </div>
               <div className="text-center p-3 rounded-lg bg-primary/10 border border-primary/30">
                 <div className="text-2xl font-bold text-primary">{sections[3].items.length}</div>
-                <div className="text-xs text-primary/70">1ers DM</div>
+                <div className="text-xs text-primary/70">1ers DM à faire</div>
               </div>
               <div className="text-center p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
                 <div className="text-2xl font-bold text-yellow-600">{sections[2].items.length}</div>
                 <div className="text-xs text-yellow-600/70">Réponses</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                <div className="text-2xl font-bold text-green-600">{todayReplyCount}</div>
+                <div className="text-xs text-green-600/70">Réponses reçues</div>
               </div>
             </div>
           </Card>
