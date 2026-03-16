@@ -12,6 +12,7 @@ import TemplateCard from "@/components/templates/TemplateCard";
 import TemplateForm from "@/components/templates/TemplateForm";
 import TemplateCopyModal from "@/components/templates/TemplateCopyModal";
 import TemplateStatsModal from "@/components/templates/TemplateStatsModal";
+import MessageVariantsCopySection from "@/components/templates/MessageVariantsCopySection";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
