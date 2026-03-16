@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Prospect, ProspectStatus, ProspectSource, ProspectQualification, ProspectHype } from "@/types/prospect";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +27,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
     position: "",
     linkedinUrl: "",
     email: "",
+    websiteUrl: "",
     status: "nouveau",
     source: "outbound",
     qualification: "rien",
@@ -51,6 +52,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           position: "",
           linkedinUrl: "",
           email: "",
+          websiteUrl: "",
           status: "nouveau",
           source: "outbound",
           qualification: "rien",
@@ -137,6 +139,24 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
               <Label>Email</Label>
               <Input type="email" value={formData.email || ""} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" className="bg-input border-border/50" />
             </div>
+          </div>
+
+          {/* Website URL */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-primary" />
+              Site web (URL)
+            </Label>
+            <Input
+              type="url"
+              value={formData.websiteUrl || ""}
+              onChange={e => setFormData({ ...formData, websiteUrl: e.target.value })}
+              placeholder="https://www.example.com"
+              className="bg-input border-border/50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Un audit SEO & IA sera généré automatiquement si une URL est fournie
+            </p>
           </div>
 
           {/* Source + Statut + Hype */}

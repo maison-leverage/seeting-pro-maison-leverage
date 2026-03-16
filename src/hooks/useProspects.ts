@@ -33,6 +33,8 @@ export const mapDbToProspect = (p: any): Prospect => ({
   proposal_sent: p.proposal_sent || false,
   r2_scheduled: p.r2_scheduled || false,
   no_follow_up: p.no_follow_up || false,
+  websiteUrl: p.website_url || undefined,
+  audit_status: p.audit_status || null,
 });
 
 // Mapping TypeScript -> DB pour les updates
@@ -59,6 +61,8 @@ export const mapProspectToDb = (prospect: Partial<Prospect>) => ({
   proposal_sent: prospect.proposal_sent,
   r2_scheduled: prospect.r2_scheduled,
   no_follow_up: prospect.no_follow_up,
+  website_url: prospect.websiteUrl,
+  audit_status: prospect.audit_status,
 });
 
 interface UseProspectsOptions {

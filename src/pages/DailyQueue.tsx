@@ -14,6 +14,7 @@ import { useProspects } from "@/hooks/useProspects";
 import { Prospect, ProspectSource } from "@/types/prospect";
 import { isPast, isToday, addDays, differenceInDays, startOfDay, endOfDay } from "date-fns";
 import ResponseAnalyzer from "@/components/prospects/ResponseAnalyzer";
+import AuditButton from "@/components/prospects/AuditButton";
 
 const FOLLOW_UP_DAYS = [4, 10, 15];
 const ADVANCED_STATUSES = ["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"];
@@ -587,6 +588,20 @@ const DailyQueue = () => {
                           </Button>
                         )}
                       </div>
+
+                      {/* Audit SEO Button */}
+                      {item.prospect.websiteUrl && (
+                        <div className="mt-2">
+                          <AuditButton
+                            prospectId={item.prospect.id}
+                            prospectName={item.prospect.fullName}
+                            company={item.prospect.company}
+                            websiteUrl={item.prospect.websiteUrl}
+                            auditStatus={item.prospect.audit_status}
+                            onAuditGenerated={() => refresh()}
+                          />
+                        </div>
+                      )}
 
                       {/* Claude ResponseAnalyzer */}
                       {analyzingProspectId === item.prospect.id && (

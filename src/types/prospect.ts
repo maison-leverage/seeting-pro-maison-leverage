@@ -60,4 +60,6 @@ export interface Prospect {
   proposal_sent?: boolean;
   r2_scheduled?: boolean;
   no_follow_up?: boolean;
+  websiteUrl?: string;
+  audit_status?: string | null;
 }

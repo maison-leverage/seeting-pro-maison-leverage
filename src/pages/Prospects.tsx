@@ -126,6 +126,7 @@ const Prospects = () => {
       }
       toast.success("Prospect modifié !");
     } else {
+      const hasWebsite = prospectData.websiteUrl && prospectData.websiteUrl.trim() !== "";
       const { data: newProspect, error } = await supabase
         .from('prospects')
         .insert({
@@ -135,6 +136,8 @@ const Prospects = () => {
           position: prospectData.position,
           linkedin_url: prospectData.linkedinUrl,
           email: prospectData.email,
+          website_url: prospectData.websiteUrl || null,
+          audit_status: hasWebsite ? "pending" : null,
           status: prospectData.status || "nouveau",
           source: prospectData.source || "outbound",
           qualification: prospectData.qualification || "rien",
@@ -163,6 +166,30 @@ const Prospects = () => {
           user_id: user.id,
           prospect_name: prospectData.fullName,
           prospect_company: prospectData.company
+        });
+      }
+
+      // Auto-trigger audit generation if website URL is provided
+      if (hasWebsite && newProspect) {
+        toast.info("Audit SEO & IA en cours de génération...");
+        // Call the generate-audit Edge Function in background
+        supabase.functions.invoke('generate-audit', {
+          body: {
+            prospect_id: newProspect.id,
+            website_url: prospectData.websiteUrl,
+            prenom: prospectData.fullName?.split(' ')[0] || '',
+            company: prospectData.company,
+            secteur: '', // Can be added later
+            ville: '',   // Can be added later
+          }
+        }).then(({ error: auditError }) => {
+          if (auditError) {
+            console.error('Audit generation error:', auditError);
+            toast.error("Erreur lors de la génération de l'audit");
+          } else {
+            toast.success("Audit SEO & IA généré avec succès !");
+            refresh();
+          }
         });
       }
 
