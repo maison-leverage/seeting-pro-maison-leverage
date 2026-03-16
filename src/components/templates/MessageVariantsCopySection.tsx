@@ -100,13 +100,11 @@ const MessageVariantsCopySection = () => {
   }, {});
 
   const categoryOrder = [
-    "first_dm_outbound",
     "first_dm_inbound",
-    "first_dm_relation_dormante",
     "first_dm_visiteur_profil",
+    "first_dm_relation_dormante",
     "followup_1",
     "followup_2",
-    "followup_3",
   ];
 
   const sortedCategories = Object.keys(grouped).sort(
