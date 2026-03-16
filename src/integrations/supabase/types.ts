@@ -61,6 +61,65 @@ export type Database = {
           },
         ]
       }
+      audit_reports: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          generated_at: string
+          html_content: string
+          id: string
+          prospect_id: string
+          score_accessibility: number | null
+          score_best_practices: number | null
+          score_geo: number | null
+          score_performance: number | null
+          score_seo: number | null
+          status: string
+          user_id: string
+          website_url: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          generated_at?: string
+          html_content: string
+          id?: string
+          prospect_id: string
+          score_accessibility?: number | null
+          score_best_practices?: number | null
+          score_geo?: number | null
+          score_performance?: number | null
+          score_seo?: number | null
+          status?: string
+          user_id: string
+          website_url: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          generated_at?: string
+          html_content?: string
+          id?: string
+          prospect_id?: string
+          score_accessibility?: number | null
+          score_best_practices?: number | null
+          score_geo?: number | null
+          score_performance?: number | null
+          score_seo?: number | null
+          status?: string
+          user_id?: string
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_reports_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formation_content: {
         Row: {
           created_at: string
@@ -331,6 +390,7 @@ export type Database = {
       prospects: {
         Row: {
           assigned_to: string | null
+          audit_status: string | null
           company: string
           created_at: string
           deleted_at: string | null
@@ -360,9 +420,11 @@ export type Database = {
           tags: Json | null
           updated_at: string
           user_id: string
+          website_url: string | null
         }
         Insert: {
           assigned_to?: string | null
+          audit_status?: string | null
           company: string
           created_at?: string
           deleted_at?: string | null
@@ -392,9 +454,11 @@ export type Database = {
           tags?: Json | null
           updated_at?: string
           user_id: string
+          website_url?: string | null
         }
         Update: {
           assigned_to?: string | null
+          audit_status?: string | null
           company?: string
           created_at?: string
           deleted_at?: string | null
@@ -424,6 +488,7 @@ export type Database = {
           tags?: Json | null
           updated_at?: string
           user_id?: string
+          website_url?: string | null
         }
         Relationships: []
       }
