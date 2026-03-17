@@ -87,6 +87,8 @@ const Dashboard = () => {
   };
 
   const activeProspects = prospects.filter(p => !p.no_follow_up);
+  const notInterestedCount = prospects.filter(p => p.status === 'perdu' && p.lost_reason === 'not_interested').length;
+
   const stats = [{
     label: "Total prospects",
     value: activeProspects.length,
@@ -109,6 +111,11 @@ const Dashboard = () => {
     value: activeProspects.length > 0 ? `${Math.round(activeProspects.filter(p => ["r1_booke", "r1_fait", "r2_booke", "signe"].includes(p.status)).length / activeProspects.length * 100)}%` : "0%",
     icon: Target,
     color: "from-secondary to-primary"
+  }, {
+    label: "Pas intéressé",
+    value: notInterestedCount,
+    icon: XCircle,
+    color: "from-red-500 to-red-700"
   }];
 
   const topProspects = [...activeProspects]
