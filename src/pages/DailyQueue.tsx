@@ -366,7 +366,7 @@ const DailyQueue = () => {
         .from('message_sends')
         .select('id')
         .eq('prospect_id', prospect.id)
-        .order('created_at', { ascending: false })
+        .order('sent_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
