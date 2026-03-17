@@ -216,6 +216,7 @@ const DailyQueue = () => {
   // 1. Overdue follow-ups
   activeProspects.filter(p => {
     if (!p.reminderDate || !p.firstMessageDate) return false;
+    if (p.status === 'reponse' || p.status === 'demande_dispos') return false;
     const reminder = new Date(p.reminderDate);
     reminder.setHours(0, 0, 0, 0);
     return reminder < todayDate && p.followUpCount < 3;
