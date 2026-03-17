@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical, Brain } from "lucide-react";
+import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical, Brain, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProspects } from "@/hooks/useProspects";
@@ -386,6 +386,31 @@ const DailyQueue = () => {
     loadTodayCount();
   };
 
+  const handleNotInterested = async (prospect: Prospect) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data: profile } = await supabase.from('profiles').select('name').eq('id', session.user.id).maybeSingle();
+    const userName = profile?.name || session.user.email || 'Utilisateur';
+
+    await supabase.from('prospects').update({
+      status: 'perdu',
+      lost_reason: 'not_interested',
+    }).eq('id', prospect.id);
+
+    await supabase.from('activity_logs').insert({
+      type: 'prospect_lost',
+      user_name: userName,
+      lead_id: prospect.id,
+      user_id: session.user.id,
+      prospect_name: prospect.fullName,
+      prospect_company: prospect.company,
+    });
+
+    toast.success("Prospect marqué comme non intéressé");
+    refresh();
+    loadTodayCount();
+  };
+
   return (
     <div className="min-h-screen flex w-full bg-background">
       <Sidebar todayCount={todayCount} />
@@ -580,16 +605,26 @@ const DailyQueue = () => {
                           </>
                         )}
                         {section.key === 'responses' && (
-                          <Button
-                            size="sm"
-                            onClick={() => setAnalyzingProspectId(
-                              analyzingProspectId === item.prospect.id ? null : item.prospect.id
-                            )}
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
-                          >
-                            <Brain className="w-4 h-4 mr-1" />
-                            {analyzingProspectId === item.prospect.id ? "Fermer l'analyse" : "Analyser avec Claude"}
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => setAnalyzingProspectId(
+                                analyzingProspectId === item.prospect.id ? null : item.prospect.id
+                              )}
+                              className="bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              <Brain className="w-4 h-4 mr-1" />
+                              {analyzingProspectId === item.prospect.id ? "Fermer l'analyse" : "Analyser avec Claude"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleNotInterested(item.prospect)}
+                              className="border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              <XCircle className="w-4 h-4 mr-1" /> Pas intéressé
+                            </Button>
+                          </>
                         )}
                       </div>
 

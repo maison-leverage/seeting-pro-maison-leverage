@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
-import { Users, TrendingUp, Clock, Target } from "lucide-react";
+import { Users, TrendingUp, Clock, Target, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import TodayActivityCard from "@/components/dashboard/TodayActivityCard";
@@ -87,6 +87,8 @@ const Dashboard = () => {
   };
 
   const activeProspects = prospects.filter(p => !p.no_follow_up);
+  const notInterestedCount = prospects.filter(p => p.status === 'perdu' && p.lost_reason === 'not_interested').length;
+
   const stats = [{
     label: "Total prospects",
     value: activeProspects.length,
@@ -109,6 +111,11 @@ const Dashboard = () => {
     value: activeProspects.length > 0 ? `${Math.round(activeProspects.filter(p => ["r1_booke", "r1_fait", "r2_booke", "signe"].includes(p.status)).length / activeProspects.length * 100)}%` : "0%",
     icon: Target,
     color: "from-secondary to-primary"
+  }, {
+    label: "Pas intéressé",
+    value: notInterestedCount,
+    icon: XCircle,
+    color: "from-red-500 to-red-700"
   }];
 
   const topProspects = [...activeProspects]
@@ -133,7 +140,7 @@ const Dashboard = () => {
         <main className="p-6 space-y-6 animate-fade-in">
           <TodayActivityCard activities={todayActivities} dailyTarget={dailyTarget} loading={activitiesLoading} />
           <FollowUpsTodayCard prospects={activeProspects} />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {stats.map((stat, index) => (
               <Card
                 key={index}
