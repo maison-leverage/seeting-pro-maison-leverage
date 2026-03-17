@@ -216,6 +216,7 @@ const DailyQueue = () => {
   // 1. Overdue follow-ups
   activeProspects.filter(p => {
     if (!p.reminderDate || !p.firstMessageDate) return false;
+    if (p.status === 'reponse' || p.status === 'demande_dispos') return false;
     const reminder = new Date(p.reminderDate);
     reminder.setHours(0, 0, 0, 0);
     return reminder < todayDate && p.followUpCount < 3;
@@ -240,6 +241,7 @@ const DailyQueue = () => {
   // 2. Today's follow-ups
   activeProspects.filter(p => {
     if (!p.reminderDate || !p.firstMessageDate) return false;
+    if (p.status === 'reponse' || p.status === 'demande_dispos') return false;
     const reminder = new Date(p.reminderDate);
     reminder.setHours(0, 0, 0, 0);
     return reminder.getTime() === todayDate.getTime() && p.followUpCount < 3;
@@ -364,7 +366,7 @@ const DailyQueue = () => {
         .from('message_sends')
         .select('id')
         .eq('prospect_id', prospect.id)
-        .order('created_at', { ascending: false })
+        .order('sent_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
