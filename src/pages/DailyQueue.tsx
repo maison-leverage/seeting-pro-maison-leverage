@@ -386,6 +386,31 @@ const DailyQueue = () => {
     loadTodayCount();
   };
 
+  const handleNotInterested = async (prospect: Prospect) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data: profile } = await supabase.from('profiles').select('name').eq('id', session.user.id).maybeSingle();
+    const userName = profile?.name || session.user.email || 'Utilisateur';
+
+    await supabase.from('prospects').update({
+      status: 'perdu',
+      lost_reason: 'not_interested',
+    }).eq('id', prospect.id);
+
+    await supabase.from('activity_logs').insert({
+      type: 'prospect_lost',
+      user_name: userName,
+      lead_id: prospect.id,
+      user_id: session.user.id,
+      prospect_name: prospect.fullName,
+      prospect_company: prospect.company,
+    });
+
+    toast.success("Prospect marqué comme non intéressé");
+    refresh();
+    loadTodayCount();
+  };
+
   return (
     <div className="min-h-screen flex w-full bg-background">
       <Sidebar todayCount={todayCount} />
