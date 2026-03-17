@@ -605,16 +605,26 @@ const DailyQueue = () => {
                           </>
                         )}
                         {section.key === 'responses' && (
-                          <Button
-                            size="sm"
-                            onClick={() => setAnalyzingProspectId(
-                              analyzingProspectId === item.prospect.id ? null : item.prospect.id
-                            )}
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
-                          >
-                            <Brain className="w-4 h-4 mr-1" />
-                            {analyzingProspectId === item.prospect.id ? "Fermer l'analyse" : "Analyser avec Claude"}
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => setAnalyzingProspectId(
+                                analyzingProspectId === item.prospect.id ? null : item.prospect.id
+                              )}
+                              className="bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              <Brain className="w-4 h-4 mr-1" />
+                              {analyzingProspectId === item.prospect.id ? "Fermer l'analyse" : "Analyser avec Claude"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleNotInterested(item.prospect)}
+                              className="border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              <XCircle className="w-4 h-4 mr-1" /> Pas intéressé
+                            </Button>
+                          </>
                         )}
                       </div>
 

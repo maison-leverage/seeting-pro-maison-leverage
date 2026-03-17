@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
-import { Users, TrendingUp, Clock, Target } from "lucide-react";
+import { Users, TrendingUp, Clock, Target, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import TodayActivityCard from "@/components/dashboard/TodayActivityCard";
