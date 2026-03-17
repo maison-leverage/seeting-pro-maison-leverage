@@ -241,6 +241,7 @@ const DailyQueue = () => {
   // 2. Today's follow-ups
   activeProspects.filter(p => {
     if (!p.reminderDate || !p.firstMessageDate) return false;
+    if (p.status === 'reponse' || p.status === 'demande_dispos') return false;
     const reminder = new Date(p.reminderDate);
     reminder.setHours(0, 0, 0, 0);
     return reminder.getTime() === todayDate.getTime() && p.followUpCount < 3;
