@@ -140,7 +140,7 @@ const Dashboard = () => {
         <main className="p-6 space-y-6 animate-fade-in">
           <TodayActivityCard activities={todayActivities} dailyTarget={dailyTarget} loading={activitiesLoading} />
           <FollowUpsTodayCard prospects={activeProspects} />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {stats.map((stat, index) => (
               <Card
                 key={index}
