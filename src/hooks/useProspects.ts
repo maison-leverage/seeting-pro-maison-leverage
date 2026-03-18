@@ -25,6 +25,7 @@ export const mapDbToProspect = (p: any): Prospect => ({
   lastContact: p.last_contact,
   followUpCount: p.follow_up_count || 0,
   email: p.email || undefined,
+  phone: p.phone || undefined,
   r1_date: p.r1_date || undefined,
   r2_date: p.r2_date || undefined,
   lost_reason: p.lost_reason || undefined,
