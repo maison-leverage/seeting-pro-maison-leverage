@@ -570,7 +570,7 @@ const DailyQueue = () => {
                         />
                       )}
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         {item.message && (
                           <Button size="sm" variant="outline" onClick={() => handleCopy(item.message)} className="border-blue-300 text-blue-600 hover:bg-blue-50">
                             <Copy className="w-4 h-4 mr-1" /> Copier
@@ -583,6 +583,14 @@ const DailyQueue = () => {
                             </a>
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/prospects?view=all&edit=${item.prospect.id}`)}
+                          className="border-border/50"
+                        >
+                          Modifier le profil
+                        </Button>
                         {(section.key === 'overdue' || section.key === 'today' || section.key === 'new') && (
                           <>
                             <Button size="sm" variant="outline" onClick={() => handleReplyReceived(item.prospect)} className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">

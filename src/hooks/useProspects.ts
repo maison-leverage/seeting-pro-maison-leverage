@@ -148,6 +148,19 @@ export const useProspects = (options: UseProspectsOptions = {}) => {
     };
   }, [navigate, loadProspects, enableRealtime]);
 
+  useEffect(() => {
+    const hasGeneratingAudits = prospects.some((prospect) => prospect.audit_status === "generating");
+    if (!hasGeneratingAudits) return;
+
+    const intervalId = window.setInterval(() => {
+      loadProspects();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [prospects, loadProspects]);
+
   return {
     prospects,
     loading,
