@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { generateAudit } from "@/utils/auditUtils";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
