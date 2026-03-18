@@ -159,21 +159,21 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
             </div>
           </div>
 
-          {/* Website URL */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary" />
-              Site web (URL)
+              Site web (URL) *
             </Label>
             <Input
               type="url"
               value={formData.websiteUrl || ""}
               onChange={e => setFormData({ ...formData, websiteUrl: e.target.value })}
-              placeholder="https://www.example.com"
+              placeholder="https://www.exemple.com"
               className="bg-input border-border/50"
+              required
             />
             <p className="text-xs text-muted-foreground">
-              Un audit SEO & IA sera généré automatiquement si une URL est fournie
+              Un audit SEO & IA sera généré automatiquement à la création du prospect
             </p>
           </div>
 
