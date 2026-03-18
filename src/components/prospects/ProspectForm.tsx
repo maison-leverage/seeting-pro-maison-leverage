@@ -53,6 +53,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           position: "",
           linkedinUrl: "",
           email: "",
+          phone: "",
           websiteUrl: "",
           status: "nouveau",
           source: "outbound",
