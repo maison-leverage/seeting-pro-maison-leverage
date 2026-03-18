@@ -52,6 +52,7 @@ export interface Prospect {
   lastContact?: string;
   followUpCount: number;
   email?: string;
+  phone?: string;
   r1_date?: string;
   r2_date?: string;
   lost_reason?: string;

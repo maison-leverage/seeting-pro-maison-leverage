@@ -141,7 +141,8 @@ const Prospects = () => {
           company: prospectData.company!,
           position: prospectData.position,
           linkedin_url: prospectData.linkedinUrl,
-          email: prospectData.email,
+          email: prospectData.email || null,
+          phone: (prospectData as any).phone || null,
           website_url: prospectData.websiteUrl || null,
           audit_status: hasWebsite ? "generating" : "none",
           status: prospectData.status || "nouveau",
@@ -188,6 +189,8 @@ const Prospects = () => {
       }
 
       toast.success("Prospect ajouté !");
+      // Navigate to "all" view so the new prospect is visible
+      navigate("/prospects?view=all");
     }
 
     setEditingProspect(undefined);

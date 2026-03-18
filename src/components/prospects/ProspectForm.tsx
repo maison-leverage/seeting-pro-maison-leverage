@@ -27,6 +27,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
     position: "",
     linkedinUrl: "",
     email: "",
+    phone: "",
     websiteUrl: "",
     status: "nouveau",
     source: "outbound",
@@ -52,6 +53,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           position: "",
           linkedinUrl: "",
           email: "",
+          phone: "",
           websiteUrl: "",
           status: "nouveau",
           source: "outbound",
@@ -152,6 +154,13 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
             <div className="space-y-2">
               <Label>Email</Label>
               <Input type="email" value={formData.email || ""} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" className="bg-input border-border/50" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Téléphone</Label>
+              <Input type="tel" value={(formData as any).phone || ""} onChange={e => setFormData({ ...formData, phone: e.target.value } as any)} placeholder="+33 6 12 34 56 78" className="bg-input border-border/50" />
             </div>
           </div>
 
