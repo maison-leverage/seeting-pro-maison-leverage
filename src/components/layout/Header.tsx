@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search, Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,25 +11,35 @@ interface HeaderProps {
 
 const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
   const navigate = useNavigate();
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchValue.trim();
+    if (query) {
+      navigate(`/prospects?search=${encodeURIComponent(query)}`);
+    }
+  };
 
   return (
     <header className="h-16 border-b border-border bg-card/50 backdrop-blur-lg sticky top-0 z-40">
       <div className="h-full px-6 flex items-center justify-between gap-6">
         {/* Search */}
-        <div className="flex-1 max-w-xl">
+        <form onSubmit={handleSearch} className="flex-1 max-w-xl">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               type="search"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               placeholder="Rechercher un prospect, une entreprise..."
               className="pl-10 bg-input border-border/50 focus:border-primary transition-all"
             />
           </div>
-        </div>
+        </form>
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
           <Button
             variant="outline"
             size="icon"
@@ -43,7 +54,6 @@ const Header = ({ onNewProspect, notificationCount = 0 }: HeaderProps) => {
             )}
           </Button>
 
-          {/* New Prospect */}
           <Button
             onClick={() => {
               if (onNewProspect) {

@@ -21,15 +21,20 @@ const Prospects = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const view = searchParams.get("view") || "all";
+  const searchFromUrl = searchParams.get("search") || "";
 
   const { prospects, todayCount, refresh } = useProspects();
   const [filteredProspects, setFilteredProspects] = useState<Prospect[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | undefined>();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchFromUrl);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setSearchQuery(searchFromUrl);
+  }, [searchFromUrl]);
 
   useEffect(() => {
     applyFilters();
