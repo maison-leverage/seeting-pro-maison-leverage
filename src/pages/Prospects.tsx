@@ -33,6 +33,10 @@ const Prospects = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
+    setSearchQuery(searchFromUrl);
+  }, [searchFromUrl]);
+
+  useEffect(() => {
     applyFilters();
     setCurrentPage(1);
   }, [prospects, view, searchQuery, statusFilter, sourceFilter]);
