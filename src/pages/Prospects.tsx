@@ -135,7 +135,23 @@ const Prospects = () => {
     if (!user) return;
 
     if (editingProspect) {
-      const dbData = mapProspectToDb(prospectData);
+      const newUrl = prospectData.websiteUrl?.trim();
+      const oldUrl = editingProspect.websiteUrl?.trim();
+      const shouldTriggerAudit = Boolean(newUrl && newUrl !== oldUrl);
+      const dbData = {
+        ...mapProspectToDb(prospectData),
+        ...(shouldTriggerAudit
+          ? {
+              audit_status: "generating",
+              audit_generated: false,
+              audit_score: null,
+              audit_sector: null,
+              audit_generated_at: null,
+              audit_pdf_url: null,
+            }
+          : {}),
+      };
+
       const { error } = await supabase.from('prospects').update(dbData).eq('id', editingProspect.id);
       if (error) {
         console.error('Error updating prospect:', error);
@@ -143,11 +159,9 @@ const Prospects = () => {
         return;
       }
 
-      // Trigger audit if website URL was added/changed and no audit done yet
-      const newUrl = prospectData.websiteUrl?.trim();
-      const oldUrl = editingProspect.websiteUrl?.trim();
-      if (newUrl && newUrl !== oldUrl) {
+      if (shouldTriggerAudit && newUrl) {
         toast.info("Audit SEO & IA en cours de génération...");
+        refresh();
         generateAudit(editingProspect.id, {
           website_url: newUrl,
           company_name: prospectData.company || editingProspect.company,
