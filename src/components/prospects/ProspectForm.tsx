@@ -75,12 +75,13 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
       toast.error("Nom complet et entreprise sont obligatoires");
       return;
     }
-    if (!formData.websiteUrl) {
+    const rawWebsiteUrl = formData.websiteUrl?.trim();
+    if (!initialData && !rawWebsiteUrl) {
       toast.error("L'URL du site web est obligatoire");
       return;
     }
     // Auto-complete URL if missing protocol
-    let websiteUrl = formData.websiteUrl;
+    let websiteUrl = rawWebsiteUrl;
     if (websiteUrl && !websiteUrl.startsWith("http://") && !websiteUrl.startsWith("https://")) {
       websiteUrl = `https://${websiteUrl}`;
     }
@@ -90,7 +91,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
     }
     const prospectData: Partial<Prospect> = {
       ...formData,
-      websiteUrl,
+      websiteUrl: websiteUrl || undefined,
       reminderDate: reminderDate?.toISOString(),
       firstMessageDate: firstMessageDate?.toISOString(),
       updatedAt: new Date().toISOString(),
