@@ -35,6 +35,11 @@ export const mapDbToProspect = (p: any): Prospect => ({
   no_follow_up: p.no_follow_up || false,
   websiteUrl: p.website_url || undefined,
   audit_status: p.audit_status || null,
+  audit_generated: p.audit_generated || false,
+  audit_score: p.audit_score ?? null,
+  audit_sector: p.audit_sector ?? null,
+  audit_generated_at: p.audit_generated_at ?? null,
+  audit_pdf_url: p.audit_pdf_url ?? null,
 });
 
 // Mapping TypeScript -> DB pour les updates
