@@ -59,6 +59,7 @@ export const mapProspectToDb = (prospect: Partial<Prospect>) => ({
   last_contact: prospect.lastContact,
   follow_up_count: prospect.followUpCount,
   email: prospect.email,
+  phone: prospect.phone,
   r1_date: prospect.r1_date,
   r2_date: prospect.r2_date,
   lost_reason: prospect.lost_reason,

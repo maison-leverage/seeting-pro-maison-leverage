@@ -157,6 +157,13 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Téléphone</Label>
+              <Input type="tel" value={(formData as any).phone || ""} onChange={e => setFormData({ ...formData, phone: e.target.value } as any)} placeholder="+33 6 12 34 56 78" className="bg-input border-border/50" />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary" />
