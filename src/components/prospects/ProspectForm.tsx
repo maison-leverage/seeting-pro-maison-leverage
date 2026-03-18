@@ -73,10 +73,6 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
       toast.error("Nom complet et entreprise sont obligatoires");
       return;
     }
-    if (!formData.email) {
-      toast.error("L'email est obligatoire");
-      return;
-    }
     if (!formData.websiteUrl) {
       toast.error("L'URL du site web est obligatoire");
       return;
