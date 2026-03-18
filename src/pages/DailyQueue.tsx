@@ -637,6 +637,8 @@ const DailyQueue = () => {
                             company={item.prospect.company}
                             websiteUrl={item.prospect.websiteUrl}
                             auditStatus={item.prospect.audit_status}
+                            auditScore={item.prospect.audit_score}
+                            auditPdfUrl={item.prospect.audit_pdf_url}
                             onAuditGenerated={() => refresh()}
                           />
                         </div>
