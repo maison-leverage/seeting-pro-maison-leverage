@@ -411,6 +411,7 @@ export type Database = {
           lost_reason: string | null
           no_follow_up: boolean | null
           no_show: boolean | null
+          phone: string | null
           position: string | null
           priority: string
           proposal_sent: boolean | null
@@ -450,6 +451,7 @@ export type Database = {
           lost_reason?: string | null
           no_follow_up?: boolean | null
           no_show?: boolean | null
+          phone?: string | null
           position?: string | null
           priority?: string
           proposal_sent?: boolean | null
@@ -489,6 +491,7 @@ export type Database = {
           lost_reason?: string | null
           no_follow_up?: boolean | null
           no_show?: boolean | null
+          phone?: string | null
           position?: string | null
           priority?: string
           proposal_sent?: boolean | null
