@@ -62,4 +62,9 @@ export interface Prospect {
   no_follow_up?: boolean;
   websiteUrl?: string;
   audit_status?: string | null;
+  audit_generated?: boolean;
+  audit_score?: number | null;
+  audit_sector?: string | null;
+  audit_generated_at?: string | null;
+  audit_pdf_url?: string | null;
 }

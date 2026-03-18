@@ -68,6 +68,11 @@ export const mapProspectToDb = (prospect: Partial<Prospect>) => ({
   no_follow_up: prospect.no_follow_up,
   website_url: prospect.websiteUrl,
   audit_status: prospect.audit_status,
+  audit_generated: prospect.audit_generated,
+  audit_score: prospect.audit_score,
+  audit_sector: prospect.audit_sector,
+  audit_generated_at: prospect.audit_generated_at,
+  audit_pdf_url: prospect.audit_pdf_url,
 });
 
 interface UseProspectsOptions {
