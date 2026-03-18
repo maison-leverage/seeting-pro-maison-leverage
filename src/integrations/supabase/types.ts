@@ -390,6 +390,11 @@ export type Database = {
       prospects: {
         Row: {
           assigned_to: string | null
+          audit_generated: boolean | null
+          audit_generated_at: string | null
+          audit_pdf_url: string | null
+          audit_score: number | null
+          audit_sector: string | null
           audit_status: string | null
           company: string
           created_at: string
@@ -424,6 +429,11 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          audit_generated?: boolean | null
+          audit_generated_at?: string | null
+          audit_pdf_url?: string | null
+          audit_score?: number | null
+          audit_sector?: string | null
           audit_status?: string | null
           company: string
           created_at?: string
@@ -458,6 +468,11 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          audit_generated?: boolean | null
+          audit_generated_at?: string | null
+          audit_pdf_url?: string | null
+          audit_score?: number | null
+          audit_sector?: string | null
           audit_status?: string | null
           company?: string
           created_at?: string
