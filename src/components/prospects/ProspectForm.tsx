@@ -73,8 +73,26 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
       toast.error("Nom complet et entreprise sont obligatoires");
       return;
     }
+    if (!formData.email) {
+      toast.error("L'email est obligatoire");
+      return;
+    }
+    if (!formData.websiteUrl) {
+      toast.error("L'URL du site web est obligatoire");
+      return;
+    }
+    // Auto-complete URL if missing protocol
+    let websiteUrl = formData.websiteUrl;
+    if (websiteUrl && !websiteUrl.startsWith("http://") && !websiteUrl.startsWith("https://")) {
+      websiteUrl = `https://${websiteUrl}`;
+    }
+    if (websiteUrl && !/^https?:\/\/.+/.test(websiteUrl)) {
+      toast.error("L'URL du site doit commencer par http:// ou https://");
+      return;
+    }
     const prospectData: Partial<Prospect> = {
       ...formData,
+      websiteUrl,
       reminderDate: reminderDate?.toISOString(),
       firstMessageDate: firstMessageDate?.toISOString(),
       updatedAt: new Date().toISOString(),
@@ -136,26 +154,26 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
               <Input type="url" value={formData.linkedinUrl} onChange={e => setFormData({ ...formData, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/..." className="bg-input border-border/50" />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={formData.email || ""} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" className="bg-input border-border/50" />
+              <Label>Email *</Label>
+              <Input type="email" value={formData.email || ""} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" className="bg-input border-border/50" required />
             </div>
           </div>
 
-          {/* Website URL */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary" />
-              Site web (URL)
+              Site web (URL) *
             </Label>
             <Input
               type="url"
               value={formData.websiteUrl || ""}
               onChange={e => setFormData({ ...formData, websiteUrl: e.target.value })}
-              placeholder="https://www.example.com"
+              placeholder="https://www.exemple.com"
               className="bg-input border-border/50"
+              required
             />
             <p className="text-xs text-muted-foreground">
-              Un audit SEO & IA sera généré automatiquement si une URL est fournie
+              Un audit SEO & IA sera généré automatiquement à la création du prospect
             </p>
           </div>
 

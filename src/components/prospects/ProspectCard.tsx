@@ -3,7 +3,8 @@ import { Prospect, ProspectStatus } from "@/types/prospect";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Archive, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw, Linkedin, Undo2, AlertTriangle } from "lucide-react";
+import { Edit, Archive, Clock, Send, MessageCircle, Phone, CheckCircle, RotateCcw, Linkedin, Undo2, AlertTriangle, Loader2 } from "lucide-react";
+import { generateAudit } from "@/utils/auditUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUndoableActionContext } from "@/contexts/UndoableActionContext";
@@ -467,6 +468,43 @@ const ProspectCard = ({ prospect, onEdit, onDelete, onActivityLogged }: Prospect
               <Badge variant="outline" className={getHypeConfig(prospect.hype).color}>
                 {getHypeConfig(prospect.hype).label}
               </Badge>
+              {/* Audit status badge */}
+              {prospect.audit_status === "generating" && (
+                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 animate-pulse">
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  Audit en cours...
+                </Badge>
+              )}
+              {prospect.audit_status === "done" && (
+                <Badge
+                  variant="outline"
+                  className="bg-green-100 text-green-700 border-green-300 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (prospect.audit_pdf_url) window.open(prospect.audit_pdf_url, "_blank");
+                  }}
+                >
+                  ✓ Score: {prospect.audit_score ?? "?"}/100
+                </Badge>
+              )}
+              {prospect.audit_status === "error" && (
+                <Badge
+                  variant="outline"
+                  className="bg-orange-100 text-orange-700 border-orange-300 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (prospect.websiteUrl) {
+                      generateAudit(prospect.id, {
+                        website_url: prospect.websiteUrl,
+                        company_name: prospect.company,
+                        first_name: prospect.fullName.split(" ")[0],
+                      });
+                    }
+                  }}
+                >
+                  ⚠ Erreur — Réessayer
+                </Badge>
+              )}
             </div>
 
             {/* Right */}
