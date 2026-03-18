@@ -73,10 +73,6 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
       toast.error("Nom complet et entreprise sont obligatoires");
       return;
     }
-    if (!formData.email) {
-      toast.error("L'email est obligatoire");
-      return;
-    }
     if (!formData.websiteUrl) {
       toast.error("L'URL du site web est obligatoire");
       return;
@@ -154,8 +150,8 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
               <Input type="url" value={formData.linkedinUrl} onChange={e => setFormData({ ...formData, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/..." className="bg-input border-border/50" />
             </div>
             <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input type="email" value={formData.email || ""} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" className="bg-input border-border/50" required />
+              <Label>Email</Label>
+              <Input type="email" value={formData.email || ""} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" className="bg-input border-border/50" />
             </div>
           </div>
 
