@@ -130,6 +130,19 @@ const Prospects = () => {
         toast.error("Erreur lors de la modification");
         return;
       }
+
+      // Trigger audit if website URL was added/changed and no audit done yet
+      const newUrl = prospectData.websiteUrl?.trim();
+      const oldUrl = editingProspect.websiteUrl?.trim();
+      if (newUrl && newUrl !== oldUrl) {
+        toast.info("Audit SEO & IA en cours de génération...");
+        generateAudit(editingProspect.id, {
+          website_url: newUrl,
+          company_name: prospectData.company || editingProspect.company,
+          first_name: (prospectData.fullName || editingProspect.fullName).split(' ')[0] || '',
+        }).then(() => refresh());
+      }
+
       toast.success("Prospect modifié !");
     } else {
       const hasWebsite = prospectData.websiteUrl && prospectData.websiteUrl.trim() !== "";
