@@ -43,12 +43,24 @@ const Prospects = () => {
 
   useEffect(() => {
     const shouldOpenForm = searchParams.get("new");
+    const editId = searchParams.get("edit");
+
     if (shouldOpenForm === "true") {
       setEditingProspect(undefined);
       setFormOpen(true);
       navigate("/prospects?view=" + view, { replace: true });
+      return;
     }
-  }, [searchParams, navigate, view]);
+
+    if (editId) {
+      const prospectToEdit = prospects.find((prospect) => prospect.id === editId);
+      if (prospectToEdit) {
+        setEditingProspect(prospectToEdit);
+        setFormOpen(true);
+        navigate("/prospects?view=" + view, { replace: true });
+      }
+    }
+  }, [searchParams, navigate, view, prospects]);
 
   const applyFilters = () => {
     let filtered = [...prospects];
