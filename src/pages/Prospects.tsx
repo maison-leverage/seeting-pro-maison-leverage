@@ -189,6 +189,8 @@ const Prospects = () => {
       }
 
       toast.success("Prospect ajouté !");
+      // Navigate to "all" view so the new prospect is visible
+      navigate("/prospects?view=all");
     }
 
     setEditingProspect(undefined);
