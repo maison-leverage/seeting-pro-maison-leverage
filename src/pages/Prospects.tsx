@@ -32,7 +32,8 @@ const Prospects = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [generatingBulk, setGeneratingBulk] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   useEffect(() => {
     setSearchQuery(searchFromUrl);
   }, [searchFromUrl]);
