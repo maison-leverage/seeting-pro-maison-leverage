@@ -15,6 +15,7 @@ import { Prospect, ProspectSource } from "@/types/prospect";
 import { isPast, isToday, addDays, differenceInDays, startOfDay, endOfDay } from "date-fns";
 import ResponseAnalyzer from "@/components/prospects/ResponseAnalyzer";
 import AuditButton from "@/components/prospects/AuditButton";
+import { generateAudit } from "@/utils/auditUtils";
 
 const FOLLOW_UP_DAYS = [4, 10, 15];
 const ADVANCED_STATUSES = ["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"];
