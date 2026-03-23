@@ -564,12 +564,14 @@ const DailyQueue = () => {
                       </div>
 
                       {item.message && (
-                        <Textarea
-                          readOnly
-                          value={item.message}
-                          className="bg-background border-border/50 text-sm mb-3 resize-none"
-                          rows={Math.min(item.message.split('\n').length + 1, 8)}
-                        />
+                        <div className="relative">
+                          <Textarea
+                            value={editableMessages[item.prospect.id] ?? item.message}
+                            onChange={(e) => setEditableMessages(prev => ({ ...prev, [item.prospect.id]: e.target.value }))}
+                            className="bg-background border-border/50 text-sm mb-3 resize-none"
+                            rows={Math.min((editableMessages[item.prospect.id] ?? item.message).split('\n').length + 1, 8)}
+                          />
+                        </div>
                       )}
 
                       <div className="flex gap-2 flex-wrap">
