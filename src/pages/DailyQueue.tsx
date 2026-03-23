@@ -650,9 +650,28 @@ const DailyQueue = () => {
                         </Button>
                         {(section.key === 'overdue' || section.key === 'today' || section.key === 'new') && (
                           <>
-                            <Button size="sm" variant="outline" onClick={() => handleReplyReceived(item.prospect)} className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">
-                              <MessageCircle className="w-4 h-4 mr-1" /> Réponse reçue
-                            </Button>
+                            <Popover open={replyPopoverOpen === item.prospect.id} onOpenChange={(open) => setReplyPopoverOpen(open ? item.prospect.id : null)}>
+                              <PopoverTrigger asChild>
+                                <Button size="sm" variant="outline" className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">
+                                  <MessageCircle className="w-4 h-4 mr-1" /> Réponse reçue <ChevronDown className="w-3 h-3 ml-1" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56 p-2" align="start">
+                                <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">Suite à quel message ?</p>
+                                <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, `first_dm_${item.prospect.source}`)}>
+                                  📩 Premier DM
+                                </Button>
+                                <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_1')}>
+                                  🔄 Relance 1 (J+4)
+                                </Button>
+                                <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_2')}>
+                                  🔄 Relance 2 (J+10)
+                                </Button>
+                                <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_3')}>
+                                  🔄 Relance 3 (J+15)
+                                </Button>
+                              </PopoverContent>
+                            </Popover>
                             <Button size="sm" onClick={() => handleMarkDone(item)} className="bg-green-600 hover:bg-green-700 text-white">
                               <Check className="w-4 h-4 mr-1" /> Fait ✓
                             </Button>
