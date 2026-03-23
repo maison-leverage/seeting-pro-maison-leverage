@@ -165,17 +165,19 @@ const DailyQueue = () => {
     }
   };
 
-  const trackSend = async (prospectId: string, variantId?: string) => {
-    try {
-      await supabase.from('message_sends').insert({
-        prospect_id: prospectId,
-        variant_id: variantId || null,
-        created_at: new Date().toISOString(),
-        got_reply: false,
-      } as any);
-    } catch (error) {
-      console.error('Failed to track message send:', error);
-    }
+  const trackSend = async (prospectId: string, variantId: string, category: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { error } = await supabase.from('message_sends').insert({
+      prospect_id: prospectId,
+      variant_id: variantId,
+      user_id: session.user.id,
+      category: category,
+      got_reply: false,
+    });
+
+    if (error) console.error('Failed to track send:', error);
   };
 
   // Helper function to get first message with A/B testing (strict 50/50)
@@ -316,7 +318,9 @@ const DailyQueue = () => {
     const userName = profile?.name || session.user.email || 'Utilisateur';
 
     if (item.section === 'new') {
-      await trackSend(item.prospect.id, item.variantId);
+      if (item.variantId) {
+        await trackSend(item.prospect.id, item.variantId, `first_dm_${item.prospect.source}`);
+      }
       await supabase.from('activity_logs').insert({
         type: 'first_dm', user_name: userName, lead_id: item.prospect.id,
         user_id: session.user.id, prospect_name: item.prospect.fullName, prospect_company: item.prospect.company,
@@ -330,7 +334,9 @@ const DailyQueue = () => {
       toast.success("1er DM enregistré !");
     } else if (item.section === 'overdue' || item.section === 'today') {
       const newCount = item.prospect.followUpCount + 1;
-      await trackSend(item.prospect.id, item.variantId);
+      if (item.variantId) {
+        await trackSend(item.prospect.id, item.variantId, `followup_${item.followUpNumber || newCount}`);
+      }
       await supabase.from('activity_logs').insert({
         type: 'follow_up_dm', user_name: userName, lead_id: item.prospect.id,
         user_id: session.user.id, prospect_name: item.prospect.fullName, prospect_company: item.prospect.company,
