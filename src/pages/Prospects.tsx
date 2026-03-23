@@ -293,6 +293,44 @@ const Prospects = () => {
     toast.success(`${filteredProspects.length} prospects exportés !`);
   };
 
+  const generateMissingAudits = async () => {
+    const missingAudits = prospects.filter(
+      (p) => (!p.audit_generated || p.audit_status === "none" || !p.audit_status) && p.websiteUrl
+    );
+
+    if (missingAudits.length === 0) {
+      toast.info("Tous les prospects avec un site ont déjà un audit !");
+      return;
+    }
+
+    setGeneratingBulk(true);
+    setBulkProgress({ current: 0, total: missingAudits.length });
+
+    for (let i = 0; i < missingAudits.length; i++) {
+      const p = missingAudits[i];
+      setBulkProgress({ current: i + 1, total: missingAudits.length });
+
+      await generateAudit(p.id, {
+        website_url: p.websiteUrl!,
+        company_name: p.company,
+        first_name: p.fullName.split(" ")[0],
+      });
+
+      // Pause between each to avoid overloading the API
+      if (i < missingAudits.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+
+    setGeneratingBulk(false);
+    refresh();
+    toast.success(`${missingAudits.length} audits générés avec succès !`);
+  };
+
+  const missingAuditCount = prospects.filter(
+    (p) => (!p.audit_generated || p.audit_status === "none" || !p.audit_status) && p.websiteUrl
+  ).length;
+
   const getViewTitle = () => {
     if (searchQuery) return `🔍 Recherche : "${searchQuery}"`;
     switch (view) {
