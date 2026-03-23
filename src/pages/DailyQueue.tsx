@@ -106,6 +106,7 @@ const DailyQueue = () => {
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
   const [editableMessages, setEditableMessages] = useState<Record<string, string>>({});
   const [replyPopoverOpen, setReplyPopoverOpen] = useState<string | null>(null);
+  const [prospectSends, setProspectSends] = useState<Array<{ id: string; category: string; variant_name: string; variant_content: string; sent_at: string }>>([]);
 
   useEffect(() => {
     loadTodayCount();
