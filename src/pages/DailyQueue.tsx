@@ -103,6 +103,7 @@ const DailyQueue = () => {
   const [variants, setVariants] = useState<MessageVariant[]>([]);
   const [sendCounts, setSendCounts] = useState<Record<string, number>>({});
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
+  const [editableMessages, setEditableMessages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadTodayCount();
