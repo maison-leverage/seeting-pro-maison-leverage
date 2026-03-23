@@ -1,60 +1,38 @@
 
 
-## Problem: A/B Test Always Shows 0
+## Sélecteur de relance lors du clic "Réponse reçue"
 
-The `trackSend` function in `DailyQueue.tsx` silently fails on every call because the insert payload doesn't match the `message_sends` table schema. No data is ever recorded, so the Admin A/B test dashboard shows 0 everywhere.
+### Objectif
+Quand l'utilisateur clique "Réponse reçue", au lieu de marquer automatiquement le dernier envoi, afficher un petit menu pour choisir à quelle relance le prospect a répondu (Premier DM, Relance 1, Relance 2, Relance 3). Cela permet de savoir précisément quel message a fonctionné pour l'A/B test.
 
-### Root Cause
+### Changements
 
-The `message_sends` table requires these NOT NULL columns:
-- `prospect_id`, `variant_id`, `user_id`, `category`
+**Fichier : `src/pages/DailyQueue.tsx`**
 
-But `trackSend` currently sends:
-- `created_at` (wrong — column is `sent_at`, has a default)
-- `variant_id: null` when no variant (violates NOT NULL)
-- No `user_id`
-- No `category`
+1. **Ajouter un state pour le sélecteur** : `replySelectProspect` qui stocke le prospect pour lequel on choisit la relance.
 
-The `as any` cast hides TypeScript errors, and the missing `.then()` error check means failures are swallowed.
+2. **Modifier le bouton "Réponse reçue"** : Au lieu d'appeler directement `handleReplyReceived`, il ouvre un petit Popover/Dialog avec les options :
+   - Premier DM
+   - Relance 1 (J+4)
+   - Relance 2 (J+10)
+   - Relance 3 (J+15)
 
-### Fix Plan
+3. **Modifier `handleReplyReceived`** : Ajouter un paramètre `replyToCategory` (ex: `first_dm_outbound`, `followup_1`, `followup_2`, `followup_3`). Au lieu de chercher le "dernier" `message_send`, chercher celui qui correspond à la catégorie sélectionnée pour ce prospect, et le marquer `got_reply: true`.
 
-**1. Fix `trackSend` in `src/pages/DailyQueue.tsx`**
+4. **UI** : Utiliser un composant `Popover` avec des boutons pour chaque option. Quand l'utilisateur clique une option, ça appelle `handleReplyReceived(prospect, category)` puis ferme le popover.
 
-Update the function signature to accept all required fields and send correct column names:
+### Détails techniques
 
-```typescript
-const trackSend = async (prospectId: string, variantId: string, category: string) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
-  
-  const { error } = await supabase.from('message_sends').insert({
-    prospect_id: prospectId,
-    variant_id: variantId,
-    user_id: session.user.id,
-    category: category,
-    got_reply: false,
-  });
-  
-  if (error) console.error('Failed to track send:', error);
-};
+```text
+Clic "Réponse reçue"
+  └─> Popover s'ouvre
+       ├─ "Premier DM"     → handleReplyReceived(prospect, 'first_dm_%source%')
+       ├─ "Relance 1 (J+4)"  → handleReplyReceived(prospect, 'followup_1')
+       ├─ "Relance 2 (J+10)" → handleReplyReceived(prospect, 'followup_2')
+       └─ "Relance 3 (J+15)" → handleReplyReceived(prospect, 'followup_3')
 ```
 
-**2. Update all `trackSend` call sites** (3 places in `handleMarkDone`)
-
-- For `section === 'new'`: pass `variantId` and `first_dm_${prospect.source}` as category
-- For `section === 'overdue'` or `'today'`: pass `variantId` and `followup_${followUpNumber}` as category
-- Only call `trackSend` when `variantId` exists (skip if using fallback templates with no variant)
-
-**3. Fix `handleReplyReceived`** — already correct (updates `got_reply` on existing sends)
-
-### What This Fixes
-
-- Every "Fait !" click will now correctly record the send in `message_sends`
-- The Admin A/B test dashboard will start showing real send counts and reply rates
-- The 50/50 distribution logic (`pickVariant`) will also work correctly since `sendCounts` will have real data
-
-### No Database Changes Required
-
-The table schema is already correct. Only the frontend code needs fixing.
+- La requête Supabase dans `handleReplyReceived` filtrera par `prospect_id` ET `category` pour trouver le bon `message_send` à marquer comme ayant reçu une réponse
+- Si aucun `message_send` n'est trouvé pour cette catégorie (envoi pas encore tracké), on marque quand même le prospect en statut `reponse` et on log l'activité
+- Le `activity_log` inclura aussi la catégorie pour savoir quel type de message a généré la réponse
 
