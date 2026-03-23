@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, Download, ChevronLeft, ChevronRight, Zap, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useProspects, mapProspectToDb } from "@/hooks/useProspects";
 
@@ -31,7 +32,8 @@ const Prospects = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [generatingBulk, setGeneratingBulk] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   useEffect(() => {
     setSearchQuery(searchFromUrl);
   }, [searchFromUrl]);
@@ -291,6 +293,44 @@ const Prospects = () => {
     toast.success(`${filteredProspects.length} prospects exportés !`);
   };
 
+  const generateMissingAudits = async () => {
+    const missingAudits = prospects.filter(
+      (p) => (!p.audit_generated || p.audit_status === "none" || !p.audit_status) && p.websiteUrl
+    );
+
+    if (missingAudits.length === 0) {
+      toast.info("Tous les prospects avec un site ont déjà un audit !");
+      return;
+    }
+
+    setGeneratingBulk(true);
+    setBulkProgress({ current: 0, total: missingAudits.length });
+
+    for (let i = 0; i < missingAudits.length; i++) {
+      const p = missingAudits[i];
+      setBulkProgress({ current: i + 1, total: missingAudits.length });
+
+      await generateAudit(p.id, {
+        website_url: p.websiteUrl!,
+        company_name: p.company,
+        first_name: p.fullName.split(" ")[0],
+      });
+
+      // Pause between each to avoid overloading the API
+      if (i < missingAudits.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+
+    setGeneratingBulk(false);
+    refresh();
+    toast.success(`${missingAudits.length} audits générés avec succès !`);
+  };
+
+  const missingAuditCount = prospects.filter(
+    (p) => (!p.audit_generated || p.audit_status === "none" || !p.audit_status) && p.websiteUrl
+  ).length;
+
   const getViewTitle = () => {
     if (searchQuery) return `🔍 Recherche : "${searchQuery}"`;
     switch (view) {
@@ -312,6 +352,22 @@ const Prospects = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2">{getViewTitle()}</h1>
               <p className="text-muted-foreground">{filteredProspects.length} prospect{filteredProspects.length > 1 ? "s" : ""}</p>
+            </div>
+            <div className="flex gap-2 items-center">
+              {generatingBulk ? (
+                <div className="flex items-center gap-3 px-4 py-2 rounded-lg border border-blue-300 bg-blue-50">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <div className="text-sm">
+                    <span className="font-medium text-blue-700">Génération en cours... {bulkProgress.current}/{bulkProgress.total}</span>
+                    <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2 mt-1 w-40" />
+                  </div>
+                </div>
+              ) : missingAuditCount > 0 ? (
+                <Button onClick={generateMissingAudits} variant="outline" className="gap-2 border-green-300 text-green-700 hover:bg-green-50">
+                  <Zap className="w-4 h-4" />
+                  Générer {missingAuditCount} audit{missingAuditCount > 1 ? "s" : ""} manquant{missingAuditCount > 1 ? "s" : ""}
+                </Button>
+              ) : null}
             </div>
           </div>
 

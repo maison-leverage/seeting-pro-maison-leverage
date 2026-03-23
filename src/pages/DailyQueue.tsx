@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical, Brain, XCircle } from "lucide-react";
+import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical, Brain, XCircle, Paperclip } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProspects } from "@/hooks/useProspects";
@@ -15,6 +15,7 @@ import { Prospect, ProspectSource } from "@/types/prospect";
 import { isPast, isToday, addDays, differenceInDays, startOfDay, endOfDay } from "date-fns";
 import ResponseAnalyzer from "@/components/prospects/ResponseAnalyzer";
 import AuditButton from "@/components/prospects/AuditButton";
+import { generateAudit } from "@/utils/auditUtils";
 
 const FOLLOW_UP_DAYS = [4, 10, 15];
 const ADVANCED_STATUSES = ["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"];
@@ -102,6 +103,7 @@ const DailyQueue = () => {
   const [variants, setVariants] = useState<MessageVariant[]>([]);
   const [sendCounts, setSendCounts] = useState<Record<string, number>>({});
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
+  const [editableMessages, setEditableMessages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadTodayCount();
@@ -562,18 +564,50 @@ const DailyQueue = () => {
                       </div>
 
                       {item.message && (
-                        <Textarea
-                          readOnly
-                          value={item.message}
-                          className="bg-background border-border/50 text-sm mb-3 resize-none"
-                          rows={Math.min(item.message.split('\n').length + 1, 8)}
-                        />
+                        <div className="relative">
+                          <Textarea
+                            value={editableMessages[item.prospect.id] ?? item.message}
+                            onChange={(e) => setEditableMessages(prev => ({ ...prev, [item.prospect.id]: e.target.value }))}
+                            className="bg-background border-border/50 text-sm mb-3 resize-none"
+                            rows={Math.min((editableMessages[item.prospect.id] ?? item.message).split('\n').length + 1, 8)}
+                          />
+                        </div>
                       )}
 
                       <div className="flex gap-2 flex-wrap">
                         {item.message && (
-                          <Button size="sm" variant="outline" onClick={() => handleCopy(item.message)} className="border-blue-300 text-blue-600 hover:bg-blue-50">
+                          <Button size="sm" variant="outline" onClick={() => handleCopy(editableMessages[item.prospect.id] ?? item.message)} className="border-blue-300 text-blue-600 hover:bg-blue-50">
                             <Copy className="w-4 h-4 mr-1" /> Copier
+                          </Button>
+                        )}
+                        {item.message && item.prospect.websiteUrl && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              let pdfUrl = item.prospect.audit_pdf_url;
+                              if (!item.prospect.audit_generated || !pdfUrl) {
+                                toast.info("Génération de l'audit en cours...");
+                                pdfUrl = await generateAudit(item.prospect.id, {
+                                  website_url: item.prospect.websiteUrl!,
+                                  company_name: item.prospect.company,
+                                  first_name: item.prospect.fullName.split(" ")[0],
+                                });
+                                refresh();
+                              }
+                              if (pdfUrl) {
+                                const currentMsg = editableMessages[item.prospect.id] ?? item.message;
+                                setEditableMessages(prev => ({
+                                  ...prev,
+                                  [item.prospect.id]: currentMsg + `\n\nVoici votre audit digital personnalisé : ${pdfUrl}`,
+                                }));
+                                toast.success("Audit joint au message !");
+                              }
+                            }}
+                            className="border-green-300 text-green-600 hover:bg-green-50"
+                          >
+                            <Paperclip className="w-4 h-4 mr-1" />
+                            {item.prospect.audit_generated ? "Joindre l'audit" : "Générer & joindre"}
                           </Button>
                         )}
                         {item.prospect.linkedinUrl && (
