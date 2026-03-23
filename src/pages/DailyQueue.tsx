@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical, Brain, XCircle, Paperclip } from "lucide-react";
+import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical, Brain, XCircle, Paperclip, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProspects } from "@/hooks/useProspects";
@@ -104,6 +105,7 @@ const DailyQueue = () => {
   const [sendCounts, setSendCounts] = useState<Record<string, number>>({});
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
   const [editableMessages, setEditableMessages] = useState<Record<string, string>>({});
+  const [replyPopoverOpen, setReplyPopoverOpen] = useState<string | null>(null);
 
   useEffect(() => {
     loadTodayCount();
@@ -357,7 +359,7 @@ const DailyQueue = () => {
     loadSendCounts(); // Refresh counts to maintain 50/50 balance
   };
 
-  const handleReplyReceived = async (prospect: Prospect) => {
+  const handleReplyReceived = async (prospect: Prospect, replyToCategory?: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const { data: profile } = await supabase.from('profiles').select('name').eq('id', session.user.id).maybeSingle();
@@ -366,30 +368,45 @@ const DailyQueue = () => {
     await supabase.from('activity_logs').insert({
       type: 'reply_received', user_name: userName, lead_id: prospect.id,
       user_id: session.user.id, prospect_name: prospect.fullName, prospect_company: prospect.company,
+      message_type: replyToCategory || null,
     });
 
-    // Mark the last message_send as got_reply=true
+    // Mark the matching message_send as got_reply=true
     try {
-      const { data: lastSend } = await supabase
+      let query = supabase
         .from('message_sends')
         .select('id')
-        .eq('prospect_id', prospect.id)
+        .eq('prospect_id', prospect.id);
+
+      if (replyToCategory) {
+        query = query.eq('category', replyToCategory);
+      }
+
+      const { data: matchingSend } = await query
         .order('sent_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (lastSend) {
+      if (matchingSend) {
         await supabase
           .from('message_sends')
-          .update({ got_reply: true })
-          .eq('id', lastSend.id);
+          .update({ got_reply: true, reply_at: new Date().toISOString() })
+          .eq('id', matchingSend.id);
       }
     } catch (error) {
       console.error('Failed to update message_send reply status:', error);
     }
 
     await supabase.from('prospects').update({ status: 'reponse' }).eq('id', prospect.id);
-    toast.success("Réponse enregistrée !");
+    
+    const categoryLabels: Record<string, string> = {
+      followup_1: 'Relance 1',
+      followup_2: 'Relance 2', 
+      followup_3: 'Relance 3',
+    };
+    const label = replyToCategory?.startsWith('first_dm') ? 'Premier DM' : categoryLabels[replyToCategory || ''] || 'message';
+    toast.success(`Réponse enregistrée ! (suite au ${label})`);
+    setReplyPopoverOpen(null);
     refresh();
     loadTodayCount();
   };
@@ -633,9 +650,28 @@ const DailyQueue = () => {
                         </Button>
                         {(section.key === 'overdue' || section.key === 'today' || section.key === 'new') && (
                           <>
-                            <Button size="sm" variant="outline" onClick={() => handleReplyReceived(item.prospect)} className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">
-                              <MessageCircle className="w-4 h-4 mr-1" /> Réponse reçue
-                            </Button>
+                            <Popover open={replyPopoverOpen === item.prospect.id} onOpenChange={(open) => setReplyPopoverOpen(open ? item.prospect.id : null)}>
+                              <PopoverTrigger asChild>
+                                <Button size="sm" variant="outline" className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">
+                                  <MessageCircle className="w-4 h-4 mr-1" /> Réponse reçue <ChevronDown className="w-3 h-3 ml-1" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56 p-2" align="start">
+                                <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">Suite à quel message ?</p>
+                                <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, `first_dm_${item.prospect.source}`)}>
+                                  📩 Premier DM
+                                </Button>
+                                <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_1')}>
+                                  🔄 Relance 1 (J+4)
+                                </Button>
+                                <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_2')}>
+                                  🔄 Relance 2 (J+10)
+                                </Button>
+                                <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_3')}>
+                                  🔄 Relance 3 (J+15)
+                                </Button>
+                              </PopoverContent>
+                            </Popover>
                             <Button size="sm" onClick={() => handleMarkDone(item)} className="bg-green-600 hover:bg-green-700 text-white">
                               <Check className="w-4 h-4 mr-1" /> Fait ✓
                             </Button>
