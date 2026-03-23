@@ -359,7 +359,7 @@ const DailyQueue = () => {
     loadSendCounts(); // Refresh counts to maintain 50/50 balance
   };
 
-  const handleReplyReceived = async (prospect: Prospect) => {
+  const handleReplyReceived = async (prospect: Prospect, replyToCategory?: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const { data: profile } = await supabase.from('profiles').select('name').eq('id', session.user.id).maybeSingle();
@@ -368,30 +368,45 @@ const DailyQueue = () => {
     await supabase.from('activity_logs').insert({
       type: 'reply_received', user_name: userName, lead_id: prospect.id,
       user_id: session.user.id, prospect_name: prospect.fullName, prospect_company: prospect.company,
+      message_type: replyToCategory || null,
     });
 
-    // Mark the last message_send as got_reply=true
+    // Mark the matching message_send as got_reply=true
     try {
-      const { data: lastSend } = await supabase
+      let query = supabase
         .from('message_sends')
         .select('id')
-        .eq('prospect_id', prospect.id)
+        .eq('prospect_id', prospect.id);
+
+      if (replyToCategory) {
+        query = query.eq('category', replyToCategory);
+      }
+
+      const { data: matchingSend } = await query
         .order('sent_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (lastSend) {
+      if (matchingSend) {
         await supabase
           .from('message_sends')
-          .update({ got_reply: true })
-          .eq('id', lastSend.id);
+          .update({ got_reply: true, reply_at: new Date().toISOString() })
+          .eq('id', matchingSend.id);
       }
     } catch (error) {
       console.error('Failed to update message_send reply status:', error);
     }
 
     await supabase.from('prospects').update({ status: 'reponse' }).eq('id', prospect.id);
-    toast.success("Réponse enregistrée !");
+    
+    const categoryLabels: Record<string, string> = {
+      followup_1: 'Relance 1',
+      followup_2: 'Relance 2', 
+      followup_3: 'Relance 3',
+    };
+    const label = replyToCategory?.startsWith('first_dm') ? 'Premier DM' : categoryLabels[replyToCategory || ''] || 'message';
+    toast.success(`Réponse enregistrée ! (suite au ${label})`);
+    setReplyPopoverOpen(null);
     refresh();
     loadTodayCount();
   };
