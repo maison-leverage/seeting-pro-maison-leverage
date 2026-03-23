@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, Download, ChevronLeft, ChevronRight, Zap, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useProspects, mapProspectToDb } from "@/hooks/useProspects";
 
