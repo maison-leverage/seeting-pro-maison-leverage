@@ -165,17 +165,19 @@ const DailyQueue = () => {
     }
   };
 
-  const trackSend = async (prospectId: string, variantId?: string) => {
-    try {
-      await supabase.from('message_sends').insert({
-        prospect_id: prospectId,
-        variant_id: variantId || null,
-        created_at: new Date().toISOString(),
-        got_reply: false,
-      } as any);
-    } catch (error) {
-      console.error('Failed to track message send:', error);
-    }
+  const trackSend = async (prospectId: string, variantId: string, category: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { error } = await supabase.from('message_sends').insert({
+      prospect_id: prospectId,
+      variant_id: variantId,
+      user_id: session.user.id,
+      category: category,
+      got_reply: false,
+    });
+
+    if (error) console.error('Failed to track send:', error);
   };
 
   // Helper function to get first message with A/B testing (strict 50/50)
