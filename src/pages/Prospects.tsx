@@ -353,6 +353,22 @@ const Prospects = () => {
               <h1 className="text-3xl font-bold mb-2">{getViewTitle()}</h1>
               <p className="text-muted-foreground">{filteredProspects.length} prospect{filteredProspects.length > 1 ? "s" : ""}</p>
             </div>
+            <div className="flex gap-2 items-center">
+              {generatingBulk ? (
+                <div className="flex items-center gap-3 px-4 py-2 rounded-lg border border-blue-300 bg-blue-50">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <div className="text-sm">
+                    <span className="font-medium text-blue-700">Génération en cours... {bulkProgress.current}/{bulkProgress.total}</span>
+                    <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2 mt-1 w-40" />
+                  </div>
+                </div>
+              ) : missingAuditCount > 0 ? (
+                <Button onClick={generateMissingAudits} variant="outline" className="gap-2 border-green-300 text-green-700 hover:bg-green-50">
+                  <Zap className="w-4 h-4" />
+                  Générer {missingAuditCount} audit{missingAuditCount > 1 ? "s" : ""} manquant{missingAuditCount > 1 ? "s" : ""}
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex gap-4 items-center flex-wrap">
