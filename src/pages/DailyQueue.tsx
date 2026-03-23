@@ -576,8 +576,38 @@ const DailyQueue = () => {
 
                       <div className="flex gap-2 flex-wrap">
                         {item.message && (
-                          <Button size="sm" variant="outline" onClick={() => handleCopy(item.message)} className="border-blue-300 text-blue-600 hover:bg-blue-50">
+                          <Button size="sm" variant="outline" onClick={() => handleCopy(editableMessages[item.prospect.id] ?? item.message)} className="border-blue-300 text-blue-600 hover:bg-blue-50">
                             <Copy className="w-4 h-4 mr-1" /> Copier
+                          </Button>
+                        )}
+                        {item.message && item.prospect.websiteUrl && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              let pdfUrl = item.prospect.audit_pdf_url;
+                              if (!item.prospect.audit_generated || !pdfUrl) {
+                                toast.info("Génération de l'audit en cours...");
+                                pdfUrl = await generateAudit(item.prospect.id, {
+                                  website_url: item.prospect.websiteUrl!,
+                                  company_name: item.prospect.company,
+                                  first_name: item.prospect.fullName.split(" ")[0],
+                                });
+                                refresh();
+                              }
+                              if (pdfUrl) {
+                                const currentMsg = editableMessages[item.prospect.id] ?? item.message;
+                                setEditableMessages(prev => ({
+                                  ...prev,
+                                  [item.prospect.id]: currentMsg + `\n\nVoici votre audit digital personnalisé : ${pdfUrl}`,
+                                }));
+                                toast.success("Audit joint au message !");
+                              }
+                            }}
+                            className="border-green-300 text-green-600 hover:bg-green-50"
+                          >
+                            <Paperclip className="w-4 h-4 mr-1" />
+                            {item.prospect.audit_generated ? "Joindre l'audit" : "Générer & joindre"}
                           </Button>
                         )}
                         {item.prospect.linkedinUrl && (
