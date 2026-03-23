@@ -334,7 +334,9 @@ const DailyQueue = () => {
       toast.success("1er DM enregistré !");
     } else if (item.section === 'overdue' || item.section === 'today') {
       const newCount = item.prospect.followUpCount + 1;
-      await trackSend(item.prospect.id, item.variantId);
+      if (item.variantId) {
+        await trackSend(item.prospect.id, item.variantId, `followup_${item.followUpNumber || newCount}`);
+      }
       await supabase.from('activity_logs').insert({
         type: 'follow_up_dm', user_name: userName, lead_id: item.prospect.id,
         user_id: session.user.id, prospect_name: item.prospect.fullName, prospect_company: item.prospect.company,
