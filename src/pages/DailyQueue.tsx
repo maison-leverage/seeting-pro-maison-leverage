@@ -318,7 +318,9 @@ const DailyQueue = () => {
     const userName = profile?.name || session.user.email || 'Utilisateur';
 
     if (item.section === 'new') {
-      await trackSend(item.prospect.id, item.variantId);
+      if (item.variantId) {
+        await trackSend(item.prospect.id, item.variantId, `first_dm_${item.prospect.source}`);
+      }
       await supabase.from('activity_logs').insert({
         type: 'first_dm', user_name: userName, lead_id: item.prospect.id,
         user_id: session.user.id, prospect_name: item.prospect.fullName, prospect_company: item.prospect.company,
