@@ -10,8 +10,8 @@ interface FollowUpsTodayCardProps {
   loading?: boolean;
 }
 
-const FOLLOW_UP_DAYS = [4, 10, 15];
 const ADVANCED_STATUSES = ["r1_booke", "r1_fait", "r2_booke", "signe", "perdu"];
+const EXCLUDED_STATUSES = [...ADVANCED_STATUSES, "discussion", "reponse", "demande_dispos"];
 
 interface FollowUpItem {
   prospect: Prospect;
@@ -22,16 +22,21 @@ interface FollowUpItem {
 }
 
 const FollowUpsTodayCard = ({ prospects, loading }: FollowUpsTodayCardProps) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const followUps: FollowUpItem[] = prospects
-    .filter(p => p.firstMessageDate && p.followUpCount < 3 && !p.no_follow_up && !ADVANCED_STATUSES.includes(p.status) && p.status !== 'discussion')
+    .filter(p => p.reminderDate && p.followUpCount < 3 && !p.no_follow_up && !EXCLUDED_STATUSES.includes(p.status))
     .map(p => {
-      const firstDate = new Date(p.firstMessageDate!);
-      const nextDay = FOLLOW_UP_DAYS[p.followUpCount];
-      const dueDate = addDays(firstDate, nextDay);
-      const isDue = isPast(dueDate) || isToday(dueDate);
-      const isLate = isPast(dueDate) && !isToday(dueDate);
+      const dueDate = new Date(p.reminderDate!);
+      dueDate.setHours(0, 0, 0, 0);
+      const isDue = dueDate <= today;
       if (!isDue) return null;
-      return { prospect: p, followUpNumber: p.followUpCount + 1, dayLabel: `J+${nextDay}`, dueDate, isLate };
+      const isLate = dueDate < today;
+      const followUpNumber = p.followUpCount + 1;
+      const dayLabels = ['J+4', 'J+10', 'J+15'];
+      const dayLabel = dayLabels[p.followUpCount] || `Relance ${followUpNumber}`;
+      return { prospect: p, followUpNumber, dayLabel, dueDate, isLate };
     })
     .filter(Boolean) as FollowUpItem[];
 
