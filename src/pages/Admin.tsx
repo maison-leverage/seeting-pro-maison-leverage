@@ -278,7 +278,7 @@ const Admin = () => {
     for (const [category, categoryVariants] of Object.entries(grouped)) {
       let variantResults = categoryVariants.map((variant) => {
         const variantSends = sends.filter((s) => s.variant_id === variant.id);
-        const replyCount = variantSends.filter((s) => (s as any).got_reply || (s as any).has_reply).length;
+        const replyCount = variantSends.filter((s) => (s as any).got_reply).length;
         const sendCount = variantSends.length;
         const replyRate = sendCount > 0 ? (replyCount / sendCount) * 100 : 0;
 

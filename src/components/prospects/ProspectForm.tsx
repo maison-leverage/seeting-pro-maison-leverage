@@ -176,7 +176,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
               onChange={e => setFormData({ ...formData, websiteUrl: e.target.value })}
               placeholder="https://www.exemple.com"
               className="bg-input border-border/50"
-              required
+              required={!initialData}
             />
             <p className="text-xs text-muted-foreground">
               Un audit SEO & IA sera généré automatiquement à la création du prospect

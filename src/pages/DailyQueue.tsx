@@ -151,16 +151,25 @@ const DailyQueue = () => {
 
   const loadSendCounts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('message_sends')
-        .select('variant_id');
-      if (error) throw error;
+      // Fetch all sends in batches to avoid the 1000-row limit
       const counts: Record<string, number> = {};
-      (data || []).forEach((send: any) => {
-        if (send.variant_id) {
-          counts[send.variant_id] = (counts[send.variant_id] || 0) + 1;
-        }
-      });
+      let from = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('message_sends')
+          .select('variant_id')
+          .range(from, from + batchSize - 1);
+        if (error) throw error;
+        (data || []).forEach((send: any) => {
+          if (send.variant_id) {
+            counts[send.variant_id] = (counts[send.variant_id] || 0) + 1;
+          }
+        });
+        hasMore = (data?.length || 0) === batchSize;
+        from += batchSize;
+      }
       setSendCounts(counts);
     } catch (error) {
       console.error('Failed to load send counts:', error);
