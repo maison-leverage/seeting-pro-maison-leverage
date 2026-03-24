@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RotateCcw, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { Prospect } from "@/types/prospect";
-import { addDays, isPast, isToday, format } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface FollowUpsTodayCardProps {
