@@ -138,7 +138,8 @@ const DailyQueue = () => {
     try {
       const { data, error } = await supabase
         .from('message_variants')
-        .select('*');
+        .select('*')
+        .eq('is_active', true);
       if (error) throw error;
       setVariants((data as MessageVariant[]) || []);
     } catch (error) {
@@ -379,7 +380,6 @@ const DailyQueue = () => {
       message_type: replyToCategory, variant_id: variantId,
     });
 
-    // Mark the matching message_send as got_reply=true (match by prospect + variant)
     try {
       const { data: matchingSend } = await supabase
         .from('message_sends')
@@ -395,19 +395,29 @@ const DailyQueue = () => {
           .from('message_sends')
           .update({ got_reply: true, reply_at: new Date().toISOString() })
           .eq('id', matchingSend.id);
+      } else {
+        await supabase.from('message_sends').insert({
+          prospect_id: prospect.id,
+          variant_id: variantId,
+          user_id: session.user.id,
+          category: replyToCategory,
+          sent_at: new Date().toISOString(),
+          got_reply: true,
+          reply_at: new Date().toISOString(),
+        });
       }
     } catch (error) {
       console.error('Failed to update message_send reply status:', error);
     }
 
     await supabase.from('prospects').update({ status: 'reponse' }).eq('id', prospect.id);
-    
+
     const variant = variants.find(v => v.id === variantId);
-    const variantLabel = variant?.name || replyToCategory;
-    toast.success(`Réponse enregistrée ! (${variantLabel})`);
+    toast.success(`Réponse enregistrée ! (${variant?.name || replyToCategory})`);
     setReplyPopoverOpen(null);
     refresh();
     loadTodayCount();
+    loadSendCounts();
   };
 
   const handleNotInterested = async (prospect: Prospect) => {
