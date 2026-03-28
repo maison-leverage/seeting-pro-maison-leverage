@@ -5,10 +5,8 @@ import Sidebar from "@/components/layout/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, SkipForward, MessageCircle, Check, AlertTriangle, Clock, FlaskConical, Brain, XCircle, Paperclip, ChevronDown } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Copy, ExternalLink, Check, AlertTriangle, FlaskConical, Brain, XCircle, Paperclip } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProspects } from "@/hooks/useProspects";
@@ -16,6 +14,7 @@ import { Prospect, ProspectSource } from "@/types/prospect";
 import { isPast, isToday, addDays, differenceInDays, startOfDay, endOfDay } from "date-fns";
 import ResponseAnalyzer from "@/components/prospects/ResponseAnalyzer";
 import AuditButton from "@/components/prospects/AuditButton";
+import ReplyVariantSelector from "@/components/prospects/ReplyVariantSelector";
 import { generateAudit } from "@/utils/auditUtils";
 
 const FOLLOW_UP_DAYS = [4, 10, 15];
@@ -106,7 +105,6 @@ const DailyQueue = () => {
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
   const [editableMessages, setEditableMessages] = useState<Record<string, string>>({});
   const [replyPopoverOpen, setReplyPopoverOpen] = useState<string | null>(null);
-  const [prospectSends, setProspectSends] = useState<Array<{ id: string; category: string; variant_name: string; variant_content: string; sent_at: string }>>([]);
 
   useEffect(() => {
     loadTodayCount();
@@ -369,7 +367,7 @@ const DailyQueue = () => {
     loadSendCounts(); // Refresh counts to maintain 50/50 balance
   };
 
-  const handleReplyReceived = async (prospect: Prospect, replyToCategory?: string) => {
+  const handleReplyReceived = async (prospect: Prospect, replyToCategory: string, variantId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const { data: profile } = await supabase.from('profiles').select('name').eq('id', session.user.id).maybeSingle();
@@ -378,21 +376,16 @@ const DailyQueue = () => {
     await supabase.from('activity_logs').insert({
       type: 'reply_received', user_name: userName, lead_id: prospect.id,
       user_id: session.user.id, prospect_name: prospect.fullName, prospect_company: prospect.company,
-      message_type: replyToCategory || null,
+      message_type: replyToCategory, variant_id: variantId,
     });
 
-    // Mark the matching message_send as got_reply=true
+    // Mark the matching message_send as got_reply=true (match by prospect + variant)
     try {
-      let query = supabase
+      const { data: matchingSend } = await supabase
         .from('message_sends')
         .select('id')
-        .eq('prospect_id', prospect.id);
-
-      if (replyToCategory) {
-        query = query.eq('category', replyToCategory);
-      }
-
-      const { data: matchingSend } = await query
+        .eq('prospect_id', prospect.id)
+        .eq('variant_id', variantId)
         .order('sent_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -409,13 +402,9 @@ const DailyQueue = () => {
 
     await supabase.from('prospects').update({ status: 'reponse' }).eq('id', prospect.id);
     
-    const categoryLabels: Record<string, string> = {
-      followup_1: 'Relance 1',
-      followup_2: 'Relance 2', 
-      followup_3: 'Relance 3',
-    };
-    const label = replyToCategory?.startsWith('first_dm') ? 'Premier DM' : categoryLabels[replyToCategory || ''] || 'message';
-    toast.success(`Réponse enregistrée ! (suite au ${label})`);
+    const variant = variants.find(v => v.id === variantId);
+    const variantLabel = variant?.name || replyToCategory;
+    toast.success(`Réponse enregistrée ! (${variantLabel})`);
     setReplyPopoverOpen(null);
     refresh();
     loadTodayCount();
@@ -660,81 +649,13 @@ const DailyQueue = () => {
                         </Button>
                         {(section.key === 'overdue' || section.key === 'today' || section.key === 'new') && (
                           <>
-                            <Popover open={replyPopoverOpen === item.prospect.id} onOpenChange={async (open) => {
-                              setReplyPopoverOpen(open ? item.prospect.id : null);
-                              if (open) {
-                                // Load actual sends for this prospect
-                                const { data: sends } = await supabase
-                                  .from('message_sends')
-                                  .select('id, category, variant_id, sent_at')
-                                  .eq('prospect_id', item.prospect.id)
-                                  .order('sent_at', { ascending: true });
-                                if (sends && sends.length > 0) {
-                                  const enriched = sends.map(s => {
-                                    const v = variants.find(v => v.id === s.variant_id);
-                                    return {
-                                      id: s.id,
-                                      category: s.category,
-                                      variant_name: v?.name || s.category,
-                                      variant_content: v?.content?.substring(0, 80) || '',
-                                      sent_at: s.sent_at || '',
-                                    };
-                                  });
-                                  setProspectSends(enriched);
-                                } else {
-                                  setProspectSends([]);
-                                }
-                              }
-                            }}>
-                              <PopoverTrigger asChild>
-                                <Button size="sm" variant="outline" className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">
-                                  <MessageCircle className="w-4 h-4 mr-1" /> Réponse reçue <ChevronDown className="w-3 h-3 ml-1" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-72 p-2" align="start">
-                                <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">Suite à quel message ?</p>
-                                {prospectSends.length > 0 ? (
-                                  prospectSends.map((send) => {
-                                    const categoryLabels: Record<string, string> = {
-                                      followup_1: '🔄 Relance 1',
-                                      followup_2: '🔄 Relance 2',
-                                      followup_3: '🔄 Relance 3',
-                                    };
-                                    const label = send.category.startsWith('first_dm') ? '📩 Premier DM' : categoryLabels[send.category] || send.category;
-                                    return (
-                                      <Button
-                                        key={send.id}
-                                        size="sm"
-                                        variant="ghost"
-                                        className="w-full justify-start text-sm h-auto py-2 flex-col items-start"
-                                        onClick={() => handleReplyReceived(item.prospect, send.category)}
-                                      >
-                                        <span className="font-medium">{label} — {send.variant_name}</span>
-                                        {send.variant_content && (
-                                          <span className="text-xs text-muted-foreground truncate w-full text-left">{send.variant_content}…</span>
-                                        )}
-                                      </Button>
-                                    );
-                                  })
-                                ) : (
-                                  <>
-                                    <p className="text-xs text-muted-foreground px-2 py-1">Aucun envoi tracké. Choisir manuellement :</p>
-                                    <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, `first_dm_${item.prospect.source}`)}>
-                                      📩 Premier DM
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_1')}>
-                                      🔄 Relance 1
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_2')}>
-                                      🔄 Relance 2
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_3')}>
-                                      🔄 Relance 3
-                                    </Button>
-                                  </>
-                                )}
-                              </PopoverContent>
-                            </Popover>
+                            <ReplyVariantSelector
+                              prospect={item.prospect}
+                              variants={variants}
+                              isOpen={replyPopoverOpen === item.prospect.id}
+                              onOpenChange={(open) => setReplyPopoverOpen(open ? item.prospect.id : null)}
+                              onSelect={handleReplyReceived}
+                            />
                             <Button size="sm" onClick={() => handleMarkDone(item)} className="bg-green-600 hover:bg-green-700 text-white">
                               <Check className="w-4 h-4 mr-1" /> Fait ✓
                             </Button>
@@ -753,80 +674,14 @@ const DailyQueue = () => {
                         )}
                         {section.key === 'responses' && (
                           <>
-                            <Popover open={replyPopoverOpen === item.prospect.id} onOpenChange={async (open) => {
-                              setReplyPopoverOpen(open ? item.prospect.id : null);
-                              if (open) {
-                                const { data: sends } = await supabase
-                                  .from('message_sends')
-                                  .select('id, category, variant_id, sent_at')
-                                  .eq('prospect_id', item.prospect.id)
-                                  .order('sent_at', { ascending: true });
-                                if (sends && sends.length > 0) {
-                                  const enriched = sends.map(s => {
-                                    const v = variants.find(v => v.id === s.variant_id);
-                                    return {
-                                      id: s.id,
-                                      category: s.category,
-                                      variant_name: v?.name || s.category,
-                                      variant_content: v?.content?.substring(0, 80) || '',
-                                      sent_at: s.sent_at || '',
-                                    };
-                                  });
-                                  setProspectSends(enriched);
-                                } else {
-                                  setProspectSends([]);
-                                }
-                              }
-                            }}>
-                              <PopoverTrigger asChild>
-                                <Button size="sm" variant="outline" className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">
-                                  <MessageCircle className="w-4 h-4 mr-1" /> Quel message a déclenché la réponse ? <ChevronDown className="w-3 h-3 ml-1" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-72 p-2" align="start">
-                                <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">Suite à quel message ?</p>
-                                {prospectSends.length > 0 ? (
-                                  prospectSends.map((send) => {
-                                    const categoryLabels: Record<string, string> = {
-                                      followup_1: '🔄 Relance 1',
-                                      followup_2: '🔄 Relance 2',
-                                      followup_3: '🔄 Relance 3',
-                                    };
-                                    const label = send.category.startsWith('first_dm') ? '📩 Premier DM' : categoryLabels[send.category] || send.category;
-                                    return (
-                                      <Button
-                                        key={send.id}
-                                        size="sm"
-                                        variant="ghost"
-                                        className="w-full justify-start text-sm h-auto py-2 flex-col items-start"
-                                        onClick={() => handleReplyReceived(item.prospect, send.category)}
-                                      >
-                                        <span className="font-medium">{label} — {send.variant_name}</span>
-                                        {send.variant_content && (
-                                          <span className="text-xs text-muted-foreground truncate w-full text-left">{send.variant_content}…</span>
-                                        )}
-                                      </Button>
-                                    );
-                                  })
-                                ) : (
-                                  <>
-                                    <p className="text-xs text-muted-foreground px-2 py-1">Aucun envoi tracké. Choisir manuellement :</p>
-                                    <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, `first_dm_${item.prospect.source}`)}>
-                                      📩 Premier DM
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_1')}>
-                                      🔄 Relance 1
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_2')}>
-                                      🔄 Relance 2
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="w-full justify-start text-sm" onClick={() => handleReplyReceived(item.prospect, 'followup_3')}>
-                                      🔄 Relance 3
-                                    </Button>
-                                  </>
-                                )}
-                              </PopoverContent>
-                            </Popover>
+                            <ReplyVariantSelector
+                              prospect={item.prospect}
+                              variants={variants}
+                              isOpen={replyPopoverOpen === item.prospect.id}
+                              onOpenChange={(open) => setReplyPopoverOpen(open ? item.prospect.id : null)}
+                              onSelect={handleReplyReceived}
+                              buttonLabel="Quel message a déclenché la réponse ?"
+                            />
                             <Button
                               size="sm"
                               onClick={() => setAnalyzingProspectId(
