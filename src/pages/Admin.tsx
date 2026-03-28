@@ -254,7 +254,6 @@ const Admin = () => {
     }
     setAllVariants(variants as MessageVariant[]);
 
-    // Get all message sends
     const { data: sends } = await supabase
       .from("message_sends")
       .select("*");
