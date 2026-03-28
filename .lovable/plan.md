@@ -1,38 +1,44 @@
 
 
-## Sélecteur de relance lors du clic "Réponse reçue"
+## Sélecteur de variantes réelles dans le popover "Réponse reçue"
 
-### Objectif
-Quand l'utilisateur clique "Réponse reçue", au lieu de marquer automatiquement le dernier envoi, afficher un petit menu pour choisir à quelle relance le prospect a répondu (Premier DM, Relance 1, Relance 2, Relance 3). Cela permet de savoir précisément quel message a fonctionné pour l'A/B test.
+### Problème actuel
+Le fallback manuel affiche juste "Premier DM", "Relance 1", etc. sans distinguer les variantes A/B. Et même quand il y a des envois trackés, le groupement n'est pas clair. On veut que le sélecteur affiche **toutes les variantes de la bibliothèque**, groupées par catégorie, pour un tracking A/B précis.
 
-### Changements
+### Solution
 
-**Fichier : `src/pages/DailyQueue.tsx`**
+**Fichier : `src/pages/DailyQueue.tsx`** — Refactorer les deux popovers (sections overdue/today/new + responses)
 
-1. **Ajouter un state pour le sélecteur** : `replySelectProspect` qui stocke le prospect pour lequel on choisit la relance.
+1. **Toujours afficher toutes les variantes actives** au lieu de se baser uniquement sur les `message_sends` du prospect. Le popover liste les variantes groupées par catégorie depuis la bibliothèque (déjà chargées dans `variants`).
 
-2. **Modifier le bouton "Réponse reçue"** : Au lieu d'appeler directement `handleReplyReceived`, il ouvre un petit Popover/Dialog avec les options :
-   - Premier DM
-   - Relance 1 (J+4)
-   - Relance 2 (J+10)
-   - Relance 3 (J+15)
+2. **Groupement par catégorie avec labels lisibles** :
+```text
+📩 Premier DM — Inbound
+   ├─ Variante A (Curiosité)
+   └─ Variante B (Audit rapide)
+📩 Premier DM — Visiteur Profil
+   ├─ Variante A (Timide)
+   └─ Variante B (Audit concurrents)
+📩 Premier DM — Relation Dormante
+   ├─ Variante A (Direct)
+   └─ Variante B (Big Idea IA)
+🔄 Relance 1
+   ├─ Variante A (Mini-audit PDF)
+   └─ Variante B (Rappel doux)
+🔄 Relance 2
+   └─ Variante A (Concurrents)
+```
 
-3. **Modifier `handleReplyReceived`** : Ajouter un paramètre `replyToCategory` (ex: `first_dm_outbound`, `followup_1`, `followup_2`, `followup_3`). Au lieu de chercher le "dernier" `message_send`, chercher celui qui correspond à la catégorie sélectionnée pour ce prospect, et le marquer `got_reply: true`.
+3. **Au clic sur une variante** : appeler `handleReplyReceived(prospect, category)` avec le `variant_id` en plus, pour marquer le bon `message_send` (s'il existe) OU logger l'activité avec la variante exacte.
 
-4. **UI** : Utiliser un composant `Popover` avec des boutons pour chaque option. Quand l'utilisateur clique une option, ça appelle `handleReplyReceived(prospect, category)` puis ferme le popover.
+4. **Modifier `handleReplyReceived`** pour accepter un `variantId` optionnel. Si un `message_send` existe pour ce prospect + variant_id, marquer `got_reply: true`. Sinon, logger quand même l'activité avec le `variant_id` pour le tracking.
+
+5. **Extraire le popover dans un composant `ReplyVariantSelector`** pour éviter la duplication du code entre les sections.
 
 ### Détails techniques
 
-```text
-Clic "Réponse reçue"
-  └─> Popover s'ouvre
-       ├─ "Premier DM"     → handleReplyReceived(prospect, 'first_dm_%source%')
-       ├─ "Relance 1 (J+4)"  → handleReplyReceived(prospect, 'followup_1')
-       ├─ "Relance 2 (J+10)" → handleReplyReceived(prospect, 'followup_2')
-       └─ "Relance 3 (J+15)" → handleReplyReceived(prospect, 'followup_3')
-```
-
-- La requête Supabase dans `handleReplyReceived` filtrera par `prospect_id` ET `category` pour trouver le bon `message_send` à marquer comme ayant reçu une réponse
-- Si aucun `message_send` n'est trouvé pour cette catégorie (envoi pas encore tracké), on marque quand même le prospect en statut `reponse` et on log l'activité
-- Le `activity_log` inclura aussi la catégorie pour savoir quel type de message a généré la réponse
+- Les `variants` sont déjà chargées au mount dans le state. On les groupe avec `Object.groupBy` ou reduce par `category`.
+- Labels des catégories : map `first_dm_inbound` → "Premier DM — Inbound", `followup_1` → "Relance 1", etc.
+- Le `PopoverContent` utilisera un `ScrollArea` pour gérer beaucoup de variantes.
+- Signature mise à jour : `handleReplyReceived(prospect, category, variantId?)`.
 
