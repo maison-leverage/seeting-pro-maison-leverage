@@ -9,15 +9,25 @@ import { toast } from "sonner";
 import { Prospect, ProspectStatus, ProspectSource, ProspectQualification, ProspectHype } from "@/types/prospect";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Globe } from "lucide-react";
+import { CalendarIcon, Globe, FlaskConical } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProspectFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (prospect: Partial<Prospect>) => void;
+  onSubmit: (prospect: Partial<Prospect> & { _variantId?: string }) => void;
   initialData?: Prospect;
+}
+
+interface MessageVariant {
+  id: string;
+  name: string;
+  category: string;
+  content: string;
+  is_active: boolean;
 }
 
 const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFormProps) => {
@@ -39,13 +49,19 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
   });
   const [reminderDate, setReminderDate] = useState<Date | undefined>(initialData?.reminderDate ? new Date(initialData.reminderDate) : undefined);
   const [firstMessageDate, setFirstMessageDate] = useState<Date | undefined>(initialData?.firstMessageDate ? new Date(initialData.firstMessageDate) : undefined);
+  const [firstDMSent, setFirstDMSent] = useState(false);
+  const [variants, setVariants] = useState<MessageVariant[]>([]);
+  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
 
   useEffect(() => {
     if (open) {
+      loadVariants();
       if (initialData) {
         setFormData(initialData);
         setReminderDate(initialData.reminderDate ? new Date(initialData.reminderDate) : undefined);
         setFirstMessageDate(initialData.firstMessageDate ? new Date(initialData.firstMessageDate) : undefined);
+        setFirstDMSent(false);
+        setSelectedVariantId("");
       } else {
         setFormData({
           fullName: "",
@@ -65,9 +81,23 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
         });
         setReminderDate(undefined);
         setFirstMessageDate(undefined);
+        setFirstDMSent(false);
+        setSelectedVariantId("");
       }
     }
   }, [open, initialData]);
+
+  const loadVariants = async () => {
+    const { data } = await supabase
+      .from('message_variants')
+      .select('*')
+      .eq('is_active', true);
+    setVariants((data as MessageVariant[]) || []);
+  };
+
+  // Filter variants by source category for the first DM
+  const sourceCategory = `first_dm_${formData.source || 'outbound'}`;
+  const availableVariants = variants.filter(v => v.category === sourceCategory);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +110,10 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
       toast.error("L'URL du site web est obligatoire");
       return;
     }
+    if (firstDMSent && !selectedVariantId) {
+      toast.error("Sélectionne le type de message envoyé");
+      return;
+    }
     // Auto-complete URL if missing protocol
     let websiteUrl = rawWebsiteUrl;
     if (websiteUrl && !websiteUrl.startsWith("http://") && !websiteUrl.startsWith("https://")) {
@@ -89,11 +123,14 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
       toast.error("L'URL du site doit commencer par http:// ou https://");
       return;
     }
-    const prospectData: Partial<Prospect> = {
+
+    const now = new Date();
+    const prospectData: Partial<Prospect> & { _variantId?: string } = {
       ...formData,
       websiteUrl: websiteUrl || undefined,
       reminderDate: reminderDate?.toISOString(),
-      firstMessageDate: firstMessageDate?.toISOString(),
+      firstMessageDate: firstDMSent ? (firstMessageDate?.toISOString() || now.toISOString()) : firstMessageDate?.toISOString(),
+      status: firstDMSent ? "premier_dm" : formData.status,
       updatedAt: new Date().toISOString(),
       ...(!initialData && {
         createdAt: new Date().toISOString(),
@@ -107,7 +144,8 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           createdBy: "user"
         }],
         followUpCount: 0
-      })
+      }),
+      ...(firstDMSent && { _variantId: selectedVariantId }),
     };
     onSubmit(prospectData);
     onOpenChange(false);
@@ -187,7 +225,10 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Source</Label>
-              <Select value={formData.source} onValueChange={(value: ProspectSource) => setFormData({ ...formData, source: value })}>
+              <Select value={formData.source} onValueChange={(value: ProspectSource) => {
+                setFormData({ ...formData, source: value });
+                setSelectedVariantId("");
+              }}>
                 <SelectTrigger className="bg-input border-border/50">
                   <SelectValue />
                 </SelectTrigger>
@@ -202,7 +243,7 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
 
             <div className="space-y-2">
               <Label>Statut</Label>
-              <Select value={formData.status} onValueChange={(value: ProspectStatus) => setFormData({ ...formData, status: value })}>
+              <Select value={firstDMSent ? "premier_dm" : formData.status} onValueChange={(value: ProspectStatus) => setFormData({ ...formData, status: value })} disabled={firstDMSent}>
                 <SelectTrigger className="bg-input border-border/50">
                   <SelectValue />
                 </SelectTrigger>
@@ -254,6 +295,50 @@ const ProspectForm = ({ open, onOpenChange, onSubmit, initialData }: ProspectFor
               </SelectContent>
             </Select>
           </div>
+
+          {/* Premier DM envoyé — only for new prospects */}
+          {!initialData && (
+            <div className="p-4 rounded-lg border border-border/50 bg-muted/30 space-y-3">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="firstDMSent"
+                  checked={firstDMSent}
+                  onCheckedChange={(checked) => {
+                    setFirstDMSent(!!checked);
+                    if (!checked) setSelectedVariantId("");
+                  }}
+                />
+                <Label htmlFor="firstDMSent" className="flex items-center gap-2 cursor-pointer">
+                  <FlaskConical className="h-4 w-4 text-purple-500" />
+                  Premier DM déjà envoyé
+                </Label>
+              </div>
+
+              {firstDMSent && (
+                <div className="space-y-2 pl-7">
+                  <Label className="text-sm">Quel message a été envoyé ? *</Label>
+                  {availableVariants.length > 0 ? (
+                    <Select value={selectedVariantId} onValueChange={setSelectedVariantId}>
+                      <SelectTrigger className="bg-input border-border/50">
+                        <SelectValue placeholder="Sélectionner la variante..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-border/50">
+                        {availableVariants.map(v => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Aucune variante active pour la source "{formData.source}". Ajoute-en dans Admin &gt; A/B Test.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Conditional: Proposed slots */}
           {showProposedSlots && (
