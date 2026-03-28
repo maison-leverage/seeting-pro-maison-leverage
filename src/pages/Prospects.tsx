@@ -204,17 +204,40 @@ const Prospects = () => {
         return;
       }
 
-      if (prospectData.firstMessageDate && newProspect) {
+      if (newProspect) {
         const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).maybeSingle();
         const userName = profile?.name || user.email || 'Utilisateur';
-        await supabase.from('activity_logs').insert({
-          type: 'first_dm',
-          user_name: userName,
-          lead_id: newProspect.id,
-          user_id: user.id,
-          prospect_name: prospectData.fullName,
-          prospect_company: prospectData.company
-        });
+
+        // Track first DM variant if selected
+        const variantId = (prospectData as any)._variantId;
+        if (variantId) {
+          await supabase.from('message_sends').insert({
+            prospect_id: newProspect.id,
+            variant_id: variantId,
+            user_id: user.id,
+            category: `first_dm_${prospectData.source || 'outbound'}`,
+            got_reply: false,
+          });
+
+          await supabase.from('activity_logs').insert({
+            type: 'first_dm',
+            user_name: userName,
+            lead_id: newProspect.id,
+            user_id: user.id,
+            prospect_name: prospectData.fullName,
+            prospect_company: prospectData.company,
+            variant_id: variantId,
+          });
+        } else if (prospectData.firstMessageDate) {
+          await supabase.from('activity_logs').insert({
+            type: 'first_dm',
+            user_name: userName,
+            lead_id: newProspect.id,
+            user_id: user.id,
+            prospect_name: prospectData.fullName,
+            prospect_company: prospectData.company,
+          });
+        }
       }
 
       // Auto-trigger audit generation via Railway API (non-blocking)
