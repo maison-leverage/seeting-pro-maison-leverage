@@ -16,6 +16,7 @@ import { Prospect, ProspectSource } from "@/types/prospect";
 import { isPast, isToday, addDays, differenceInDays, startOfDay, endOfDay } from "date-fns";
 import ResponseAnalyzer from "@/components/prospects/ResponseAnalyzer";
 import AuditButton from "@/components/prospects/AuditButton";
+import ReplyVariantSelector from "@/components/prospects/ReplyVariantSelector";
 import { generateAudit } from "@/utils/auditUtils";
 
 const FOLLOW_UP_DAYS = [4, 10, 15];
@@ -106,7 +107,6 @@ const DailyQueue = () => {
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
   const [editableMessages, setEditableMessages] = useState<Record<string, string>>({});
   const [replyPopoverOpen, setReplyPopoverOpen] = useState<string | null>(null);
-  const [prospectSends, setProspectSends] = useState<Array<{ id: string; category: string; variant_name: string; variant_content: string; sent_at: string }>>([]);
 
   useEffect(() => {
     loadTodayCount();
@@ -369,7 +369,7 @@ const DailyQueue = () => {
     loadSendCounts(); // Refresh counts to maintain 50/50 balance
   };
 
-  const handleReplyReceived = async (prospect: Prospect, replyToCategory?: string) => {
+  const handleReplyReceived = async (prospect: Prospect, replyToCategory: string, variantId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const { data: profile } = await supabase.from('profiles').select('name').eq('id', session.user.id).maybeSingle();
@@ -378,21 +378,16 @@ const DailyQueue = () => {
     await supabase.from('activity_logs').insert({
       type: 'reply_received', user_name: userName, lead_id: prospect.id,
       user_id: session.user.id, prospect_name: prospect.fullName, prospect_company: prospect.company,
-      message_type: replyToCategory || null,
+      message_type: replyToCategory, variant_id: variantId,
     });
 
-    // Mark the matching message_send as got_reply=true
+    // Mark the matching message_send as got_reply=true (match by prospect + variant)
     try {
-      let query = supabase
+      const { data: matchingSend } = await supabase
         .from('message_sends')
         .select('id')
-        .eq('prospect_id', prospect.id);
-
-      if (replyToCategory) {
-        query = query.eq('category', replyToCategory);
-      }
-
-      const { data: matchingSend } = await query
+        .eq('prospect_id', prospect.id)
+        .eq('variant_id', variantId)
         .order('sent_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -409,13 +404,9 @@ const DailyQueue = () => {
 
     await supabase.from('prospects').update({ status: 'reponse' }).eq('id', prospect.id);
     
-    const categoryLabels: Record<string, string> = {
-      followup_1: 'Relance 1',
-      followup_2: 'Relance 2', 
-      followup_3: 'Relance 3',
-    };
-    const label = replyToCategory?.startsWith('first_dm') ? 'Premier DM' : categoryLabels[replyToCategory || ''] || 'message';
-    toast.success(`Réponse enregistrée ! (suite au ${label})`);
+    const variant = variants.find(v => v.id === variantId);
+    const variantLabel = variant?.name || replyToCategory;
+    toast.success(`Réponse enregistrée ! (${variantLabel})`);
     setReplyPopoverOpen(null);
     refresh();
     loadTodayCount();
