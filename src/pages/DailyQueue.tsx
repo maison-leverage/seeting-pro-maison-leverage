@@ -274,8 +274,14 @@ const DailyQueue = () => {
     });
   });
 
-  // 3. Responses to handle
-  activeProspects.filter(p => p.status === 'reponse').forEach(p => {
+  // 3. Responses to handle — only those updated today
+  const todayStart = startOfDay(new Date());
+  const todayEnd = endOfDay(new Date());
+  activeProspects.filter(p => {
+    if (p.status !== 'reponse') return false;
+    const updatedAt = new Date(p.updatedAt || p.createdAt);
+    return updatedAt >= todayStart && updatedAt <= todayEnd;
+  }).forEach(p => {
     queueItems.push({ prospect: p, section: 'responses', message: '' });
   });
 
