@@ -1,44 +1,42 @@
 
 
-## Sélecteur de variantes réelles dans le popover "Réponse reçue"
+## Problème identifié
 
-### Problème actuel
-Le fallback manuel affiche juste "Premier DM", "Relance 1", etc. sans distinguer les variantes A/B. Et même quand il y a des envois trackés, le groupement n'est pas clair. On veut que le sélecteur affiche **toutes les variantes de la bibliothèque**, groupées par catégorie, pour un tracking A/B précis.
+La section "Réponses à traiter" affiche **34 réponses** (= toutes les réponses depuis le début) au lieu de seulement celles du jour. La cause : le filtre utilise `updated_at` du prospect, mais **il n'y a aucun trigger** sur la table `prospects` pour mettre à jour ce champ automatiquement. Donc `updated_at` reste à la date de création et le filtre ne fonctionne jamais correctement.
 
-### Solution
+## Solution
 
-**Fichier : `src/pages/DailyQueue.tsx`** — Refactorer les deux popovers (sections overdue/today/new + responses)
+Deux corrections complémentaires :
 
-1. **Toujours afficher toutes les variantes actives** au lieu de se baser uniquement sur les `message_sends` du prospect. Le popover liste les variantes groupées par catégorie depuis la bibliothèque (déjà chargées dans `variants`).
+### 1. Créer le trigger `updated_at` manquant (migration SQL)
 
-2. **Groupement par catégorie avec labels lisibles** :
-```text
-📩 Premier DM — Inbound
-   ├─ Variante A (Curiosité)
-   └─ Variante B (Audit rapide)
-📩 Premier DM — Visiteur Profil
-   ├─ Variante A (Timide)
-   └─ Variante B (Audit concurrents)
-📩 Premier DM — Relation Dormante
-   ├─ Variante A (Direct)
-   └─ Variante B (Big Idea IA)
-🔄 Relance 1
-   ├─ Variante A (Mini-audit PDF)
-   └─ Variante B (Rappel doux)
-🔄 Relance 2
-   └─ Variante A (Concurrents)
-```
+Attacher la fonction `update_updated_at_column()` (qui existe déjà) à la table `prospects` via un trigger `BEFORE UPDATE`. Cela garantit que `updated_at` est mis à jour à chaque modification de prospect.
 
-3. **Au clic sur une variante** : appeler `handleReplyReceived(prospect, category)` avec le `variant_id` en plus, pour marquer le bon `message_send` (s'il existe) OU logger l'activité avec la variante exacte.
+De plus, backfiller les prospects existants au statut `reponse` : mettre leur `updated_at` à la date de leur dernière activité `reply_received` dans `activity_logs`.
 
-4. **Modifier `handleReplyReceived`** pour accepter un `variantId` optionnel. Si un `message_send` existe pour ce prospect + variant_id, marquer `got_reply: true`. Sinon, logger quand même l'activité avec le `variant_id` pour le tracking.
+### 2. Changer le filtre "Réponses" pour utiliser `activity_logs` (plus fiable)
 
-5. **Extraire le popover dans un composant `ReplyVariantSelector`** pour éviter la duplication du code entre les sections.
+**Fichier : `src/pages/DailyQueue.tsx`**
 
-### Détails techniques
+Au lieu de filtrer sur `updatedAt` du prospect (fragile), charger les IDs des prospects ayant un `activity_log` de type `reply_received` créé aujourd'hui. Filtrer la section "Réponses à traiter" avec cette liste.
 
-- Les `variants` sont déjà chargées au mount dans le state. On les groupe avec `Object.groupBy` ou reduce par `category`.
-- Labels des catégories : map `first_dm_inbound` → "Premier DM — Inbound", `followup_1` → "Relance 1", etc.
-- Le `PopoverContent` utilisera un `ScrollArea` pour gérer beaucoup de variantes.
-- Signature mise à jour : `handleReplyReceived(prospect, category, variantId?)`.
+- Ajouter un state `todayReplyProspectIds: Set<string>` alimenté par une requête sur `activity_logs` filtrée sur `created_at >= todayStart`.
+- Remplacer le filtre actuel (lignes 280-284) :
+  ```
+  // Avant (ne fonctionne pas)
+  if (p.status !== 'reponse') return false;
+  const updatedAt = new Date(p.updatedAt || p.createdAt);
+  return updatedAt >= todayStart && updatedAt <= todayEnd;
+
+  // Après (fiable)
+  if (p.status !== 'reponse') return false;
+  return todayReplyProspectIds.has(p.id);
+  ```
+- La requête sera intégrée dans `loadTodayCount()` qui s'exécute déjà au mount et après chaque action.
+
+### Résultat attendu
+
+- Le compteur "Réponses" repart à **0 chaque jour**
+- Seuls les prospects ayant reçu une réponse **aujourd'hui** apparaissent dans la section
+- Le trigger corrige aussi le problème pour tout futur usage de `updated_at`
 
