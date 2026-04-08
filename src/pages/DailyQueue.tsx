@@ -120,19 +120,20 @@ const DailyQueue = () => {
 
     const { data: todayLogs } = await supabase
       .from('activity_logs')
-      .select('type')
+      .select('type, lead_id')
       .gte('created_at', start)
       .lte('created_at', end);
 
     const logs = todayLogs || [];
     const firstDMs = logs.filter(l => l.type === 'first_dm').length;
     const followUps = logs.filter(l => l.type === 'follow_up_dm').length;
-    const replies = logs.filter(l => l.type === 'reply_received').length;
+    const replies = logs.filter(l => l.type === 'reply_received');
 
     setTodayFirstDMCount(firstDMs);
     setTodayFollowUpCount(followUps);
-    setTodayReplyCount(replies);
+    setTodayReplyCount(replies.length);
     setTodayActivityCount(firstDMs + followUps);
+    setTodayReplyProspectIds(new Set(replies.map(r => r.lead_id)));
   };
 
   const loadVariants = async () => {
