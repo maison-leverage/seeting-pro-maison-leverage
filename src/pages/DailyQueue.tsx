@@ -105,6 +105,7 @@ const DailyQueue = () => {
   const [analyzingProspectId, setAnalyzingProspectId] = useState<string | null>(null);
   const [editableMessages, setEditableMessages] = useState<Record<string, string>>({});
   const [replyPopoverOpen, setReplyPopoverOpen] = useState<string | null>(null);
+  const [todayReplyProspectIds, setTodayReplyProspectIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadTodayCount();
@@ -119,19 +120,20 @@ const DailyQueue = () => {
 
     const { data: todayLogs } = await supabase
       .from('activity_logs')
-      .select('type')
+      .select('type, lead_id')
       .gte('created_at', start)
       .lte('created_at', end);
 
     const logs = todayLogs || [];
     const firstDMs = logs.filter(l => l.type === 'first_dm').length;
     const followUps = logs.filter(l => l.type === 'follow_up_dm').length;
-    const replies = logs.filter(l => l.type === 'reply_received').length;
+    const replies = logs.filter(l => l.type === 'reply_received');
 
     setTodayFirstDMCount(firstDMs);
     setTodayFollowUpCount(followUps);
-    setTodayReplyCount(replies);
+    setTodayReplyCount(replies.length);
     setTodayActivityCount(firstDMs + followUps);
+    setTodayReplyProspectIds(new Set(replies.map(r => r.lead_id)));
   };
 
   const loadVariants = async () => {
@@ -274,13 +276,10 @@ const DailyQueue = () => {
     });
   });
 
-  // 3. Responses to handle — only those updated today
-  const todayStart = startOfDay(new Date());
-  const todayEnd = endOfDay(new Date());
+  // 3. Responses to handle — only those with a reply_received activity log today
   activeProspects.filter(p => {
     if (p.status !== 'reponse') return false;
-    const updatedAt = new Date(p.updatedAt || p.createdAt);
-    return updatedAt >= todayStart && updatedAt <= todayEnd;
+    return todayReplyProspectIds.has(p.id);
   }).forEach(p => {
     queueItems.push({ prospect: p, section: 'responses', message: '' });
   });
